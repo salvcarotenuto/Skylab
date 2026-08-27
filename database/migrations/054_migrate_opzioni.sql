@@ -1,0 +1,8 @@
+UPDATE opzioni
+SET Nome = TRIM(Nome);
+
+ALTER TABLE opzioni
+  CHANGE COLUMN Nome Chiave VARCHAR(100) NOT NULL,
+  MODIFY COLUMN Valore TEXT NULL,
+  DROP COLUMN Utente,
+  ADD CONSTRAINT PK_opzioni PRIMARY KEY (Chiave);

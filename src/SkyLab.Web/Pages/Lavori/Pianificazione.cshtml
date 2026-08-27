@@ -1,0 +1,57 @@
+@page
+@model SkyLab.Web.Pages.Lavori.PianificazioneModel
+@{ ViewData["Title"] = "Pianificazione lavori"; }
+
+<nav class="module-nav mb-3" aria-label="Navigazione lavorazione">
+    <a class="module-home" asp-page="/Index">← Menu generale</a>
+    <span>Lavorazione · Pianificazione</span>
+</nav>
+
+<header class="planning-heading">
+    <div><p class="eyebrow">Back-office</p><h1>Interventi in scadenza</h1><p>Manutenzioni e revisioni da trasformare in lavori programmati.</p></div>
+    <div class="planning-counter"><strong>@Model.Clienti.Count</strong><span>clienti</span><strong>@Model.TotaleMacchine</strong><span>scadenze</span></div>
+</header>
+
+@{
+    var dal = Model.Dal!.Value.Date;
+    var al = Model.Al!.Value.Date;
+    var durata = (al - dal).Days + 1;
+    var precedenteDal = dal.AddDays(-durata);
+    var precedenteAl = dal.AddDays(-1);
+    var successivoDal = al.AddDays(1);
+    var successivoAl = al.AddDays(durata);
+}
+<nav class="date-navigator" aria-label="Navigazione periodo scadenze">
+    <a class="date-step" asp-route-dal="@precedenteDal.ToString("yyyy-MM-dd")" asp-route-al="@precedenteAl.ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto" title="Periodo precedente">←</a>
+    <div><span>Periodo visualizzato</span><strong>@dal.ToString("dd MMM yyyy") – @al.ToString("dd MMM yyyy")</strong></div>
+    <a class="date-today" asp-route-dal="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-al="@DateTime.Today.AddMonths(6).ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto">Oggi</a>
+    <a class="date-step" asp-route-dal="@successivoDal.ToString("yyyy-MM-dd")" asp-route-al="@successivoAl.ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto" title="Periodo successivo">→</a>
+</nav>
+
+<form method="get" class="planning-filters">
+    <label>Dal<input asp-for="Dal" type="date" class="form-control" /></label>
+    <label>Al<input asp-for="Al" type="date" class="form-control" /></label>
+    <label class="filter-search">Cerca cliente<input asp-for="Cerca" class="form-control" placeholder="Nome del cliente" /></label>
+    <label>Tipologia<select asp-for="Tipologia" class="form-select"><option value="0">Tutte</option><option value="1">Azienda</option><option value="2">Privato</option></select></label>
+    <label>Distretto<select asp-for="Distretto" class="form-select"><option value="0">Tutti</option>@foreach(var d in Model.Distretti){<option value="@d.Code">@d.Description</option>}</select></label>
+    <button class="btn btn-primary" type="submit">Applica filtri</button>
+</form>
+
+<div class="planning-list">
+@if (Model.Clienti.Count == 0)
+{
+    <div class="empty-panel"><h2>Nessuna scadenza</h2><p>Non risultano macchine da pianificare nell’intervallo selezionato.</p></div>
+}
+@foreach (var cliente in Model.Clienti)
+{
+    <article class="planning-customer">
+        <header><div><span class="status">@(cliente.CustomerType == 1 ? "Azienda" : cliente.CustomerType == 2 ? "Privato" : "Cliente")</span><h2>@cliente.CustomerName</h2><p>@cliente.City · @cliente.District</p></div><button class="btn btn-outline-primary" disabled title="La creazione della scheda sarà il prossimo passaggio">Pianifica lavoro</button></header>
+        <div class="due-assets">
+        @foreach (var item in cliente.Items)
+        {
+            <div class="due-asset"><div><strong>@(string.IsNullOrWhiteSpace(item.ArticleDescription) ? item.ArticleCode : item.ArticleDescription)</strong><span>@item.ArticleCode · @item.Category</span></div><div><span>Ultimo intervento</span><strong>@(item.LastServiceDate?.ToString("dd/MM/yyyy") ?? "—")</strong></div><div><span>Prossima data</span><strong>@item.DueDate.ToString("dd/MM/yyyy")</strong></div></div>
+        }
+        </div>
+    </article>
+}
+</div>

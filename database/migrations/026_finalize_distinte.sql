@@ -1,0 +1,16 @@
+ALTER TABLE distinte
+  MODIFY COLUMN Prodotto VARCHAR(30) NOT NULL,
+  ADD CONSTRAINT PK_distinte PRIMARY KEY (Prodotto),
+  ADD CONSTRAINT FK_distinte_articoli FOREIGN KEY (Prodotto)
+    REFERENCES articoli(Codice) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+ALTER TABLE distintemp
+  MODIFY COLUMN Prodotto VARCHAR(30) NOT NULL,
+  MODIFY COLUMN Riga SMALLINT NOT NULL,
+  MODIFY COLUMN Articolo VARCHAR(30) NOT NULL,
+  ADD CONSTRAINT PK_distintemp PRIMARY KEY (Prodotto,Riga),
+  ADD INDEX IX_distintemp_Articolo (Articolo),
+  ADD CONSTRAINT FK_distintemp_distinte FOREIGN KEY (Prodotto)
+    REFERENCES distinte(Prodotto) ON UPDATE CASCADE ON DELETE CASCADE,
+  ADD CONSTRAINT FK_distintemp_articoli FOREIGN KEY (Articolo)
+    REFERENCES articoli(Codice) ON UPDATE CASCADE ON DELETE RESTRICT;

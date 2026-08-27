@@ -1,0 +1,6 @@
+ALTER TABLE movcont
+  DROP COLUMN Segno,
+  DROP COLUMN PrtAnno,
+  DROP COLUMN PrtSett,
+  DROP COLUMN PrtCode,
+  DROP COLUMN NumScad;

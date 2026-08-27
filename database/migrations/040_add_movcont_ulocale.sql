@@ -1,0 +1,2 @@
+ALTER TABLE movcont
+  ADD COLUMN ULocale SMALLINT NULL AFTER Ditta;

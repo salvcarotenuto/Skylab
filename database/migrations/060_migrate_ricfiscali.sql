@@ -1,0 +1,49 @@
+-- Completa RicFiscali e RicFiscaliRg secondo il modello documentale SkyLab.
+
+CREATE TABLE ricfiscali_legacy_backup_060 LIKE RicFiscali;
+INSERT INTO ricfiscali_legacy_backup_060 SELECT * FROM RicFiscali;
+
+CREATE TABLE ricfiscalirg_legacy_backup_060 LIKE RicFiscaliRg;
+INSERT INTO ricfiscalirg_legacy_backup_060 SELECT * FROM RicFiscaliRg;
+
+ALTER TABLE RicFiscali
+    ADD COLUMN ID INT NOT NULL AUTO_INCREMENT FIRST,
+    MODIFY COLUMN Anno SMALLINT NOT NULL,
+    MODIFY COLUMN Codice INT NOT NULL,
+    ADD COLUMN Pagamento SMALLINT NULL DEFAULT NULL AFTER Agente,
+    MODIFY COLUMN Provvigioni DECIMAL(5,2) NULL DEFAULT 0.00,
+    MODIFY COLUMN Merce DECIMAL(12,2) NULL DEFAULT 0.00,
+    MODIFY COLUMN Lavoro DECIMAL(12,2) NULL DEFAULT 0.00,
+    MODIFY COLUMN Sconto DECIMAL(5,2) NULL DEFAULT 0.00,
+    MODIFY COLUMN Imponibile DECIMAL(12,2) NULL DEFAULT 0.00,
+    MODIFY COLUMN Iva DECIMAL(12,2) NULL DEFAULT 0.00,
+    MODIFY COLUMN Totale DECIMAL(12,2) NULL DEFAULT 0.00,
+    ADD PRIMARY KEY (ID),
+    ADD UNIQUE KEY UX_RicFiscali_Anno_Codice (Anno, Codice),
+    ADD KEY IX_RicFiscali_DataDoc (DataDoc),
+    ADD KEY IX_RicFiscali_Ditta (Ditta),
+    ADD KEY IX_RicFiscali_Pagamento (Pagamento),
+    ADD CONSTRAINT FK_RicFiscali_Pagamenti
+        FOREIGN KEY (Pagamento) REFERENCES Pagamenti (Codice)
+        ON UPDATE CASCADE ON DELETE RESTRICT;
+
+ALTER TABLE RicFiscaliRg
+    ADD COLUMN ID INT NOT NULL FIRST,
+    MODIFY COLUMN Anno SMALLINT NOT NULL,
+    MODIFY COLUMN Codice INT NOT NULL,
+    MODIFY COLUMN Riga SMALLINT NOT NULL,
+    MODIFY COLUMN Quantita DECIMAL(12,3) NULL DEFAULT 0.000,
+    MODIFY COLUMN Prezzo DECIMAL(12,3) NULL DEFAULT 0.000,
+    MODIFY COLUMN Sconto DECIMAL(5,2) NULL DEFAULT 0.00,
+    MODIFY COLUMN Importo DECIMAL(12,2) NULL DEFAULT 0.00,
+    ADD COLUMN CodIva VARCHAR(12) NULL DEFAULT NULL AFTER Importo,
+    ADD PRIMARY KEY (ID, Riga),
+    ADD KEY IX_RicFiscaliRg_Anno_Codice (Anno, Codice),
+    ADD KEY IX_RicFiscaliRg_Articolo (Articolo),
+    ADD KEY IX_RicFiscaliRg_CodIva (CodIva),
+    ADD CONSTRAINT FK_RicFiscaliRg_RicFiscali
+        FOREIGN KEY (ID) REFERENCES RicFiscali (ID)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT FK_RicFiscaliRg_CodiciIva
+        FOREIGN KEY (CodIva) REFERENCES CodiciIva (Codice)
+        ON UPDATE CASCADE ON DELETE RESTRICT;

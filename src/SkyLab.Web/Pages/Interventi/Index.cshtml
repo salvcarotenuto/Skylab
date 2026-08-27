@@ -1,0 +1,13 @@
+@page
+@model SkyLab.Web.Pages.Interventi.IndexModel
+@{ ViewData["Title"]="Interventi"; }
+<nav class="module-nav mb-3" aria-label="Navigazione lavorazione">
+ <a class="module-home" asp-page="/Index">← Menu generale</a>
+ <span>Lavorazione</span>
+</nav>
+<div class="d-flex justify-content-between align-items-end mb-3"><div><span class="eyebrow">Agenda tecnico</span><h1 class="h2 mb-0">Interventi di oggi</h1></div><span class="status">@Model.Items.Count lavori</span></div>
+<div class="d-grid gap-3">
+@foreach(var item in Model.Items){
+ <article class="job-card"><div class="d-flex justify-content-between gap-3"><div><span class="status">@item.Status</span><h2 class="h4 mt-2 mb-1">@item.Customer</h2><div class="text-secondary">@item.Site</div></div><strong>@item.ScheduledAt.ToString("HH:mm")</strong></div><hr/><p class="mb-1"><strong>@item.Kind</strong></p><p class="text-secondary">@item.Plant</p><a class="btn btn-primary w-100" asp-page="Detail" asp-route-id="@item.Id">Apri intervento</a></article>
+}
+</div>

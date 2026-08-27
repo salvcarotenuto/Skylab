@@ -1,0 +1,4 @@
+@page
+@model SkyLab.Web.Pages.Clienti.Sedi.IndexModel
+@{ViewData["Title"]="Sedi di "+Model.Cliente;}
+<nav class="module-nav mb-3"><a class="module-home" asp-page="../Edit" asp-route-id="@Model.ClienteId">← Anagrafica cliente</a><span>Sedi aggiuntive</span></nav><header class="planning-heading"><div><p class="eyebrow">Cliente #@Model.ClienteId</p><h1>@Model.Cliente</h1><p>Sedi operative diverse dall’indirizzo principale.</p></div><a class="btn btn-primary" asp-page="Edit" asp-route-clienteId="@Model.ClienteId">Nuova sede</a></header><div class="site-list">@foreach(var s in Model.Items){<article class="site-card"><div><span class="status">Sede @s.Code</span><h2>@s.Name</h2><p>@s.Street · @s.City @s.Province</p></div><div><span>Referente</span><strong>@s.Contact</strong></div><a class="btn btn-outline-primary" asp-page="Edit" asp-route-id="@s.Id">Modifica</a></article>}</div>

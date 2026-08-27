@@ -1,0 +1,35 @@
+@page
+@model SkyLab.Web.Pages.Lavori.MacchineInstallateModel
+@{ ViewData["Title"] = "Macchine installate"; }
+
+<nav class="module-nav mb-3" aria-label="Navigazione lavorazione">
+    <a class="module-home" asp-page="/Index">← Menu generale</a>
+    <span>Lavorazione · Pianificazione</span>
+</nav>
+
+<header class="planning-heading">
+    <div><p class="eyebrow">Impianti dei clienti</p><h1>Macchine installate</h1><p>Macchine e impianti sui quali pianificare installazioni, manutenzioni e revisioni.</p></div>
+    <div class="header-actions"><div class="planning-counter"><strong>@Model.Macchine.Count</strong><span>installazioni</span></div><a class="btn btn-primary" asp-page="Macchina">Nuova installazione</a></div>
+</header>
+
+<form method="get" class="installed-filters">
+    <label>Installate fino al<input asp-for="InstallateAl" type="date" class="form-control" /></label>
+    <label class="filter-search">Cerca<input asp-for="Cerca" class="form-control" placeholder="Cliente, articolo o codice" /></label>
+    <label>Categoria<select asp-for="Categoria" class="form-select"><option value="0">Tutte</option>@foreach(var c in Model.Categorie){<option value="@c.Code">@c.Description</option>}</select></label>
+    <label>Ordina per<select asp-for="Ordina" class="form-select"><option value="articolo">Articolo</option><option value="cliente">Cliente</option><option value="installazione">Data installazione</option><option value="valore">Valore</option><option value="scadenza">Prossima scadenza</option></select></label>
+    <button class="btn btn-primary" type="submit">Applica filtri</button>
+</form>
+
+<div class="installed-list">
+@foreach (var macchina in Model.Macchine)
+{
+    <article class="installed-card">
+        <div class="installed-machine"><span>@macchina.Category</span><h2>@(string.IsNullOrWhiteSpace(macchina.ArticleDescription) ? macchina.ArticleCode : macchina.ArticleDescription)</h2><strong>@macchina.ArticleCode</strong></div>
+        <div class="installed-customer"><span>Cliente</span><strong>@macchina.CustomerName</strong><small>@macchina.City</small></div>
+        <div><span>Installazione</span><strong>@(macchina.InstalledOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
+        <div><span>Prossimo intervento</span><strong class="@(macchina.NextServiceOn < DateTime.Today ? "text-danger" : "")">@(macchina.NextServiceOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
+        <div><span>Valore</span><strong>@(macchina.Value?.ToString("N2") ?? "—")</strong></div>
+        <a class="installed-open" asp-page="Macchina" asp-route-id="@macchina.Id">Apri</a>
+    </article>
+}
+</div>

@@ -1,0 +1,534 @@
+SALVATORE:
+Voglio fare un sondaggio relativo allo sviluppo di un'applicazione dedicata alla gestione di un'azienda che esercita attività di installazione e manutenzione di impianti per addolcitura acqua, i suoi clienti sono bar, ristoranti, esercizi di ristorazione e privati; i punti critici della gestione sono due : - pianificazione degli interventi di manutenzione sulla base della tipologia  dell'impianto della durata dei componenti consumabili della consunzione programmata di determinati componenti; - necessità di gestire lo scarico del magazzino direttamente dal posto di intervento a mezzo di dispositivi mobili e lettura di codici a barre, naturalmente gli interventi di manutenzione non rientrano sempre nel ciclo della manutenzione programmata, tanto meno gli interventi per l'istallazione di nuovi impianti/macchinari; tutto ciò richiede una specifica gestione degli articoli di magazzini, in special modo riguardo alla natura (macchinari, accessori, materie prime, consumabili, ecc.) al ciclo presumibile di durata e/o sostituzione, alla possibilità di gestire una produzione interna previa elaborazione di distinta base, carico e scarico di materie prime, carico di materie prime con trasformazione e scarico delle stesse con contestuale carico di manufatti assemblati e/o semilavorati; il tutto condito da una gestione di flussi contabili per gli acquisti e le vendite, fatture, documenti di trasporto, contabilità per incassi e pagamenti, gestione di titoli di pagamento o di credito, rendiconti per clienti, fornitori, costi ecc.
+
+CHATGPT:
+14:00
+Il progetto descritto integra gestione interventi, manutenzione programmata, magazzino mobile, produzione interna e amministrazione. Per evitare un sondaggio troppo tecnico e dispersivo, conviene concentrarlo sui problemi reali, sulle priorità e sui flussi operativi; i dettagli di progettazione verranno approfonditi successivamente con interviste mirate.
+
+Di seguito trovi un questionario pronto da utilizzare con titolari, amministrativi, magazzinieri e tecnici.
+
+Sondaggio per lo sviluppo di un’applicazione gestionale
+Introduzione
+Stiamo valutando lo sviluppo di un’applicazione dedicata alle aziende che installano e mantengono impianti per il trattamento e l’addolcimento dell’acqua.
+
+L’obiettivo del questionario è comprendere come vengono attualmente gestiti clienti, impianti, manutenzioni, interventi tecnici, ricambi, magazzino, produzione interna e documenti amministrativi.
+
+Le risposte saranno utilizzate esclusivamente per individuare le funzionalità più importanti. Tempo stimato: 8–12 minuti.
+
+1. Profilo dell’azienda e del rispondente
+Qual è il suo ruolo?
+Titolare o responsabile aziendale
+Responsabile tecnico
+Tecnico installatore o manutentore
+Responsabile magazzino
+Amministrazione
+Commerciale
+Altro
+Quante persone lavorano nell’azienda?
+1–3
+4–10
+11–25
+26–50
+Oltre 50
+Quanti tecnici operano normalmente presso i clienti?
+1
+2–3
+4–10
+11–20
+Oltre 20
+Quali clienti servite? È possibile selezionare più risposte.
+Bar
+Ristoranti
+Alberghi e strutture ricettive
+Mense e attività di ristorazione collettiva
+Aziende
+Privati
+Rivenditori
+Altro
+Quanti impianti installati o assistiti gestite indicativamente?
+Meno di 100
+100–500
+501–1.000
+1.001–5.000
+Oltre 5.000
+2. Gestione attuale
+Quali strumenti utilizzate attualmente?
+Software gestionale
+Software per assistenza tecnica
+Fogli Excel
+Agenda cartacea
+Calendario elettronico
+Applicazioni di messaggistica
+Moduli o rapportini cartacei
+Più sistemi non collegati tra loro
+Nessuno strumento specifico
+Quanto siete soddisfatti degli strumenti attuali?
+Scala da 1, “per nulla soddisfatto”, a 5, “molto soddisfatto”.
+
+Quali sono oggi le attività più difficili o dispendiose? Selezionare al massimo cinque risposte.
+
+Ricostruire la storia degli impianti
+Sapere quando programmare una manutenzione
+Organizzare l’agenda dei tecnici
+Gestire urgenze e interventi non programmati
+Individuare ricambi e consumabili necessari
+Conoscere la disponibilità reale del magazzino
+Gestire i materiali presenti sui mezzi dei tecnici
+Registrare i materiali utilizzati presso il cliente
+Preparare rapportini e documenti di trasporto
+Comunicare con i clienti
+Preparare preventivi e contratti
+Gestire acquisti e fornitori
+Gestire produzione e assemblaggio interno
+Fatturare gli interventi
+Controllare incassi, pagamenti e scadenze
+Analizzare costi e redditività
+Altro
+Qual è il problema operativo che vorreste risolvere per primo?
+Risposta aperta.
+3. Clienti, sedi e impianti
+Quali informazioni dovrebbero essere conservate per ogni cliente?
+Dati anagrafici e fiscali
+Sedi operative
+Referenti e contatti
+Orari di apertura o accesso
+Condizioni commerciali
+Contratti di assistenza
+Documenti e fotografie
+Situazione contabile
+Altro
+Quali informazioni dovrebbero essere associate a ogni impianto?
+Cliente e sede di installazione
+Tipologia e modello
+Numero di serie
+Data di installazione
+Componenti installati
+Fotografie
+Manuali e documentazione tecnica
+Garanzia
+Contratto di manutenzione
+Letture e parametri tecnici
+Storico degli interventi
+Ricambi e consumabili compatibili
+Altro
+È necessario gestire più impianti presso la stessa sede?
+Sempre
+Spesso
+Raramente
+Mai
+4. Manutenzione e pianificazione
+In base a quali criteri programmate le manutenzioni?
+Tempo trascorso
+Ore di funzionamento
+Consumo d’acqua
+Numero di cicli
+Durata prevista dei componenti
+Letture o parametri rilevati
+Contratto con il cliente
+Indicazioni del tecnico
+Richiesta del cliente
+Non esiste una programmazione strutturata
+Altro
+La frequenza di sostituzione può variare in base al cliente o alle condizioni di utilizzo?
+Sì, frequentemente
+Sì, in alcuni casi
+Raramente
+No
+Quali informazioni servono per pianificare un intervento?
+Priorità
+Tipo di intervento
+Durata prevista
+Competenze richieste
+Tecnico incaricato
+Zona geografica
+Disponibilità del cliente
+Materiali necessari
+Disponibilità dei ricambi
+Mezzo utilizzato
+Altro
+Il sistema dovrebbe generare automaticamente le manutenzioni future?
+Sì, con conferma dell’operatore
+Sì, automaticamente
+Solo promemoria e segnalazioni
+No
+Quanto sarebbe utile ricevere avvisi preventivi sui componenti prossimi alla sostituzione?
+Scala da 1 a 5.
+
+Quali interventi devono essere gestiti?
+
+Manutenzione programmata
+Riparazione e guasto
+Urgenza
+Sopralluogo
+Installazione di un nuovo impianto
+Collaudo
+Ritiro o sostituzione dell’impianto
+Consegna di materiali
+Altro
+Sarebbe utile ottimizzare automaticamente gli itinerari dei tecnici?
+Molto utile
+Abbastanza utile
+Poco utile
+Non necessario
+5. Applicazione mobile per i tecnici
+Quali operazioni dovrebbe poter eseguire il tecnico tramite smartphone o tablet?
+Consultare agenda e interventi
+Avviare e chiudere l’intervento
+Usare la navigazione verso il cliente
+Consultare lo storico dell’impianto
+Visualizzare istruzioni e manuali
+Compilare controlli e misurazioni
+Inserire note e fotografie
+Registrare il tempo di lavoro
+Leggere codici a barre o QR code
+Scaricare materiali dal magazzino
+Trasferire materiali tra furgone e magazzino
+Richiedere ricambi
+Far firmare il rapportino al cliente
+Generare documenti di trasporto
+Registrare un pagamento
+Programmare il prossimo intervento
+L’applicazione dovrebbe funzionare anche senza connessione Internet?
+Indispensabile
+Preferibile
+Non necessario
+Non so
+Quali dispositivi utilizzano normalmente i tecnici?
+Smartphone Android
+iPhone
+Tablet Android
+iPad
+Computer portatile
+Terminali industriali per codici a barre
+Quali informazioni devono comparire nel rapportino di intervento?
+Risposta aperta.
+6. Magazzino e tracciabilità
+Quanti magazzini o depositi devono essere gestiti?
+Un solo magazzino
+Più magazzini
+Magazzino centrale e furgoni
+Magazzini presso clienti
+Depositi temporanei o cantieri
+Quali categorie di articoli gestite?
+Impianti e macchinari
+Componenti e accessori
+Ricambi
+Consumabili
+Materie prime
+Semilavorati
+Prodotti assemblati internamente
+Materiali a rendere
+Attrezzature
+Altro
+Quali caratteristiche devono essere associate agli articoli?
+Codice interno
+Codice a barre
+Codice del fornitore
+Categoria e natura dell’articolo
+Unità di misura
+Lotto
+Matricola o numero di serie
+Data di scadenza
+Compatibilità con impianti o modelli
+Durata prevista
+Frequenza di sostituzione
+Scorta minima
+Ubicazione
+Costo
+Prezzo di vendita
+Fotografia e documenti tecnici
+Quali movimenti devono essere registrati tramite lettura del codice?
+Carico da fornitore
+Scarico per intervento
+Trasferimento al furgone
+Reso dal tecnico
+Trasferimento tra magazzini
+Reso al fornitore
+Materiale difettoso
+Rettifica inventariale
+Materiale impiegato in produzione
+Carico del prodotto finito
+È necessario tracciare lotti e numeri di serie?
+Per tutti gli articoli
+Solo per macchinari e componenti principali
+Solo per alcuni articoli
+No
+Come viene gestito oggi il materiale affidato ai tecnici?
+Risposta aperta.
+
+Quanto è importante conoscere in tempo reale le giacenze presenti su ciascun furgone?
+Scala da 1 a 5.
+
+7. Produzione e distinta base
+L’azienda assembla o trasforma internamente prodotti?
+Sì, regolarmente
+Sì, occasionalmente
+No, ma potrebbe farlo in futuro
+No
+Quali attività devono essere gestite?
+Distinta base
+Distinte base con più versioni
+Ordini di produzione
+Prelievo delle materie prime
+Scarico automatico dei componenti
+Carico di semilavorati
+Carico di prodotti finiti
+Gestione degli scarti
+Tracciabilità dei lotti
+Tempi e costi di lavorazione
+Controllo qualità
+Lavorazioni esterne
+È necessario modificare i componenti della distinta base durante l’assemblaggio?
+Spesso
+A volte
+Raramente
+Mai
+È importante calcolare il costo effettivo del prodotto assemblato?
+Indispensabile
+Utile
+Poco importante
+Non necessario
+8. Vendite, acquisti e amministrazione
+Quali documenti dovrebbero essere gestiti?
+Preventivi
+Ordini clienti
+Contratti di manutenzione
+Rapportini di intervento
+Documenti di trasporto
+Fatture immediate
+Fatture differite
+Note di credito
+Ordini a fornitori
+Documenti di acquisto
+Fatture elettroniche
+Altro
+Quali modalità di fatturazione utilizzate?
+Canone periodico
+Intervento a chiamata
+Ore di lavoro e materiali
+Prezzo fisso per intervento
+Vendita o installazione completa
+Noleggio
+Comodato
+Abbonamento
+Altro
+Quali aspetti amministrativi devono essere inclusi?
+Scadenziario clienti
+Scadenziario fornitori
+Incassi e pagamenti
+Rate
+Bonifici
+Assegni
+Ricevute bancarie
+Carte e pagamenti elettronici
+Titoli di credito
+Solleciti
+Prima nota
+Riconciliazione bancaria
+Esportazione verso il commercialista
+Contabilità generale completa
+È già utilizzato un software contabile che dovrebbe essere collegato alla nuova applicazione?
+Sì
+No
+Non so
+In caso affermativo, quale?
+Risposta aperta.
+
+9. Analisi e controllo di gestione
+Quali informazioni vorreste visualizzare in un cruscotto?
+Interventi in scadenza
+Interventi arretrati
+Carico di lavoro dei tecnici
+Tempi medi degli interventi
+Materiali consumati
+Giacenze e articoli sotto scorta
+Margine per intervento
+Redditività per cliente
+Redditività per impianto
+Costi per tecnico o mezzo
+Costi di produzione
+Fatturato
+Crediti scaduti
+Pagamenti da effettuare
+Altro
+Quali dati sono oggi più difficili da ottenere?
+Risposta aperta.
+10. Priorità del progetto
+Assegnare a ogni area un’importanza da 1 a 5:
+Anagrafica clienti, sedi e impianti
+Manutenzione programmata
+Agenda e assegnazione dei tecnici
+Applicazione mobile
+Lettura di codici a barre
+Magazzino centrale
+Magazzini mobili sui furgoni
+Distinta base e produzione
+Preventivi, ordini e contratti
+Fatturazione
+Incassi e pagamenti
+Analisi di costi e redditività
+Collegamento con altri software
+Quali sono le cinque funzionalità che dovrebbero essere disponibili fin dalla prima versione?
+Risposta aperta o selezione con limite di cinque risposte.
+
+Quali funzionalità potrebbero essere introdotte in una fase successiva?
+Risposta aperta.
+
+Quale sarebbe il principale beneficio atteso?
+
+Riduzione degli interventi dimenticati
+Migliore organizzazione dei tecnici
+Riduzione dei tempi amministrativi
+Maggiore precisione delle giacenze
+Riduzione degli errori sui materiali
+Miglior servizio al cliente
+Maggiore controllo dei costi
+Fatturazione più rapida
+Maggiore tracciabilità
+Altro
+Sareste disponibili a partecipare a un’intervista o a provare un prototipo?
+Sì, per un’intervista
+Sì, per provare un prototipo
+Sì, per entrambe le attività
+No
+Ulteriori esigenze, problemi o suggerimenti.
+Risposta aperta.
+Impostazione consigliata
+Il sondaggio dovrebbe usare domande condizionali: la sezione “Produzione e distinta base”, per esempio, dovrebbe essere mostrata soltanto alle aziende che assemblano o trasformano prodotti.
+
+Per ottenere risultati più attendibili, suggerisco inoltre di:
+
+raccogliere separatamente le risposte di titolari, tecnici, magazzinieri e amministrativi;
+chiedere un massimo di cinque priorità, evitando che tutto venga definito “indispensabile”;
+affiancare al sondaggio 5–10 interviste operative;
+osservare almeno un intervento reale, dal suo inserimento fino allo scarico dei materiali e alla fatturazione;
+distinguere la prima versione dell’applicazione dalle funzionalità contabili e produttive più avanzate.
+Il nucleo iniziale più coerente appare composto da anagrafiche di clienti e impianti, pianificazione delle manutenzioni, applicazione mobile, rapportino digitale, codici a barre e magazzini dei furgoni. Produzione, contabilità generale e controllo di gestione potrebbero costituire moduli successivi, mantenendo fin dall’inizio le necessarie integrazioni.
+
+
+SALVATORE:
+14:01
+Davanti ad un questionario così lungo e complesso lo studio rischia di arenarsi prima ancora di cominciare; questo metodo così astrattamente "professionale" e "preciso" non aiuta, se da parte mia ci fosse la capacità di affrontare e risolvere le questioni poste in questo modo probabilmente non avrei bisogno della collaborazione di nessuno.
+Detto questo, credo che alcune risposte ai tuoi quesiti possono essere trovate dando un'occhiata alla vecchia applicazione desktop sviluppata per dare una risposta all'esigenza rappresentata dall'azienda, l'applicazione è questa: "C:\Sviluppo\Programmi\SkyLab"
+l'aspetto fondamentale che ha reso questa soluzione carente secondo le aspettative della committente è quello della mancanza di una sezione specifica dedicata allo scarico in cantiere dei componenti/materiali installati a mezzo di un dispositivo mobile; per quanto riguarda quest'ultimo, la device richiesta è uno smartphone, viene escluso l'utilizzo di un tablet o similare in quanto la committente prevede un cattivo uso di dispositivi appositamente forniti dall'azienda.
+
+
+CHATGPT:
+14:12
+Hai ragione: il questionario precedente era prematuro e scaricava su di te l’analisi. Dall’esame di SkyLab emerge già un quadro molto più concreto.
+
+SkyLab comprende effettivamente clienti, impianti installati, pianificazione lavori, revisioni, magazzino, produzione, distinte base, DDT, fatture e contabilità. Queste esigenze, quindi, non devono essere nuovamente “scoperte” tramite un sondaggio.
+
+L’applicazione contiene anche una sezione denominata “mobile”, ma non è realmente mobile:
+è ancora un’applicazione Windows Forms in VB.NET;
+visualizza gli interventi giornalieri assegnati;
+permette di registrare esito, operatore, data, note e materiali;
+prevede al massimo sei righe di materiale;
+può tentare di generare lo scarico di magazzino alla chiusura;
+accede direttamente al database SQL Server Compact;
+non utilizza fotocamera, codici a barre o QR;
+non è progettata per uno smartphone;
+non emerge una gestione affidabile della connettività intermittente.
+Ho inoltre individuato un problema sostanziale nel codice: nella procedura mobile che registra i movimenti di magazzino, la lettura dell’articolo e delle quantità all’interno del ciclo risulta commentata. Di conseguenza, lo scarico potrebbe non essere eseguito correttamente oppure utilizzare dati rimasti in memoria. Non si tratta quindi soltanto di un’interfaccia mancante: il flusso operativo non è stato completato in maniera affidabile.
+
+Il vero oggetto dello studio diventa dunque molto più circoscritto:
+
+consentire al tecnico, con il proprio smartphone, di aprire l’intervento assegnato, leggere i codici dei materiali effettivamente utilizzati e chiudere l’intervento producendo automaticamente uno scarico di magazzino tracciabile.
+
+Un sondaggio concreto, non astratto
+Invece di 46 domande, proporrei di mostrare alla committente questo semplice scenario:
+
+Il tecnico apre sul proprio smartphone l’elenco degli interventi della giornata.
+Seleziona il cliente e vede sede, impianto, lavoro previsto e materiali suggeriti.
+Durante il lavoro inquadra il codice a barre di ogni componente utilizzato.
+L’applicazione riconosce l’articolo e propone la quantità.
+Il tecnico può aggiungere materiali non previsti, correggere quantità e indicare materiale sostituito, restituito o non utilizzato.
+Al termine inserisce note e fotografie, eventualmente raccoglie la firma del cliente e chiude l’intervento.
+La chiusura genera lo scarico dal magazzino attribuito al tecnico o al suo furgone e aggiorna la storia dell’impianto.
+Alla committente chiederei soltanto di raccontare cosa non corrisponde alla sua operatività e di rispondere a queste cinque domande:
+
+Da quale deposito deve essere scaricato il materiale: magazzino centrale, furgone personale del tecnico o entrambi?
+Il materiale viene normalmente assegnato al tecnico prima dell’uscita oppure può prelevarlo liberamente?
+Cosa deve accadere se un codice non viene riconosciuto o la quantità disponibile non è sufficiente?
+Nei luoghi d’intervento la connessione Internet è abbastanza affidabile oppure l’app deve lavorare anche offline?
+La chiusura dell’intervento deve produrre soltanto il movimento di magazzino oppure anche rapportino, firma, DDT e dati per la fatturazione?
+Queste non sono domande tecniche: sono eccezioni operative che non possono essere dedotte dal vecchio programma.
+
+La scelta dello smartphone personale o comunque ordinario è sensata. La prima soluzione da valutare è una web app installabile sul telefono, con accesso alla fotocamera e interfaccia molto semplice. Non richiede tablet né terminali dedicati. Prima di scegliere definitivamente la tecnologia, però, va verificato il requisito offline: è quello che incide maggiormente sull’architettura e sull’affidabilità degli scarichi.
+
+Il prossimo passo corretto non è un altro questionario, ma la rappresentazione di 4–5 schermate dello smartphone e del relativo flusso di magazzino, da sottoporre alla committente come situazione concreta da correggere.
+
+
+SALVATORE:
+14:13
+Per quanto riguarda la sezione, nella vecchia applicazione, relativa allo scarico da unità mobile, ti invito a valutarla come codice non completato e non definito, in quanto lo sviluppo è stato interrotto prima del previsto, proprio in virtù della mancanza di un presupposto fondamentale: l'utilizzo di una unità smartphone.
+
+
+CHATGPT:
+14:20
+Ricevuto. Correggo quindi la valutazione: la sezione “mobile” di SkyLab non deve essere considerata una funzionalità esistente, carente o malfunzionante. È soltanto codice sperimentale, incompleto e abbandonato prima della definizione del flusso operativo.
+
+Non userò quel codice per ricavare requisiti né per giudicare il comportamento atteso. Potrà servire, al massimo, come traccia delle intenzioni iniziali: interventi assegnati, registrazione dell’esito e associazione di materiali. Anche queste indicazioni dovranno però essere confermate.
+
+Il quadro corretto è dunque:
+
+SkyLab documenta la gestione desktop già affrontata;
+la gestione dello scarico in cantiere è un requisito sostanzialmente nuovo;
+l’unità operativa prevista è esclusivamente lo smartphone;
+non sono previsti tablet o terminali aziendali dedicati;
+interfaccia, flusso, sincronizzazione e regole di magazzino devono essere progettati da zero;
+l’integrazione dovrà collegare il nuovo modulo mobile agli interventi, agli articoli, ai magazzini e alla storia degli impianti.
+La definizione iniziale può pertanto essere formulata così:
+
+Progettare un modulo per smartphone che consenta al tecnico, durante un intervento programmato, straordinario o di installazione, di identificare tramite codice a barre i materiali e i componenti impiegati, registrarli nell’intervento e produrre i relativi movimenti di magazzino secondo regole ancora da definire con la committente.
+
+Da questo momento tratterò la vecchia sezione mobile come materiale incompleto e non come parte funzionale dell’applicazione. Il prossimo studio dovrà partire dall’esperienza concreta del tecnico sul posto, non dall’implementazione interrotta.
+
+
+
+SALVATORE:
+In merito alla specifica gestione dello scarico di magazzino in cantiere tramite smartphone, sei in grado di mostrarmi una tua soluzione, in una sintesi per sommi capi, relativa a:
+- richiamo di scheda di lavorazione già presente su smartphone come intervento del giorno
+- acquisizione di codice dei materiali impiegati e loro quantità, a mezzo di scansione di bar-code
+- acquisizione di codice dei materiali impiegati e loro quantità, manualmente con digitazione manuale
+- corredo di prezzi per le singole quantità, sia come proposti dalla scheda sia come suggeriti dal tecnico
+- registrazione del prezzo complessivo dell'intervento, sia come proposto dalla scheda sia come suggerito dal tecnico
+- orario di inizio e fine lavoro, ore/uomo dell'intervento
+- specifica relativa alla conclusione dell'intervento o di necessità di ulteriore intervento; nel secondo caso data prevista:
+- eventuali annotazioni relative all'intervento o ad altro
+- connessione in tempo reale/Batch al magazzino centrale per comunicazione dei materiali da scaricare, eventualmente dell'orario di fine intervento
+naturalmente la gestione della scheda secondo le dette indicazioni appartiene ad una logica già ampiamente definita, la parte cruciale riguarda l'operatività tramite smartphone.
+
+
+CHATGPT:
+14:41
+La soluzione può essere organizzata in cinque passaggi consecutivi, pensati per essere eseguiti con una sola mano sullo smartphone.
+La sintesi funzionale è questa:
+1. La scheda dell’intervento viene sincronizzata preventivamente sul telefono e rimane disponibile anche senza connessione.
+2. “Avvia intervento” registra automaticamente l’ora iniziale.
+3. I materiali possono essere acquisiti:
+   - tramite fotocamera e codice a barre;
+   - mediante digitazione del codice;
+   - selezionandoli fra quelli già previsti nella scheda.
+4. Dopo il riconoscimento dell’articolo viene proposta quantità 1. Scansioni ripetute possono incrementarla, mentre il tecnico può correggerla manualmente.
+5. Per ogni materiale si conservano separatamente:
+   - prezzo proposto dalla scheda o dal listino;
+   - eventuale prezzo suggerito dal tecnico;
+   - motivazione della variazione, quando richiesta.
+6. Anche per il totale dell’intervento rimangono distinti prezzo proposto e prezzo suggerito. Il tecnico non modifica direttamente il listino: trasmette una proposta verificabile dall’ufficio.
+7. “Termina intervento” registra l’ora finale. Le ore/uomo derivano dalla durata effettiva moltiplicata per gli operatori presenti, con possibilità di rettifica motivata.
+8. Il tecnico indica se il lavoro è concluso oppure necessita di un seguito. Nel secondo caso inserisce una data prevista, anche indicativa, e le relative annotazioni.
+9. Alla conferma si genera un’unica registrazione logica comprendente:
+   - esito e annotazioni;
+   - orari e ore/uomo;
+   - materiali e quantità;
+   - prezzi proposti e suggeriti;
+   - movimenti di scarico;
+   - eventuale richiesta di nuovo intervento.
+La sincronizzazione deve funzionare in due modalità:
+- in tempo reale, se la connessione è disponibile;
+- in batch, mantenendo sul telefono una coda persistente quando manca la rete.
+Lo smartphone deve mostrare chiaramente tre stati: “salvato sul telefono”, “in attesa di invio” e “ricevuto dal magazzino”. La semplice pressione di “Invia” non è sufficiente: il movimento può considerarsi acquisito soltanto dopo la conferma del sistema centrale.
+Un accorgimento essenziale è assegnare a ogni chiusura un identificativo univoco. Se il telefono ritenta l’invio, il magazzino deve riconoscere la registrazione già ricevuta senza effettuare due volte lo stesso scarico.
+Resta da definire con la committente un solo nodo operativo decisivo: da quale giacenza debbano essere scaricati i materiali — magazzino centrale, deposito del tecnico o magazzino virtuale del furgone. L’interfaccia proposta rimane sostanzialmente identica in tutti e tre i casi.
+

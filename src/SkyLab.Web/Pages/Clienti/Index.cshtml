@@ -1,0 +1,7 @@
+@page
+@model SkyLab.Web.Pages.Clienti.IndexModel
+@{ViewData["Title"]="Clienti";}
+<nav class="module-nav mb-3"><a class="module-home" asp-page="/Index">← Menu generale</a><span>Anagrafiche · Clienti</span></nav>
+<header class="planning-heading"><div><p class="eyebrow">Anagrafica</p><h1>Clienti</h1><p>Ricerca e gestione dei dati anagrafici, fiscali e di contatto.</p></div><a class="btn btn-primary" asp-page="Edit">Nuovo cliente</a></header>
+<form method="get" class="customer-search"><input asp-for="Cerca" class="form-control" placeholder="Cerca per nome o codice"/><label><input asp-for="IncludiNonAttivi"/> Includi non attivi</label><button class="btn btn-primary">Cerca</button></form>
+<div class="customer-list">@foreach(var c in Model.Items){<article class="customer-row"><div><span class="status">#@c.Code</span><h2>@c.Name</h2><small>@c.City @c.Province</small></div><div><span>Contatti</span><strong>@c.Phone</strong><small>@c.Email</small></div><div><span>Sedi</span><strong>@c.Sites</strong></div><div><span>Installato</span><strong>@c.Machines</strong></div><div class="row-actions"><a class="btn btn-outline-primary" asp-page="Edit" asp-route-id="@c.Code">Anagrafica</a><a class="btn btn-outline-primary" asp-page="Sedi/Index" asp-route-clienteId="@c.Code">Sedi</a><a class="btn btn-primary" asp-page="Operativo" asp-route-id="@c.Code">Operativo</a></div></article>}</div>

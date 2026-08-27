@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SkyLab.Web/SkyLab.Web.csproj" />
+  </Folder>
+</Solution>

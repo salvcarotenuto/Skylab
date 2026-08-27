@@ -1,0 +1,2 @@
+ALTER TABLE movcont
+  MODIFY COLUMN Ditta INT NULL;

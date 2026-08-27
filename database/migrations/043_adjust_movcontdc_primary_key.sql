@@ -1,0 +1,3 @@
+ALTER TABLE movcontdc
+  DROP PRIMARY KEY,
+  ADD CONSTRAINT PK_movcontdc PRIMARY KEY (Mov_Id, TipoDoc);

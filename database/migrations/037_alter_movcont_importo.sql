@@ -1,0 +1,2 @@
+ALTER TABLE movcont
+  MODIFY COLUMN Importo DECIMAL(12,2) NULL;

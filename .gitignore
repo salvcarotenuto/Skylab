@@ -1,0 +1,34 @@
+# Build output
+**/bin/
+**/obj/
+artifacts/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local runtime files
+*.log
+*.pid
+*.tmp
+*.bak
+
+# Local secrets and configuration overrides
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+.env
+.env.*
+
+# Operating system files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Office temporary files
+~$*

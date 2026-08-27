@@ -1,0 +1,2 @@
+ALTER TABLE movcont
+  MODIFY COLUMN Descrizione VARCHAR(50) NULL;
