@@ -1,8 +1,123 @@
 @page
 @model SkyLab.Web.Pages.Clienti.EditModel
-@{ViewData["Title"]=Model.Cliente.Code==0?"Nuovo cliente":Model.Cliente.Name;}
-<nav class="module-nav mb-3"><a class="module-home" asp-page="Index">← Elenco clienti</a><span>Anagrafica cliente</span></nav>
-<header class="planning-heading"><div><p class="eyebrow">Dati stabili</p><h1>@(Model.Cliente.Code==0?"Nuovo cliente":Model.Cliente.Name)</h1></div>@if(Model.Cliente.Code>0){<div class="header-actions"><a class="btn btn-outline-primary" asp-page="Sedi/Index" asp-route-clienteId="@Model.Cliente.Code">Sedi aggiuntive</a><a class="btn btn-primary" asp-page="Operativo" asp-route-id="@Model.Cliente.Code">Fascicolo operativo</a></div>}</header>
-@if(TempData["Message"] is string msg){<div class="alert alert-success">@msg</div>}
-<form method="post" class="edit-form"><input asp-for="Cliente.Code" type="hidden"/><section><h2>Identificazione</h2><div class="form-grid"><label class="span-2">Denominazione<input asp-for="Cliente.Name" class="form-control"/><span asp-validation-for="Cliente.Name"></span></label><label>Codice fiscale<input asp-for="Cliente.TaxCode" class="form-control"/></label><label>Partita IVA<input asp-for="Cliente.VatNumber" class="form-control"/></label><label>Codice SDI<input asp-for="Cliente.SdiCode" class="form-control"/></label><label class="check-field"><input asp-for="Cliente.Active"/> Cliente attivo</label></div></section><section><h2>Indirizzo principale</h2><div class="form-grid"><label class="span-2">Via<input asp-for="Cliente.Street" class="form-control"/></label><label>Civico<input asp-for="Cliente.StreetNumber" class="form-control"/></label><label>CAP<input asp-for="Cliente.PostalCode" class="form-control"/></label><label>Città<input asp-for="Cliente.City" class="form-control"/></label><label>Provincia<input asp-for="Cliente.Province" class="form-control"/></label></div></section><section><h2>Contatti</h2><div class="form-grid"><label>Referente<input asp-for="Cliente.Contact" class="form-control"/></label><label>Telefono<input asp-for="Cliente.Phone1" class="form-control"/></label><label>Altro telefono<input asp-for="Cliente.Phone2" class="form-control"/></label><label>Email<input asp-for="Cliente.Email" class="form-control"/></label><label>PEC<input asp-for="Cliente.CertifiedEmail" class="form-control"/></label><label class="span-2">Note anagrafiche<textarea asp-for="Cliente.Notes" class="form-control"></textarea></label></div></section><div class="form-actions"><a class="btn btn-light" asp-page="Index">Annulla</a><button class="btn btn-primary">Salva anagrafica</button></div></form>
-@section Scripts{<partial name="_ValidationScriptsPartial"/>}
+@{
+    var isNew = Model.Cliente.Code == 0;
+    ViewData["Title"] = isNew ? "Nuovo cliente" : Model.Cliente.Name;
+    var validationMessage = ViewData.ModelState.Values
+        .SelectMany(value => value.Errors)
+        .Select(error => error.ErrorMessage)
+        .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message));
+}
+
+<section class="module-page customer-form-page data-form-skin">
+    <header class="module-header customer-form-header">
+        <div class="module-title-identity">
+            <a class="customer-form-logo" asp-page="Index" aria-label="Torna all'elenco clienti">SL</a>
+            <div>
+                <p class="eyebrow">Anagrafica cliente</p>
+                <h1>@(isNew ? "Nuovo cliente" : Model.Cliente.Name)</h1>
+                <p>@(isNew ? "Inserimento di una nuova anagrafica" : $"Codice cliente {Model.Cliente.Code:00000}")</p>
+            </div>
+        </div>
+        <div class="customer-form-toolbar">
+            <button class="btn btn-primary" type="submit" form="customer-form">Salva</button>
+            <a class="btn customer-menu-button" asp-page="Index">Esci</a>
+        </div>
+    </header>
+
+    @if (TempData["Message"] is string message)
+    {
+        <div class="alert alert-success" role="status">@message</div>
+    }
+
+    <form id="customer-form" method="post" class="entity-form customer-entity-form" autocomplete="off" data-form-type="other">
+        <input asp-for="Cliente.Code" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="validation-summary text-danger"></div>
+
+        <fieldset class="form-frame compact-frame">
+            <legend>Identificazione</legend>
+            <div class="form-grid form-grid-4 form-frame-grid">
+                <div class="field field-code">
+                    <label>Codice</label>
+                    <input class="code-display readonly-field" value="@(isNew ? "Automatico" : Model.Cliente.Code.ToString("00000"))" readonly tabindex="-1" />
+                </div>
+                <div class="field field-span-2">
+                    <label asp-for="Cliente.Name">Denominazione</label>
+                    <input asp-for="Cliente.Name" autocomplete="off" autofocus />
+                    <span asp-validation-for="Cliente.Name"></span>
+                </div>
+                <div class="field field-check">
+                    <div class="check-button-field">
+                        <input asp-for="Cliente.Active" />
+                        <label class="check-text" asp-for="Cliente.Active">Cliente attivo</label>
+                        <label class="check-button-wrap" for="Cliente_Active" aria-label="Attiva o disattiva il cliente"></label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label asp-for="Cliente.TaxCode">Codice fiscale</label>
+                    <input asp-for="Cliente.TaxCode" class="text-uppercase" autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label asp-for="Cliente.VatNumber">Partita IVA</label>
+                    <input asp-for="Cliente.VatNumber" inputmode="numeric" autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label asp-for="Cliente.SdiCode">Codice SDI</label>
+                    <input asp-for="Cliente.SdiCode" class="text-uppercase" autocomplete="off" />
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="form-frame compact-frame">
+            <legend>Indirizzo principale</legend>
+            <div class="form-grid form-grid-4 form-frame-grid">
+                <div class="field field-span-2">
+                    <label asp-for="Cliente.Street">Via / Piazza</label>
+                    <input asp-for="Cliente.Street" autocomplete="off" />
+                </div>
+                <div class="field"><label asp-for="Cliente.StreetNumber">Civico</label><input asp-for="Cliente.StreetNumber" autocomplete="off" /></div>
+                <div class="field"><label asp-for="Cliente.PostalCode">CAP</label><input asp-for="Cliente.PostalCode" inputmode="numeric" autocomplete="off" /></div>
+                <div class="field field-span-2"><label asp-for="Cliente.City">Città</label><input asp-for="Cliente.City" autocomplete="off" /></div>
+                <div class="field"><label asp-for="Cliente.Province">Provincia</label><input asp-for="Cliente.Province" class="province-field text-uppercase" maxlength="2" autocomplete="off" /></div>
+            </div>
+        </fieldset>
+
+        <fieldset class="form-frame compact-frame">
+            <legend>Contatti</legend>
+            <div class="form-grid form-grid-4 form-frame-grid">
+                <div class="field field-span-2"><label asp-for="Cliente.Contact">Referente</label><input asp-for="Cliente.Contact" autocomplete="off" /></div>
+                <div class="field"><label asp-for="Cliente.Phone1">Telefono</label><input asp-for="Cliente.Phone1" type="tel" inputmode="tel" autocomplete="off" /></div>
+                <div class="field"><label asp-for="Cliente.Phone2">Altro telefono</label><input asp-for="Cliente.Phone2" type="tel" inputmode="tel" /></div>
+                <div class="field field-span-2"><label asp-for="Cliente.Email">Email</label><input asp-for="Cliente.Email" type="email" inputmode="email" autocomplete="off" /></div>
+                <div class="field field-span-2"><label asp-for="Cliente.CertifiedEmail">PEC</label><input asp-for="Cliente.CertifiedEmail" type="email" inputmode="email" autocomplete="off" /></div>
+                <div class="field field-span-4"><label asp-for="Cliente.Notes">Note anagrafiche</label><textarea asp-for="Cliente.Notes" rows="3"></textarea></div>
+            </div>
+        </fieldset>
+
+    </form>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(validationMessage))
+{
+    <div class="messagebox-overlay messagebox-error active" data-skylab-messagebox aria-hidden="false">
+        <div class="messagebox" role="alertdialog" aria-modal="true" aria-labelledby="messagebox-title" aria-describedby="messagebox-body">
+            <div class="messagebox-title" id="messagebox-title">SkyLab - attenzione</div>
+            <div class="messagebox-body" id="messagebox-body">
+                <div class="messagebox-message">@validationMessage</div>
+                <div class="messagebox-detail" hidden></div>
+            </div>
+            <div class="messagebox-actions">
+                <button class="btn btn-primary messagebox-ok" type="button"
+                        onclick="this.closest('.messagebox-overlay').classList.remove('active'); this.closest('.messagebox-overlay').setAttribute('aria-hidden','true'); document.getElementById('Cliente_Name')?.focus();">
+                    OK
+                </button>
+                <button class="btn btn-outline-secondary messagebox-cancel" type="button" hidden>Annulla</button>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/customer-edit.js" asp-append-version="true"></script>
+}

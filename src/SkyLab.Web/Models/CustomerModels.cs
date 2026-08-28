@@ -8,21 +8,21 @@ public sealed record LookupItem(int Id, string Label);
 public sealed class CustomerEditModel
 {
     public int Code { get; set; }
-    [Required, StringLength(250)] public string Name { get; set; } = "";
-    [StringLength(20)] public string TaxCode { get; set; } = "";
-    [StringLength(20)] public string VatNumber { get; set; } = "";
-    [StringLength(100)] public string City { get; set; } = "";
-    [StringLength(5)] public string PostalCode { get; set; } = "";
-    [StringLength(2)] public string Province { get; set; } = "";
-    [StringLength(100)] public string Street { get; set; } = "";
-    [StringLength(20)] public string StreetNumber { get; set; } = "";
-    [StringLength(100)] public string Contact { get; set; } = "";
-    [StringLength(30)] public string Phone1 { get; set; } = "";
-    [StringLength(30)] public string Phone2 { get; set; } = "";
-    [EmailAddress, StringLength(60)] public string Email { get; set; } = "";
-    [EmailAddress, StringLength(60)] public string CertifiedEmail { get; set; } = "";
-    [StringLength(10)] public string SdiCode { get; set; } = "";
-    [StringLength(255)] public string Notes { get; set; } = "";
+    [Required(ErrorMessage = "Inserire il nome cliente."), StringLength(250)] public string Name { get; set; } = "";
+    [StringLength(20)] public string? TaxCode { get; set; }
+    [StringLength(20)] public string? VatNumber { get; set; }
+    [StringLength(100)] public string? City { get; set; }
+    [StringLength(5)] public string? PostalCode { get; set; }
+    [StringLength(2)] public string? Province { get; set; }
+    [StringLength(100)] public string? Street { get; set; }
+    [StringLength(20)] public string? StreetNumber { get; set; }
+    [StringLength(100)] public string? Contact { get; set; }
+    [StringLength(30)] public string? Phone1 { get; set; }
+    [StringLength(30)] public string? Phone2 { get; set; }
+    [EmailAddress, StringLength(60)] public string? Email { get; set; }
+    [EmailAddress, StringLength(60)] public string? CertifiedEmail { get; set; }
+    [StringLength(10)] public string? SdiCode { get; set; }
+    [StringLength(255)] public string? Notes { get; set; }
     public bool Active { get; set; } = true;
 }
 
@@ -55,6 +55,8 @@ public sealed class MachineEditModel
     public DateTime? InstalledOn { get; set; }
     public decimal? Value { get; set; }
     public short? DurationDays { get; set; }
+    public decimal? SuppliedQuantity { get; set; }
+    public decimal? DailyConsumption { get; set; }
     public DateTime? NextServiceOn { get; set; }
 }
 
@@ -64,3 +66,7 @@ public sealed record OperationalMachine(
 
 public sealed record OperationalSiteGroup(
     int? SiteId, string Name, string Address, IReadOnlyList<OperationalMachine> Machines);
+
+public sealed record ArticleChoice(
+    string Code, string Description, short CategoryCode, string Category,
+    decimal Price, short DurationDays, decimal DailyConsumption);

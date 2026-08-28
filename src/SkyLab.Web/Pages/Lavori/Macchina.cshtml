@@ -1,6 +1,204 @@
 @page
 @model SkyLab.Web.Pages.Lavori.MacchinaModel
-@{ViewData["Title"]=Model.Macchina.Id==0?"Nuova installazione":"Scheda macchina";}
-<nav class="module-nav mb-3"><a class="module-home" asp-page="MacchineInstallate">← Macchine installate</a><span>Fascicolo operativo · Macchina</span></nav><header class="planning-heading"><div><p class="eyebrow">Impianto del cliente</p><h1>@(Model.Macchina.Id==0?"Nuova installazione":"Scheda macchina #"+Model.Macchina.Id)</h1><p>Identificazione, sede, installazione e ciclo manutentivo.</p></div></header>@if(TempData["Message"] is string msg){<div class="alert alert-success">@msg</div>}
-<form method="post" class="edit-form"><input asp-for="Macchina.Id" type="hidden"/><section><h2>Collocazione</h2><div class="form-grid"><label class="span-2">Cliente<select asp-for="Macchina.CustomerId" class="form-select"><option value="0">Seleziona cliente</option>@foreach(var c in Model.Clienti){<option value="@c.Id">@c.Label</option>}</select></label><label class="span-2">Sede d’installazione<select asp-for="Macchina.SiteId" class="form-select"><option value="">Indirizzo principale</option>@foreach(var s in Model.Sedi){<option value="@s.Id">@s.Label</option>}</select></label></div><p class="form-hint">Per una nuova macchina, seleziona il cliente e salva; al successivo accesso saranno disponibili le sue sedi aggiuntive.</p></section><section><h2>Macchina o impianto</h2><div class="form-grid"><label>Codice articolo<input asp-for="Macchina.ArticleCode" class="form-control"/></label><label>Categoria<select asp-for="Macchina.CategoryId" class="form-select"><option value="">Nessuna</option>@foreach(var c in Model.Categorie){<option value="@c.Code">@c.Description</option>}</select></label><label>Data installazione<input asp-for="Macchina.InstalledOn" type="date" class="form-control"/></label><label>Valore<input asp-for="Macchina.Value" type="number" step="0.01" class="form-control"/></label></div></section><section><h2>Manutenzione programmata</h2><div class="form-grid"><label>Durata ciclo in giorni<input asp-for="Macchina.DurationDays" type="number" class="form-control"/></label><label>Prossimo intervento<input asp-for="Macchina.NextServiceOn" type="date" class="form-control"/></label></div></section><section><h2>Fascicolo tecnico</h2><div class="future-features"><span>Fotografie</span><span>Storico interventi</span><span>Note tecniche</span><span>Nuovo intervento</span></div><p class="form-hint">Queste sezioni saranno collegate stabilmente a MacchineCli.ID nei prossimi incrementi.</p></section><div class="form-actions"><a class="btn btn-light" asp-page="MacchineInstallate">Annulla</a><button class="btn btn-primary">Salva macchina</button></div></form>
-@section Scripts{<partial name="_ValidationScriptsPartial"/>}
+@{
+    var isNew = Model.Macchina.Id == 0;
+    ViewData["Title"] = isNew ? "Nuova installazione" : "Scheda macchina";
+}
+
+<section class="module-page customer-form-page machine-form-page data-form-skin">
+    <header class="module-header customer-form-header">
+        <div class="module-title-identity">
+            <div>
+                <p class="eyebrow">Fascicolo operativo · Macchina</p>
+                <h1>@(isNew ? "Nuova installazione" : "Scheda macchina #" + Model.Macchina.Id)</h1>
+                <p>Identificazione, sede, installazione e ciclo manutentivo.</p>
+            </div>
+        </div>
+        <div class="customer-form-toolbar">
+            <button class="btn btn-primary machine-save-button" type="submit" form="machine-form">Salva</button>
+            @if (!isNew)
+            {
+                <button class="btn btn-danger machine-delete-button" type="button" data-machine-delete>Elimina</button>
+            }
+            @if (Model.EsciAlFascicolo)
+            {
+                <a class="btn customer-menu-button" asp-page="/Clienti/Operativo" asp-route-id="@Model.Macchina.CustomerId">Esci</a>
+            }
+            else
+            {
+                <a class="btn customer-menu-button" asp-page="MacchineInstallate">Esci</a>
+            }
+        </div>
+    </header>
+
+    <form id="machine-form" method="post" class="entity-form customer-entity-form" autocomplete="off">
+        <input asp-for="Macchina.Id" type="hidden" />
+        <input asp-for="Origine" type="hidden" />
+        @if (!isNew)
+        {
+            <button type="submit" asp-page-handler="Delete" hidden data-machine-delete-submit></button>
+        }
+        <div asp-validation-summary="ModelOnly" class="validation-summary text-danger"></div>
+
+        <fieldset class="form-frame compact-frame">
+            <legend>Collocazione</legend>
+            <div class="form-grid form-grid-4 form-frame-grid">
+                <div class="field field-span-2">
+                    <label asp-for="Macchina.CustomerId">Cliente</label>
+                    @if (Model.Macchina.CustomerId > 0)
+                    {
+                        var cliente = Model.Clienti.FirstOrDefault(customer => customer.Id == Model.Macchina.CustomerId);
+                        <input asp-for="Macchina.CustomerId" type="hidden" />
+                        <input class="machine-readonly-field" type="text" value="@cliente?.Label" readonly tabindex="-1" />
+                    }
+                    else
+                    {
+                        <select asp-for="Macchina.CustomerId">
+                            <option value="0">Seleziona cliente</option>
+                            @foreach (var customer in Model.Clienti) { <option value="@customer.Id">@customer.Label</option> }
+                        </select>
+                    }
+                    <span asp-validation-for="Macchina.CustomerId"></span>
+                </div>
+                <div class="field field-span-2">
+                    <label asp-for="Macchina.SiteId">Sede installazione</label>
+                    <select asp-for="Macchina.SiteId">
+                        <option value="">Indirizzo principale</option>
+                        @foreach (var site in Model.Sedi) { <option value="@site.Id">@site.Label</option> }
+                    </select>
+                </div>
+            </div>
+            <p class="form-hint">Per una nuova macchina, selezionare il cliente e salvare; al successivo accesso saranno disponibili le sue sedi aggiuntive.</p>
+        </fieldset>
+
+        <fieldset class="form-frame compact-frame">
+            <legend>Macchina e programmazione</legend>
+            <div class="form-grid form-grid-4 form-frame-grid">
+                <div class="field">
+                    <label asp-for="Macchina.ArticleCode">Codice articolo</label>
+                    <div class="machine-article-control">
+                        <input asp-for="Macchina.ArticleCode" autocomplete="off" data-machine-article-code />
+                        <button class="lookup-button" type="button" title="Seleziona articolo"
+                                aria-label="Seleziona articolo" data-machine-article-lookup-open></button>
+                    </div>
+                    <span asp-validation-for="Macchina.ArticleCode"></span>
+                </div>
+                <div class="field machine-description-field">
+                    <label>Descrizione</label>
+                    <input class="machine-readonly-field" type="text" value="@Model.DescrizioneArticolo"
+                           readonly tabindex="-1" data-machine-article-description />
+                </div>
+                <div class="field machine-category-field">
+                    <label asp-for="Macchina.CategoryId">Categoria</label>
+                    <select asp-for="Macchina.CategoryId">
+                        <option value="">Nessuna</option>
+                        @foreach (var category in Model.Categorie) { <option value="@category.Code">@category.Description</option> }
+                    </select>
+                </div>
+                <div class="field machine-installed-date-field">
+                    <label asp-for="Macchina.InstalledOn">Data installazione</label>
+                    <span class="micronote-date-control" data-date-control>
+                        <input name="Macchina.InstalledOn" type="hidden"
+                               value="@(Model.Macchina.InstalledOn?.ToString("yyyy-MM-dd") ?? string.Empty)"
+                               data-filter-date-hidden />
+                        <input id="Macchina_InstalledOn" class="micronote-date-input" type="text"
+                               inputmode="numeric" maxlength="10" autocomplete="off"
+                               value="@(Model.Macchina.InstalledOn?.ToString("dd/MM/yyyy") ?? string.Empty)"
+                               placeholder="gg/mm/aaaa" data-filter-date-display />
+                        <button class="micronote-date-button" type="button" tabindex="-1"
+                                aria-label="Seleziona data installazione" data-date-picker-button></button>
+                    </span>
+                </div>
+                <div class="field machine-value-field">
+                    <label asp-for="Macchina.Value">Valore</label>
+                    <input id="Macchina_Value" name="Macchina.Value" type="text" inputmode="decimal"
+                           value="@(Model.Macchina.Value?.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT")) ?? "0,00")"
+                           data-decimal-field
+                           data-decimal-integer-digits="10"
+                           data-decimal-digits="2"
+                           data-decimal-zero="fixed" />
+                </div>
+                <div class="field machine-supplied-quantity-field">
+                    <label asp-for="Macchina.SuppliedQuantity">Quantità fornita</label>
+                    <input asp-for="Macchina.SuppliedQuantity" type="text" inputmode="decimal"
+                           value="@(Model.Macchina.SuppliedQuantity?.ToString("N3", System.Globalization.CultureInfo.GetCultureInfo("it-IT")) ?? string.Empty)"
+                           data-decimal-field data-decimal-integer-digits="9" data-decimal-digits="3"
+                           data-machine-supplied-quantity />
+                </div>
+                <div class="field machine-daily-consumption-field">
+                    <label asp-for="Macchina.DailyConsumption">Consumo giornaliero</label>
+                    <input asp-for="Macchina.DailyConsumption" type="text" inputmode="decimal"
+                           value="@(Model.Macchina.DailyConsumption?.ToString("N3", System.Globalization.CultureInfo.GetCultureInfo("it-IT")) ?? string.Empty)"
+                           data-decimal-field data-decimal-integer-digits="7" data-decimal-digits="3"
+                           data-machine-daily-consumption />
+                </div>
+                <div class="field machine-duration-field">
+                    <label asp-for="Macchina.DurationDays">Durata ciclo gg.</label>
+                    <input asp-for="Macchina.DurationDays" type="text" min="0" max="32767" step="1" data-updown />
+                </div>
+                <div class="field machine-next-service-field">
+                    <label asp-for="Macchina.NextServiceOn">Prossimo intervento</label>
+                    <span class="micronote-date-control" data-date-control>
+                        <input name="Macchina.NextServiceOn" type="hidden"
+                               value="@(Model.Macchina.NextServiceOn?.ToString("yyyy-MM-dd") ?? string.Empty)"
+                               data-filter-date-hidden />
+                        <input id="Macchina_NextServiceOn" class="micronote-date-input" type="text"
+                               inputmode="numeric" maxlength="10" autocomplete="off"
+                               value="@(Model.Macchina.NextServiceOn?.ToString("dd/MM/yyyy") ?? string.Empty)"
+                               placeholder="gg/mm/aaaa" data-filter-date-display />
+                        <button class="micronote-date-button" type="button" tabindex="-1"
+                                aria-label="Seleziona prossimo intervento" data-date-picker-button></button>
+                    </span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="form-frame compact-frame">
+            <legend>Fascicolo tecnico</legend>
+            <div class="future-features"><span>Fotografie</span><span>Storico interventi</span><span>Note tecniche</span><span>Nuovo intervento</span></div>
+            <p class="form-hint">Queste sezioni saranno collegate stabilmente a MacchineCli.ID nei prossimi incrementi.</p>
+        </fieldset>
+    </form>
+
+    <div class="stock-load-article-lookup" hidden data-machine-article-lookup>
+        <div class="stock-load-article-lookup-dialog machine-article-lookup-dialog" role="dialog" aria-modal="true" aria-labelledby="machine-article-lookup-title">
+            <div class="stock-load-article-lookup-title" id="machine-article-lookup-title">Lista articoli</div>
+            <div class="stock-load-article-lookup-frame" tabindex="0" data-machine-article-lookup-frame>
+                <table class="stock-load-article-lookup-table machine-article-lookup-table">
+                    <thead><tr>
+                        <th><button type="button" data-machine-article-sort="code">Codice</button></th>
+                        <th><button type="button" data-machine-article-sort="description">Descrizione</button></th>
+                        <th><button type="button" data-machine-article-sort="category">Categoria</button></th>
+                        <th><button type="button" data-machine-article-sort="price">Prezzo</button></th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var articolo in Model.Articoli)
+                    {
+                        <tr tabindex="-1" data-machine-article-row data-code="@articolo.Code"
+                            data-description="@articolo.Description" data-category-code="@articolo.CategoryCode"
+                            data-category="@articolo.Category" data-duration="@articolo.DurationDays"
+                            data-consumption="@articolo.DailyConsumption.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                            data-price="@articolo.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                            <td>@articolo.Code</td><td>@articolo.Description</td><td>@articolo.Category</td><td>@articolo.Price.ToString("N2")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="stock-load-article-lookup-tools machine-article-lookup-tools">
+                <label>Cerca</label>
+                <input type="text" autocomplete="off" data-machine-article-search />
+                <label>Records</label>
+                <input type="text" readonly tabindex="-1" data-machine-article-count />
+                <button class="btn btn-primary" type="button" data-machine-article-ok>OK</button>
+                <button class="btn customer-menu-button" type="button" data-machine-article-cancel>Annulla</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/machine-article-lookup.js" asp-append-version="true"></script>
+    <script src="~/js/machine-delete.js" asp-append-version="true"></script>
+}

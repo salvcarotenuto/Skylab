@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Localization;
+using System.Globalization;
 
 namespace SkyLab.Web;
 
@@ -11,11 +13,20 @@ public class Program
         builder.Logging.AddSimpleConsole();
 
         // Add services to the container.
-        builder.Services.AddRazorPages();
+        builder.Services.AddRazorPages()
+            .AddMvcOptions(options =>
+                options.ModelBinderProviders.Insert(0, new SkyLab.Web.Infrastructure.FlexibleDecimalModelBinderProvider()));
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();
         builder.Services.AddScoped<SkyLab.Web.Services.CustomerService>();
+        builder.Services.Configure<RequestLocalizationOptions>(options =>
+        {
+            var italian = new CultureInfo("it-IT");
+            options.DefaultRequestCulture = new RequestCulture(italian);
+            options.SupportedCultures = [italian];
+            options.SupportedUICultures = [italian];
+        });
 
         var app = builder.Build();
 
@@ -28,6 +39,8 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+
+        app.UseRequestLocalization();
 
         app.UseRouting();
 

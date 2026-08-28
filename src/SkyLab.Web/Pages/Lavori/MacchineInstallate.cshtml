@@ -9,7 +9,7 @@
 
 <header class="planning-heading">
     <div><p class="eyebrow">Impianti dei clienti</p><h1>Macchine installate</h1><p>Macchine e impianti sui quali pianificare installazioni, manutenzioni e revisioni.</p></div>
-    <div class="header-actions"><div class="planning-counter"><strong>@Model.Macchine.Count</strong><span>installazioni</span></div><a class="btn btn-primary" asp-page="Macchina">Nuova installazione</a></div>
+    <div class="header-actions"><div class="planning-counter"><strong>@Model.Macchine.Count</strong><span>installazioni</span></div><a class="btn btn-primary" asp-page="Macchina" asp-route-origine="installate">Nuova installazione</a></div>
 </header>
 
 <form method="get" class="installed-filters">
@@ -29,7 +29,7 @@
         <div><span>Installazione</span><strong>@(macchina.InstalledOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
         <div><span>Prossimo intervento</span><strong class="@(macchina.NextServiceOn < DateTime.Today ? "text-danger" : "")">@(macchina.NextServiceOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
         <div><span>Valore</span><strong>@(macchina.Value?.ToString("N2") ?? "—")</strong></div>
-        <a class="installed-open" asp-page="Macchina" asp-route-id="@macchina.Id">Apri</a>
+        <a class="installed-open" asp-page="Macchina" asp-route-id="@macchina.Id" asp-route-origine="installate">Apri</a>
     </article>
 }
 </div>

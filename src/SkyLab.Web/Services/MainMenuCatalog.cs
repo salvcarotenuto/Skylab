@@ -15,16 +15,16 @@ public static class MainMenuCatalog
 
     public static IReadOnlyList<MenuSectionDefinition> Sections { get; } =
     [
-        new("clienti-fornitori", "Clienti e fornitori", "CF", "accent-tables",
+        new("soggetti", "Soggetti", "SG", "accent-tables",
         [
-            Group("Anagrafiche", Link("Clienti", "/Clienti/Index"), Pending("Fornitori")),
+            Group("Anagrafiche", Link("Clienti", "/Clienti/Index"), Pending("Fornitori"), Pending("Agenti"), Pending("Vettori"), Pending("Banche"), Pending("Utenti")),
             Group("Aggiornamenti", "Aggiornamento piano dei conti", "Aggiornamento tabella ditte")
         ]),
         new("tabelle", "Tabelle", "TB", "accent-tables",
         [
-            Group("Magazzino", "Categorie", "Gruppi", "Marchi", "Unità di misura", "Aspetto beni", "Vettori", "Causali di movimento"),
-            Group("Contabili", "Agenti", "Banche", "Aliquote IVA", "Codici di pagamento", "Tipi di pagamento", "Piano dei conti", "Causali contabili"),
-            Group("Altre", "Attività", "Comuni", "Distretti territoriali", "Nazioni", "Aziende")
+            Group("Magazzino", "Categorie", "Gruppi", "Marchi", "Unità di misura", "Aspetto beni", "Causali di movimento"),
+            Group("Contabili", "Aliquote IVA", "Codici di pagamento", "Tipi di pagamento", "Piano dei conti", "Causali contabili"),
+            Group("Altre", "Attività", "Comuni", "Distretti territoriali", "Nazioni")
         ]),
         new("magazzino", "Magazzino", "MG", "accent-stock",
         [
@@ -59,7 +59,7 @@ public static class MainMenuCatalog
         ]),
         new("strumenti", "Strumenti", "ST", "accent-tools",
         [
-            Group("Applicazione", "Opzioni azienda", "Gestione utenti", "Cambia utente", "Opzioni utenti", "Parametri applicazione", "Note di aggiornamento", "Info applicazione"),
+            Group("Applicazione", "Opzioni azienda", "Cambia utente", "Opzioni utenti", "Parametri applicazione", "Note di aggiornamento", "Info applicazione"),
             Group("Archivio", "Cambia azienda", "Cambia esercizio", "Copie di sicurezza", "Ripristino copie di sicurezza", "Configurazione server", "Recupero archivio", "Aggiornamento database"),
             Group("Lavori di servizio", "Assistenza remota", "Attività utenti", "Importazione dati SQL Server", "Importazione dati OleDb", "Importazione dati CSV", "Esportazione dati CSV", "Azzeramento tabelle")
         ])
