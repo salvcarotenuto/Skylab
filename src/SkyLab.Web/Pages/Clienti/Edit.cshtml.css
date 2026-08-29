@@ -1,0 +1,7 @@
+.customer-form-header {
+    box-sizing: border-box;
+    height: 96px;
+    min-height: 96px;
+    padding-bottom: 10px;
+    padding-top: 10px;
+}

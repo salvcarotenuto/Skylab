@@ -7,6 +7,7 @@
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/skylab-brand.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SkyLab.Web.styles.css" asp-append-version="true" />
 </head>
 <body class="@ViewData["BodyClass"]">
@@ -16,11 +17,14 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="page-container">
-            &copy; 2026 SkyLab · nuova piattaforma ASP.NET Core 10
-        </div>
-    </footer>
+    @if (!(ViewData["HideFooter"] as bool? ?? false))
+    {
+        <footer class="border-top footer text-muted">
+            <div class="page-container">
+                &copy; 2026 SkyLab · nuova piattaforma ASP.NET Core 10
+            </div>
+        </footer>
+    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

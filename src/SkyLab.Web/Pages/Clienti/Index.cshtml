@@ -1,10 +1,13 @@
 @page
 @model SkyLab.Web.Pages.Clienti.IndexModel
-@{ ViewData["Title"] = "Clienti"; }
+@{ ViewData["Title"] = "Clienti"; ViewData["HideFooter"] = true; }
 
 <section data-customer-list-page>
-    <header class="planning-heading customer-list-heading">
-        <div><p class="eyebrow">Anagrafiche · Clienti</p><h1>Clienti</h1><p>Ricerca e gestione dei dati anagrafici, fiscali e di contatto.</p></div>
+    <header class="planning-heading customer-list-heading customer-form-header">
+        <div class="module-title-identity">
+            <div class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></div>
+            <div><p class="eyebrow">Anagrafiche · Clienti</p><h1>Clienti</h1><p>Ricerca e gestione dei dati anagrafici, fiscali e di contatto.</p></div>
+        </div>
         <div class="customer-list-heading-actions">
             <a class="btn btn-primary new-customer-button" asp-page="Edit">Nuovo cliente</a>
             <a class="btn btn-outline-primary customer-menu-button" asp-page="/Index">← Menu principale</a>
@@ -21,25 +24,27 @@
         <span class="customer-search-count"><strong data-customer-count>@Model.Items.Count</strong> clienti</span>
     </form>
 
-    <div class="customer-list" data-customer-list>
-        @foreach (var customer in Model.Items)
-        {
-            <article class="customer-row" data-customer-row data-filter-name="@customer.Name" data-filter-code="@customer.Code">
-                <div><span class="status">#@customer.Code</span><h2>@customer.Name</h2><small>@customer.City @customer.Province</small></div>
-                <div><span>Contatti</span><strong>@customer.Phone</strong><small>@customer.Email</small></div>
-                <div><span>Sedi</span><strong>@customer.Sites</strong></div>
-                <div><span>Installato</span><strong>@customer.Machines</strong></div>
-                <div class="row-actions">
-                    <a class="btn customer-menu-button customer-row-button" asp-page="Edit" asp-route-id="@customer.Code">Anagrafica</a>
-                    <a class="btn customer-menu-button customer-row-button" asp-page="Sedi/Index" asp-route-clienteId="@customer.Code">Sedi</a>
-                    <a class="btn customer-menu-button customer-row-button" asp-page="Operativo" asp-route-id="@customer.Code">Fascicolo</a>
-                </div>
-            </article>
-        }
-    </div>
-    <div class="empty-panel customer-search-empty" data-customer-empty hidden>
-        <h2>Nessun cliente trovato</h2>
-        <p>Modificare il testo di ricerca.</p>
+    <div class="customer-list-frame">
+        <div class="customer-list" data-customer-list>
+            @foreach (var customer in Model.Items)
+            {
+                <article class="customer-row" data-customer-row data-filter-name="@customer.Name" data-filter-code="@customer.Code">
+                    <div><span class="status">#@customer.Code</span><h2>@customer.Name</h2><small>@customer.City @customer.Province</small></div>
+                    <div><span>Contatti</span><strong>@customer.Phone</strong><small>@customer.Email</small></div>
+                    <div><span>Sedi</span><strong>@customer.Sites</strong></div>
+                    <div><span>Installato</span><strong>@customer.Machines</strong></div>
+                    <div class="row-actions">
+                        <a class="btn customer-menu-button customer-row-button" asp-page="Edit" asp-route-id="@customer.Code">Anagrafica</a>
+                        <a class="btn customer-menu-button customer-row-button" asp-page="Sedi/Index" asp-route-clienteId="@customer.Code">Sedi</a>
+                        <a class="btn customer-menu-button customer-row-button" asp-page="Operativo" asp-route-id="@customer.Code">Fascicolo</a>
+                    </div>
+                </article>
+            }
+        </div>
+        <div class="empty-panel customer-search-empty" data-customer-empty hidden>
+            <h2>Nessun cliente trovato</h2>
+            <p>Modificare il testo di ricerca.</p>
+        </div>
     </div>
 </section>
 

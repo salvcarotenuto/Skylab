@@ -1,0 +1,19 @@
+@page
+@model SkyLab.Web.Pages.Magazzino.ArticoloModel
+@using System.Globalization
+@{ ViewData["Title"]="Scheda articolo"; var it=CultureInfo.GetCultureInfo("it-IT"); string Q(decimal v)=>v==0?"":v.ToString("N3",it); }
+<section class="module-page form-module-page data-form-skin article-form-page is-readonly">
+ <header class="module-header customer-form-header"><div class="module-title-identity"><div class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></div><div><h1>Scheda articolo</h1><p>Codice @Model.Articolo.Code</p></div></div><div class="customer-form-toolbar">@if(Model.ClienteId>0){<a class="btn customer-menu-button" asp-page="/Clienti/Operativo" asp-route-id="@Model.ClienteId">Esci</a>}else{<a class="btn customer-menu-button" asp-page="/Magazzino/Articoli/Index">Esci</a>}</div></header>
+ <div class="article-form-panel">
+ <fieldset class="form-frame compact-frame article-form-frame"><div class="article-fields-grid">
+  <div class="field article-code-field"><label>Codice</label><input value="@Model.Articolo.Code" readonly tabindex="-1" /></div>
+  <div class="field article-description-field"><label>Descrizione</label><input value="@Model.Articolo.Description" readonly tabindex="-1" /></div>
+  <div class="field"><label>Categoria</label><input value="@Model.Articolo.Category" readonly tabindex="-1" /></div><div class="field"><label>Gruppo</label><input value="@Model.Articolo.Group" readonly tabindex="-1" /></div><div class="field"><label>Marca</label><input value="@Model.Articolo.Brand" readonly tabindex="-1" /></div>
+  <div class="field"><label>U. mis. acquisti</label><input value="@Model.Articolo.PurchaseUnit" readonly tabindex="-1" /></div><div class="field"><label>U. mis. lavorazione</label><input value="@Model.Articolo.WorkUnit" readonly tabindex="-1" /></div><div class="field"><label>U. mis. vendite</label><input value="@Model.Articolo.SalesUnit" readonly tabindex="-1" /></div>
+  <div class="field article-number-field"><label>Peso confezione</label><input value="@Q(Model.Articolo.Weight)" readonly tabindex="-1" /></div><div class="field article-number-field"><label>Pezzi confezione</label><input value="@(Model.Articolo.Pieces==0?"":Model.Articolo.Pieces)" readonly tabindex="-1" /></div><div class="field article-number-field"><label>Durata ciclo gg.</label><input value="@(Model.Articolo.DurationDays==0?"":Model.Articolo.DurationDays)" readonly tabindex="-1" /></div>
+  <div class="field article-number-field"><label>Consumo giornaliero</label><input value="@Q(Model.Articolo.DailyConsumption)" readonly tabindex="-1" /></div><div class="field article-number-field"><label>Costo standard</label><input value="@Q(Model.Articolo.Cost)" readonly tabindex="-1" /></div><div class="field article-number-field"><label>Prezzo standard</label><input value="@Q(Model.Articolo.Price)" readonly tabindex="-1" /></div>
+  <div class="field article-number-field"><label>Giacenza</label><input value="@Q(Model.Articolo.Stock)" readonly tabindex="-1" /></div><div class="field article-number-field"><label>Scorta minima</label><input value="@Q(Model.Articolo.MinimumStock)" readonly tabindex="-1" /></div><div class="field article-number-field"><label>Scorta massima</label><input value="@Q(Model.Articolo.MaximumStock)" readonly tabindex="-1" /></div>
+  <div class="field"><label>Ubicazione</label><input value="@Model.Articolo.Location" readonly tabindex="-1" /></div><div class="field article-notes-field"><label>Note</label><textarea readonly tabindex="-1">@Model.Articolo.Notes</textarea></div>
+ </div></fieldset>
+ </div>
+</section>

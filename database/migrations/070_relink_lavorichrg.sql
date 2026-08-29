@@ -1,0 +1,5 @@
+ALTER TABLE Lavorichrg
+  DROP FOREIGN KEY FK_lavorichrg_lavorichiusi,
+  ADD CONSTRAINT FK_Lavorichrg_Lavori FOREIGN KEY (ID) REFERENCES Lavori (ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+DROP TABLE Lavorichiusi;

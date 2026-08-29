@@ -8,9 +8,9 @@ public static class MainMenuCatalog
     [
         new("Interventi in scadenza", "IS", "/Lavori/Pianificazione"),
         new("Agenda del giorno", "AG", "/Interventi/Index"),
-        new("Schede lavori", "LV", "/Interventi/Index"),
+        new("Schede lavori", "LV", "/Lavori/Schede"),
         new("Clienti", "CL", "/Clienti/Index"),
-        new("Articoli", "AR")
+        new("Articoli", "AR", "/Magazzino/Articoli/Index")
     ];
 
     public static IReadOnlyList<MenuSectionDefinition> Sections { get; } =
@@ -28,7 +28,7 @@ public static class MainMenuCatalog
         ]),
         new("magazzino", "Magazzino", "MG", "accent-stock",
         [
-            Group("Articoli", "Lista articoli", "Carico da inventario", "Generazione automatica listini", "Importazione listino fornitore", "Stampa listino", "Stampa etichette"),
+            Group("Articoli", Link("Lista articoli", "/Magazzino/Articoli/Index"), Pending("Carico da inventario"), Pending("Generazione automatica listini"), Pending("Importazione listino fornitore"), Pending("Stampa listino"), Pending("Stampa etichette")),
             Group("Movimenti", "Registrazione movimenti di carico", "Estratto conto articolo", "Lista movimenti di magazzino", "Lista movimenti per raggruppamento", "Ordini a fornitori"),
             Group("Statistiche", "Inventario di magazzino", "Articoli sotto scorta", "Statistiche di vendita")
         ]),
@@ -40,7 +40,7 @@ public static class MainMenuCatalog
                 Link("Agenda lavori", "/Interventi/Index"),
                 Link("Macchine installate", "/Lavori/MacchineInstallate")),
             Group("Esecuzione",
-                Link("Schede lavori", "/Interventi/Index"),
+                Link("Schede lavori", "/Lavori/Schede"),
                 Link("Lavori su dispositivo mobile", "/Interventi/Index"),
                 Pending("Scheda di revisione"),
                 Pending("Lavoro di revisione"))

@@ -4,5 +4,5 @@ public sealed class EditModel(CustomerService service):PageModel
 {
  [BindProperty] public CustomerEditModel Cliente{get;set;}=new();
  public async Task<IActionResult> OnGetAsync(int? id,CancellationToken ct){if(id is null)return Page();var x=await service.CustomerAsync(id.Value,ct);if(x is null)return NotFound();Cliente=x;return Page();}
- public async Task<IActionResult> OnPostAsync(CancellationToken ct){if(!ModelState.IsValid)return Page();await service.SaveCustomerAsync(Cliente,ct);TempData["Message"]="Anagrafica salvata";return RedirectToPage("Index");}
+ public async Task<IActionResult> OnPostAsync(CancellationToken ct){if(!ModelState.IsValid)return Page();await service.SaveCustomerAsync(Cliente,ct);return RedirectToPage("Index");}
 }

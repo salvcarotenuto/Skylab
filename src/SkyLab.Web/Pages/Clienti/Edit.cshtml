@@ -12,7 +12,9 @@
 <section class="module-page customer-form-page data-form-skin">
     <header class="module-header customer-form-header">
         <div class="module-title-identity">
-            <a class="customer-form-logo" asp-page="Index" aria-label="Torna all'elenco clienti">SL</a>
+            <a class="skylab-header-brand" asp-page="Index" aria-label="Torna all'elenco clienti">
+                <img src="~/images/skylab-logo.png" alt="SkyLab" />
+            </a>
             <div>
                 <p class="eyebrow">Anagrafica cliente</p>
                 <h1>@(isNew ? "Nuovo cliente" : Model.Cliente.Name)</h1>
@@ -24,11 +26,6 @@
             <a class="btn customer-menu-button" asp-page="Index">Esci</a>
         </div>
     </header>
-
-    @if (TempData["Message"] is string message)
-    {
-        <div class="alert alert-success" role="status">@message</div>
-    }
 
     <form id="customer-form" method="post" class="entity-form customer-entity-form" autocomplete="off" data-form-type="other">
         <input asp-for="Cliente.Code" type="hidden" />

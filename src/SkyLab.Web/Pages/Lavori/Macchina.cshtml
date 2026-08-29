@@ -8,6 +8,9 @@
 <section class="module-page customer-form-page machine-form-page data-form-skin">
     <header class="module-header customer-form-header">
         <div class="module-title-identity">
+            <div class="skylab-header-brand" aria-hidden="true">
+                <img src="~/images/skylab-logo.png" alt="" />
+            </div>
             <div>
                 <p class="eyebrow">Fascicolo operativo · Macchina</p>
                 <h1>@(isNew ? "Nuova installazione" : "Scheda macchina #" + Model.Macchina.Id)</h1>
@@ -68,7 +71,6 @@
                     </select>
                 </div>
             </div>
-            <p class="form-hint">Per una nuova macchina, selezionare il cliente e salvare; al successivo accesso saranno disponibili le sue sedi aggiuntive.</p>
         </fieldset>
 
         <fieldset class="form-frame compact-frame">

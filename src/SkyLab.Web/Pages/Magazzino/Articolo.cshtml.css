@@ -1,0 +1,29 @@
+.article-form-page {
+    display: grid;
+    gap: 10px;
+    max-width: 1280px;
+    padding-top: 10px;
+}
+
+.article-form-page .module-header {
+    box-sizing: border-box;
+    height: 96px;
+    margin: 0;
+    min-height: 96px;
+    padding: 10px 18px;
+}
+
+.article-form-panel {
+    background: #fff;
+    border: 1px solid #9eacbc;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(39, 77, 119, .07);
+    padding: 14px;
+}
+
+.article-form-panel .article-form-frame {
+    border: 1px solid #8a8f98;
+    border-radius: 0;
+    margin: 0;
+    padding: 30px 34px 28px 24px;
+}

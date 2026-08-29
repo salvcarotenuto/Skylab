@@ -70,3 +70,15 @@ public sealed record OperationalSiteGroup(
 public sealed record ArticleChoice(
     string Code, string Description, short CategoryCode, string Category,
     decimal Price, short DurationDays, decimal DailyConsumption);
+public sealed record ArticleListItem(
+    string Code, string Description, short CategoryCode, string Category,
+    short GroupCode, string Group, short BrandCode, string Brand, string SalesUnit,
+    decimal Price, short DurationDays, decimal DailyConsumption);
+
+public sealed record ArticleDetail(
+    string Code, string Description,
+    string Category, string Group, string Brand,
+    string PurchaseUnit, string WorkUnit, string SalesUnit,
+    decimal Weight, short Pieces, short DurationDays, decimal DailyConsumption,
+    decimal Cost, decimal Price, decimal Stock, decimal MinimumStock, decimal MaximumStock,
+    string Location, string Notes);

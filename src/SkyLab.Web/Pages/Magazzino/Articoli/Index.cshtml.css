@@ -1,0 +1,35 @@
+.article-list-page {
+    height: calc(100vh - 18px);
+    padding-top: 10px;
+}
+
+.article-list-page .list-titlebar {
+    box-sizing: border-box;
+    height: 96px;
+    margin-bottom: 10px;
+    min-height: 96px;
+    padding: 10px 18px;
+}
+
+.article-list-page .list-title-layout {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    height: 72px;
+}
+
+.article-list-page .list-title-identity strong {
+    font-size: 26px;
+    line-height: 1.05;
+}
+
+.article-list-page .list-title-identity small {
+    margin-top: 3px;
+}
+
+.article-list-page .list-title-actions .customer-menu-button {
+    align-items: center;
+    display: inline-flex;
+    height: 40px;
+    justify-content: center;
+}

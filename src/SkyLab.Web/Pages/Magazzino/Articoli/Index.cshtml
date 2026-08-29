@@ -1,0 +1,29 @@
+@page
+@model SkyLab.Web.Pages.Magazzino.Articoli.IndexModel
+@using System.Globalization
+@{
+ ViewData["Title"]="Articoli";
+ ViewData["BodyClass"]="article-list-body";
+ var categories=Model.Items.Where(x=>x.CategoryCode>0).GroupBy(x=>new{x.CategoryCode,x.Category}).Select(x=>x.Key).OrderBy(x=>x.Category);
+ var groups=Model.Items.Where(x=>x.GroupCode>0).GroupBy(x=>new{x.GroupCode,x.Group}).Select(x=>x.Key).OrderBy(x=>x.Group);
+ var brands=Model.Items.Where(x=>x.BrandCode>0).GroupBy(x=>new{x.BrandCode,x.Brand}).Select(x=>x.Key).OrderBy(x=>x.Brand);
+}
+<section class="list-page article-list-page" data-article-list-page data-menu-url="/">
+ <header class="list-titlebar">
+  <a class="list-title-identity" asp-page="/Index"><span class="list-title-layout"><span class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></span><span><strong>Articoli</strong><small>SkyLab · Anagrafica articoli di magazzino</small></span></span></a>
+  <div class="list-title-actions"><span class="list-records-box article-records-box"><strong data-article-count>@Model.Items.Count</strong><span>record</span></span><button class="list-title-button" type="button" data-article-open>Apri</button><a class="btn customer-menu-button" asp-page="/Index">Esci</a></div>
+ </header>
+ <section class="list-panel">
+  <div class="list-toolbar article-list-toolbar">
+   <div class="list-filter-field article-search-field"><label for="article-search">Cerca</label><div class="list-search-control"><input id="article-search" type="text" placeholder="Codice o descrizione articolo" autocomplete="off" autofocus data-article-search /><button class="list-search-clear" type="button" aria-label="Pulisci filtro" data-article-search-clear hidden>×</button></div></div>
+   <div class="list-filter-field"><label for="article-category">Categoria</label><select id="article-category" data-article-category><option value=""></option>@foreach(var x in categories){<option value="@x.CategoryCode">@x.Category</option>}</select></div>
+   <div class="list-filter-field"><label for="article-group">Gruppo</label><select id="article-group" data-article-group><option value=""></option>@foreach(var x in groups){<option value="@x.GroupCode">@x.Group</option>}</select></div>
+   <div class="list-filter-field"><label for="article-brand">Marca</label><select id="article-brand" data-article-brand><option value=""></option>@foreach(var x in brands){<option value="@x.BrandCode">@x.Brand</option>}</select></div>
+  </div>
+  <div class="list-grid-frame article-grid-frame" tabindex="0" data-article-grid><table class="list-grid article-grid">
+   <thead><tr><th data-sort-key="code">Codice</th><th data-sort-key="description">Descrizione</th><th data-sort-key="unit">U.m.</th><th data-sort-key="category">Categoria</th><th data-sort-key="group">Gruppo</th><th data-sort-key="brand">Marca</th><th data-sort-key="price" data-sort-type="number">Prezzo</th><th data-sort-key="duration" data-sort-type="number">Ciclo gg.</th><th data-sort-key="consumption" data-sort-type="number">Consumo/gg.</th></tr></thead>
+   <tbody>@foreach(var item in Model.Items){<tr tabindex="-1" data-article-row data-filter-text="@($"{item.Code} {item.Description}")" data-category-code="@item.CategoryCode" data-group-code="@item.GroupCode" data-brand-code="@item.BrandCode" data-sort-code="@item.Code" data-sort-description="@item.Description" data-sort-unit="@item.SalesUnit" data-sort-category="@item.Category" data-sort-group="@item.Group" data-sort-brand="@item.Brand" data-sort-price="@item.Price.ToString(CultureInfo.InvariantCulture)" data-sort-duration="@item.DurationDays" data-sort-consumption="@item.DailyConsumption.ToString(CultureInfo.InvariantCulture)" data-open-url="@Url.Page("/Magazzino/Articolo",new{codice=item.Code})"><td>@item.Code</td><td>@item.Description</td><td>@item.SalesUnit</td><td>@item.Category</td><td>@item.Group</td><td>@item.Brand</td><td>@(item.Price==0?"":item.Price.ToString("N3"))</td><td>@(item.DurationDays==0?"":item.DurationDays)</td><td>@(item.DailyConsumption==0?"":item.DailyConsumption.ToString("N3"))</td></tr>}</tbody>
+  </table><div class="list-empty" data-article-empty hidden>Nessun articolo trovato.</div></div>
+ </section>
+</section>
+@section Scripts { <script src="~/js/articles-list.js" asp-append-version="true"></script> }

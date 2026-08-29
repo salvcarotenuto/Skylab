@@ -20,6 +20,7 @@ public class Program
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();
         builder.Services.AddScoped<SkyLab.Web.Services.CustomerService>();
+        builder.Services.AddScoped<SkyLab.Web.Services.WorkService>();
         builder.Services.Configure<RequestLocalizationOptions>(options =>
         {
             var italian = new CultureInfo("it-IT");
