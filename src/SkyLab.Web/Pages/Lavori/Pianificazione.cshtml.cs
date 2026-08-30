@@ -19,8 +19,8 @@ public sealed class PianificazioneModel(PlanningService service) : PageModel
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
-        Dal ??= DateTime.Today;
-        Al ??= DateTime.Today.AddMonths(6);
+        Dal ??= DateTime.Today.AddDays(-60);
+        Al ??= DateTime.Today.AddDays(60);
         if (Al < Dal) (Dal, Al) = (Al, Dal);
 
         Distretti = await service.DistrictsAsync(cancellationToken);
@@ -29,5 +29,18 @@ public sealed class PianificazioneModel(PlanningService service) : PageModel
             .Select(g => new PlanningCustomerGroup(g.Key.CustomerId, g.Key.CustomerName, g.Key.City,
                 g.Key.District, g.Key.CustomerType, g.ToList()))
             .ToList();
+    }
+
+    public async Task<IActionResult> OnPostAcquireAsync(int macchinaId,int clienteId,DateTime scadenza,DateTime? dataIntervento,TimeSpan? oraIntervento,string? descrizione,string? note,CancellationToken cancellationToken)
+    {
+        if (dataIntervento is null)
+        {
+            ModelState.AddModelError(string.Empty, "La data concordata è obbligatoria.");
+            await OnGetAsync(cancellationToken);
+            return Page();
+        }
+
+        await service.AcquireCommitmentAsync(macchinaId,clienteId,scadenza,dataIntervento,oraIntervento,descrizione,note,cancellationToken);
+        return RedirectToPage(new { dal=Dal?.ToString("yyyy-MM-dd"),al=Al?.ToString("yyyy-MM-dd"),cerca=Cerca,tipologia=Tipologia,distretto=Distretto });
     }
 }

@@ -4,4 +4,12 @@ document.addEventListener("DOMContentLoaded",()=>{
  const number=value=>{const normalized=value.replace(/\./g,"").replace(",",".");return Number(normalized)||0};
  const update=()=>total.value=(number(labour.value)+number(materials.value)).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2});
  labour.addEventListener("input",update);materials.addEventListener("input",update);labour.addEventListener("change",update);materials.addEventListener("change",update);
+
+ const plannedNet=document.querySelector("[data-planned-net-source]"),plannedNetMirror=document.querySelector("[data-planned-net-mirror]");
+ if(plannedNet&&plannedNetMirror){
+  plannedNet.addEventListener("input",()=>plannedNetMirror.value=plannedNet.value);
+  plannedNetMirror.addEventListener("input",()=>plannedNet.value=plannedNetMirror.value);
+  plannedNet.addEventListener("change",()=>plannedNetMirror.value=plannedNet.value);
+  plannedNetMirror.addEventListener("change",()=>plannedNet.value=plannedNetMirror.value);
+ }
 });

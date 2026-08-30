@@ -17,6 +17,7 @@ artifacts/
 *.pid
 *.tmp
 *.bak
+src/SkyLab.Web/wwwroot/uploads/
 
 # Local secrets and configuration overrides
 appsettings.Development.json

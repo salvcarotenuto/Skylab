@@ -106,12 +106,16 @@ public sealed class PlanningService(IConfiguration configuration)
             SELECT m.ID, m.Cliente, COALESCE(c.Nome,''), COALESCE(c.Citta,''),
                    COALESCE(c.Distretto,0), COALESCE(d.Descrizione,''), COALESCE(c.Tipologia,0),
                    COALESCE(m.Articolo,''), COALESCE(a.Descrizione,''), COALESCE(cat.Descrizione,''),
-                   m.Valore, m.Durata, m.DataRif, m.ProxData
+                   m.Valore, m.Durata, m.DataRif, m.ProxData,
+                   i.ID,COALESCE(i.Stato,''),i.DataIntervento,i.OraIntervento
             FROM MacchineCli m
             JOIN Clienti c ON c.Codice=m.Cliente
             LEFT JOIN Distretti d ON d.Codice=c.Distretto
             LEFT JOIN Articoli a ON a.Codice=m.Articolo
             LEFT JOIN Categorie cat ON cat.Codice=m.Categoria
+            LEFT JOIN ImpegniLavoro i ON i.ID=(
+              SELECT MAX(ix.ID) FROM ImpegniLavoro ix
+              WHERE ix.MacchinaCli_ID=m.ID AND ix.DataScadenzaOrigine=m.ProxData AND ix.Stato<>'X')
             WHERE m.ProxData BETWEEN @from AND @to
               AND (@search='' OR c.Nome LIKE CONCAT('%',@search,'%'))
               AND (@customerType=0 OR c.Tipologia=@customerType)
@@ -136,8 +140,25 @@ public sealed class PlanningService(IConfiguration configuration)
                 reader.GetInt16(4), reader.GetString(5), reader.GetByte(6), reader.GetString(7),
                 reader.GetString(8), reader.GetString(9), reader.IsDBNull(10) ? null : reader.GetDecimal(10),
                 reader.IsDBNull(11) ? null : reader.GetInt16(11), reader.IsDBNull(12) ? null : reader.GetDateTime(12),
-                reader.GetDateTime(13)));
+                reader.GetDateTime(13),reader.IsDBNull(14)?null:reader.GetInt32(14),reader.GetString(15),
+                reader.IsDBNull(16)?null:reader.GetDateTime(16),reader.IsDBNull(17)?null:reader.GetTimeSpan(17)));
         }
         return result;
+    }
+
+    public async Task<int> AcquireCommitmentAsync(int machineId,int customerId,DateTime dueDate,DateTime? agreedOn,TimeSpan? agreedAt,string? description,string? notes,CancellationToken ct)
+    {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var tx=await cn.BeginTransactionAsync(ct);
+        const string checkSql="SELECT COUNT(*) FROM MacchineCli WHERE ID=@machine AND Cliente=@customer AND ProxData=@due";
+        await using(var check=new MySqlCommand(checkSql,cn,tx)){check.Parameters.AddWithValue("@machine",machineId);check.Parameters.AddWithValue("@customer",customerId);check.Parameters.AddWithValue("@due",dueDate.Date);if(Convert.ToInt32(await check.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Scadenza non più disponibile.");}
+        const string existingSql="SELECT ID FROM ImpegniLavoro WHERE MacchinaCli_ID=@machine AND DataScadenzaOrigine=@due AND Stato<>'X' ORDER BY ID DESC LIMIT 1";
+        await using(var existing=new MySqlCommand(existingSql,cn,tx)){existing.Parameters.AddWithValue("@machine",machineId);existing.Parameters.AddWithValue("@due",dueDate.Date);var id=await existing.ExecuteScalarAsync(ct);if(id is not null)return Convert.ToInt32(id);}
+        const string sql="""
+          INSERT INTO ImpegniLavoro(Cliente_ID,MacchinaCli_ID,Origine,DataScadenzaOrigine,DataAcquisizione,DataIntervento,OraIntervento,Stato,Descrizione,Note)
+          VALUES(@customer,@machine,'P',@due,NOW(),@agreedOn,@agreedAt,CASE WHEN @agreedOn IS NULL THEN 'A' ELSE 'P' END,NULLIF(@description,''),NULLIF(@notes,''));
+          SELECT LAST_INSERT_ID();
+          """;
+        await using var cmd=new MySqlCommand(sql,cn,tx);cmd.Parameters.AddWithValue("@customer",customerId);cmd.Parameters.AddWithValue("@machine",machineId);cmd.Parameters.AddWithValue("@due",dueDate.Date);cmd.Parameters.AddWithValue("@agreedOn",(object?)agreedOn?.Date??DBNull.Value);cmd.Parameters.AddWithValue("@agreedAt",(object?)agreedAt??DBNull.Value);cmd.Parameters.AddWithValue("@description",description?.Trim()??"");cmd.Parameters.AddWithValue("@notes",notes?.Trim()??"");
+        var result=Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));await tx.CommitAsync(ct);return result;
     }
 }

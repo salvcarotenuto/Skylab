@@ -1,0 +1,25 @@
+.planning-work-page { margin-left: 50%; padding-top: 10px; transform: translateX(-50%); user-select: none; width: min(1380px, calc(100vw - 32px)); }
+.planning-work-page ::deep .planning-work-heading { box-sizing: border-box; height: 96px; margin-bottom: 10px; padding: 10px 18px; }
+.planning-work-page ::deep .planning-work-heading h1 { font-size: 1.65rem; line-height: 1.05; }
+.planning-work-page ::deep .planning-work-heading p { margin: 2px 0 0; }
+.planning-heading-actions { align-items: center; display: flex; gap: 8px; }
+.planning-heading-actions .btn { width: 160px; }
+.planning-work-count { align-items: center; background: #edf4fd; border: 1px solid #9db9dc; border-radius: 7px; color: #1c477b; display: flex; gap: 5px; justify-content: center; min-height: 40px; width: 150px; }
+.planning-work-filters { align-items: center; background: #fff; border: 1px solid #c8d6e6; border-radius: 10px; box-shadow: 0 4px 10px rgba(34,69,108,.08); display: grid; gap: 8px; grid-template-columns: 240px 170px 170px 290px 190px minmax(200px,1fr); margin-bottom: 8px; padding: 7px 10px; }
+.planning-work-filters label { align-items: center; color: #263a55; display: grid; font-size: 13px; font-weight: 400; gap: 3px; grid-template-columns: 42px 1fr; margin: 0; min-width: 0; }
+.planning-work-filters label:nth-of-type(1),.planning-work-filters label:nth-of-type(2) { grid-template-columns: 52px 1fr; }
+.planning-work-filters label:nth-of-type(3),.planning-work-filters label:nth-of-type(4) { grid-template-columns: 78px 1fr; }
+.planning-work-filters label > span:first-child { align-items: center; align-self: stretch; background: #b8cbe0; border: 1px solid #8a8f98; border-radius: 6px; color: #0e1824; display: flex; font-size: 13px; font-weight: 400; height: 34px; padding: 0 7px; white-space: nowrap; }
+.planning-work-filters .form-control,.planning-work-filters .form-select { background-color: #fff; border: 1px solid #8a8f98; border-radius: 6px; color: #000; font-size: 13px; font-weight: 420; height: 34px; min-height: 34px; padding-block: 3px; }
+.planning-date-readonly { background: #edf2f8 !important; box-sizing: border-box; color: #000 !important; cursor: default; min-width: 0; text-align: center; width: 100%; }
+.planning-work-page ::deep .btn,.commitment-dialog .btn { align-items: center; display: inline-flex; justify-content: center; text-align: center; }
+.planning-period-actions { display: grid; gap: 6px; grid-template-columns: repeat(3,1fr); }
+.planning-period-actions .btn { font-size: 13px; font-weight: 420; height: 34px; min-width: 0; padding: 3px 5px; width: 100%; }
+.planning-work-page ::deep .planning-list { background: rgba(255,255,255,.78); border: 1px solid #c8d6e6; border-radius: 10px; height: calc(100vh - 188px); min-height: 260px; overflow-y: auto; padding: 10px; scrollbar-gutter: stable; }
+.planning-work-page ::deep .planning-list { align-content: start; gap: 8px; grid-auto-rows: max-content; }
+.planning-work-page ::deep .planning-customer > header { align-items: center; display: grid; gap: 12px; grid-template-columns: 90px minmax(0,1fr) 330px; padding: 6px 16px; }
+.planning-work-page ::deep .planning-customer h2 { font-size: 1rem; margin: 0; }
+.planning-work-page ::deep .planning-customer-code { color: #164f9f; font-variant-numeric: tabular-nums; }
+.planning-work-page ::deep .planning-customer-site { color: #4f6178; white-space: nowrap; }
+.planning-work-page ::deep .due-asset { padding: 8px 16px; }
+@@media(max-width:1150px){.planning-work-filters{grid-template-columns:repeat(2,minmax(180px,1fr))}.planning-work-search,.planning-period-actions{grid-column:1/-1}}

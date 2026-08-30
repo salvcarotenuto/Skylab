@@ -14,7 +14,11 @@ public sealed record PlanningDueItem(
     decimal? Value,
     short? Duration,
     DateTime? LastServiceDate,
-    DateTime DueDate);
+    DateTime DueDate,
+    int? CommitmentId,
+    string CommitmentStatus,
+    DateTime? AgreedOn,
+    TimeSpan? AgreedAt);
 
 public sealed record PlanningCustomerGroup(
     int CustomerId,

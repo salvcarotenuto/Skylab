@@ -39,6 +39,7 @@ public sealed class WorkEditModel
     public string Instructions { get; set; } = "";
     public decimal PlannedLabour { get; set; }
     public decimal PlannedMaterials { get; set; }
+    public decimal PlannedNet { get; set; }
     public DateTime? CompletedOn { get; set; }
     public TimeSpan? CompletedAt { get; set; }
     public short? ExecutingOperator { get; set; }
@@ -67,3 +68,10 @@ public sealed record WorkDetailItem(
 }
 
 public sealed record WorkReferenceLookup(string Type,string Reference,string Description,string Category,decimal Price);
+
+public sealed record WorkPhotoItem(short Number,string FileName,DateTime? TakenOn,string Description,string Url);
+public sealed record WorkDocumentItem(short Number,string FileName,string OriginalName,DateTime UploadedOn,string Description,string Url);
+public sealed record WorkHistoryItem(
+    long Id,DateTime EventOn,string EventType,string PreviousStatus,string NewStatus,string PreviousOutcome,string NewOutcome,
+    DateTime? PreviousDueOn,DateTime? NewDueOn,DateTime? PreviousPlannedOn,DateTime? NewPlannedOn,
+    DateTime? CompletedOn,DateTime? SkippedOn,DateTime? RealignedOn,string Notes,string User);

@@ -1,40 +1,32 @@
 @page
 @model SkyLab.Web.Pages.Lavori.PianificazioneModel
-@{ ViewData["Title"] = "Pianificazione lavori"; }
+@{
+    ViewData["Title"] = "Pianificazione lavori";
+    ViewData["HideFooter"] = true;
+}
+<style>.due-asset{grid-template-columns:minmax(260px,1fr) 145px 145px 165px}.due-asset-action{align-items:flex-end;display:flex;flex-direction:column;gap:5px}.due-asset-action .btn{height:31px;width:150px}.commitment-badge{align-items:center;background:#e5f4eb;border:1px solid #7cb28d;border-radius:5px;color:#245c38;display:inline-flex;font-size:12px;gap:6px;padding:5px 8px}.commitment-badge::before{align-items:center;background:#2f855a;border-radius:50%;color:#fff;content:"✓";display:inline-flex;font-size:11px;font-weight:700;height:18px;justify-content:center;width:18px}.commitment-dialog{background:#fff;border:1px solid #6f7784;padding:14px;width:750px}.commitment-dialog::backdrop{background:#1e385d55}.commitment-dialog h2{background:#6aa4dc;font-size:14px;height:36px;line-height:36px;margin:0 0 14px;padding:0 16px}.commitment-fields{background:#e7e7f7;border:1px solid #7e8491;display:grid;gap:8px;padding:16px}.commitment-fields label{display:grid;gap:4px;grid-template-columns:145px minmax(0,1fr)}.commitment-fields label.commitment-compact{grid-template-columns:145px 140px}.commitment-fields label>span:first-child{align-items:center;background:#b8cbe0;border:1px solid #8a8f98;border-radius:6px;display:flex;padding:0 8px}.commitment-fields input{border:1px solid #8a8f98;border-radius:6px;min-height:32px}.commitment-fields input:focus{border-color:#65758a;box-shadow:0 0 0 1px #65758a33;outline:none}.commitment-fields .micronote-date-control{background:transparent;border:0;border-radius:6px;padding:0;width:100%}.commitment-fields .micronote-date-input{border-radius:6px;box-sizing:border-box;padding-right:30px;text-align:center;width:100%}.commitment-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.commitment-actions .btn{width:120px}</style>
+<style>.planning-work-page{margin-left:50%;padding-top:10px;transform:translateX(-50%);user-select:none;width:min(1380px,calc(100vw - 32px))}.planning-work-heading{box-sizing:border-box;height:96px;margin-bottom:10px;padding:10px 18px}.planning-work-heading h1{font-size:1.65rem;line-height:1.05}.planning-work-heading p{margin:2px 0 0}.planning-heading-actions{align-items:center;display:flex;gap:8px}.planning-heading-actions .btn{width:160px}.planning-work-count{align-items:center;background:#edf4fd;border:1px solid #9db9dc;border-radius:7px;color:#1c477b;display:flex;gap:5px;justify-content:center;min-height:40px;width:150px}.planning-work-filters{align-items:center;background:#fff;border:1px solid #c8d6e6;border-radius:10px;box-shadow:0 4px 10px #22456c14;display:grid;gap:8px;grid-template-columns:240px 185px 185px 290px 175px minmax(210px,1fr);margin-bottom:8px;padding:7px 10px}.planning-work-filters label{align-items:center;color:#263a55;display:grid;font-size:13px;font-weight:400;gap:3px;grid-template-columns:42px 1fr;margin:0}.planning-work-filters label:nth-of-type(3),.planning-work-filters label:nth-of-type(4){grid-template-columns:78px 1fr}.planning-work-filters label>span:first-child{align-items:center;align-self:stretch;background:#b8cbe0;border:1px solid #8a8f98;border-radius:6px;color:#0e1824;display:flex;font-size:13px;font-weight:400;height:34px;padding:0 7px;white-space:nowrap}.planning-work-filters .form-control,.planning-work-filters .form-select{background-color:#fff;border:1px solid #8a8f98;border-radius:6px;color:#000;font-size:13px;font-weight:420;height:34px;min-height:34px;padding-block:3px}.planning-work-filters .micronote-date-control{width:100%}.planning-period-actions{display:grid;gap:6px;grid-template-columns:repeat(3,1fr)}.planning-period-actions .btn{font-size:13px;font-weight:420;height:34px;min-width:0;padding:3px 5px;width:100%}.planning-work-page .planning-list{background:#ffffffc7;border:1px solid #c8d6e6;border-radius:10px;height:calc(100vh - 188px);min-height:260px;overflow-y:auto;padding:10px;scrollbar-gutter:stable}@@media(max-width:1150px){.planning-work-filters{grid-template-columns:repeat(2,minmax(180px,1fr))}.planning-work-search,.planning-period-actions{grid-column:1/-1}}</style>
 
-<nav class="module-nav mb-3" aria-label="Navigazione lavorazione">
-    <a class="module-home" asp-page="/Index">← Menu generale</a>
-    <span>Lavorazione · Pianificazione</span>
-</nav>
-
-<header class="planning-heading">
-    <div><p class="eyebrow">Back-office</p><h1>Interventi in scadenza</h1><p>Manutenzioni e revisioni da trasformare in lavori programmati.</p></div>
-    <div class="planning-counter"><strong>@Model.Clienti.Count</strong><span>clienti</span><strong>@Model.TotaleMacchine</strong><span>scadenze</span></div>
+<style>.planning-work-filters{grid-template-columns:240px 170px 170px 290px 190px minmax(200px,1fr)}.planning-work-filters label{min-width:0}.planning-work-filters label:nth-of-type(1),.planning-work-filters label:nth-of-type(2){grid-template-columns:52px 1fr}.planning-date-readonly{background:#edf2f8!important;box-sizing:border-box;color:#000!important;cursor:default;min-width:0;text-align:center;width:100%}.planning-work-page .btn,.commitment-dialog .btn{align-items:center;display:inline-flex;justify-content:center;text-align:center}.planning-work-page .planning-list{align-content:start;gap:8px;grid-auto-rows:max-content}.planning-work-page .planning-customer>header{align-items:center;display:grid;gap:12px;grid-template-columns:90px minmax(0,1fr) 330px;padding:6px 16px}.planning-customer-code{color:#164f9f;font-variant-numeric:tabular-nums}.planning-work-page .planning-customer h2{font-size:1rem;margin:0}.planning-customer-site{color:#4f6178;white-space:nowrap}.planning-work-page .due-asset{padding:8px 16px}</style>
+<section class="planning-work-page">
+<header class="planning-heading customer-form-header planning-work-heading">
+    <div class="module-title-identity"><div class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></div><div><p class="eyebrow">Lavorazione · Pianificazione</p><h1>Interventi in scadenza</h1><p>Manutenzioni e revisioni da trasformare in lavori programmati.</p></div></div>
+    <div class="planning-heading-actions"><span class="planning-work-count"><strong>@Model.TotaleMacchine</strong> scadenze</span><a class="btn customer-menu-button" asp-page="/Index">← Menu principale</a></div>
 </header>
 
 @{
     var dal = Model.Dal!.Value.Date;
     var al = Model.Al!.Value.Date;
-    var durata = (al - dal).Days + 1;
-    var precedenteDal = dal.AddDays(-durata);
-    var precedenteAl = dal.AddDays(-1);
-    var successivoDal = al.AddDays(1);
-    var successivoAl = al.AddDays(durata);
+    var precedenteDal = dal.AddDays(-30);
+    var successivoAl = al.AddDays(30);
 }
-<nav class="date-navigator" aria-label="Navigazione periodo scadenze">
-    <a class="date-step" asp-route-dal="@precedenteDal.ToString("yyyy-MM-dd")" asp-route-al="@precedenteAl.ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto" title="Periodo precedente">←</a>
-    <div><span>Periodo visualizzato</span><strong>@dal.ToString("dd MMM yyyy") – @al.ToString("dd MMM yyyy")</strong></div>
-    <a class="date-today" asp-route-dal="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-al="@DateTime.Today.AddMonths(6).ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto">Oggi</a>
-    <a class="date-step" asp-route-dal="@successivoDal.ToString("yyyy-MM-dd")" asp-route-al="@successivoAl.ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto" title="Periodo successivo">→</a>
-</nav>
-
-<form method="get" class="planning-filters">
-    <label>Dal<input asp-for="Dal" type="date" class="form-control" /></label>
-    <label>Al<input asp-for="Al" type="date" class="form-control" /></label>
-    <label class="filter-search">Cerca cliente<input asp-for="Cerca" class="form-control" placeholder="Nome del cliente" /></label>
-    <label>Tipologia<select asp-for="Tipologia" class="form-select"><option value="0">Tutte</option><option value="1">Azienda</option><option value="2">Privato</option></select></label>
-    <label>Distretto<select asp-for="Distretto" class="form-select"><option value="0">Tutti</option>@foreach(var d in Model.Distretti){<option value="@d.Code">@d.Description</option>}</select></label>
-    <button class="btn btn-primary" type="submit">Applica filtri</button>
+<form method="get" class="planning-work-filters" data-planning-filters>
+    <input asp-for="Cerca" type="search" class="form-control planning-work-search" placeholder="Cerca cliente" autocomplete="off" />
+    <label><span>Dal</span><span><input name="Dal" type="hidden" value="@dal.ToString("yyyy-MM-dd")"/><input class="form-control planning-date-readonly" type="text" value="@dal.ToString("dd/MM/yyyy")" readonly tabindex="-1"/></span></label>
+    <label><span>Al</span><span><input name="Al" type="hidden" value="@al.ToString("yyyy-MM-dd")"/><input class="form-control planning-date-readonly" type="text" value="@al.ToString("dd/MM/yyyy")" readonly tabindex="-1"/></span></label>
+    <div class="planning-period-actions"><a class="btn customer-menu-button" asp-route-dal="@precedenteDal.ToString("yyyy-MM-dd")" asp-route-al="@al.ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto">← 30 gg.</a><a class="btn customer-menu-button" asp-route-dal="@DateTime.Today.AddDays(-60).ToString("yyyy-MM-dd")" asp-route-al="@DateTime.Today.AddDays(60).ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto">Oggi</a><a class="btn customer-menu-button" asp-route-dal="@dal.ToString("yyyy-MM-dd")" asp-route-al="@successivoAl.ToString("yyyy-MM-dd")" asp-route-cerca="@Model.Cerca" asp-route-tipologia="@Model.Tipologia" asp-route-distretto="@Model.Distretto">+ 30 gg. →</a></div>
+    <label><span>Tipologia</span><select asp-for="Tipologia" class="form-select"><option value="0">Tutte</option><option value="1">Azienda</option><option value="2">Privato</option></select></label>
+    <label><span>Distretto</span><select asp-for="Distretto" class="form-select"><option value="0">Tutti</option>@foreach(var d in Model.Distretti){<option value="@d.Code">@d.Description</option>}</select></label>
 </form>
 
 <div class="planning-list">
@@ -45,13 +37,18 @@
 @foreach (var cliente in Model.Clienti)
 {
     <article class="planning-customer">
-        <header><div><span class="status">@(cliente.CustomerType == 1 ? "Azienda" : cliente.CustomerType == 2 ? "Privato" : "Cliente")</span><h2>@cliente.CustomerName</h2><p>@cliente.City · @cliente.District</p></div><button class="btn btn-outline-primary" disabled title="La creazione della scheda sarà il prossimo passaggio">Pianifica lavoro</button></header>
+        <header><strong class="planning-customer-code">@cliente.CustomerId.ToString("00000")</strong><h2>@cliente.CustomerName</h2><span class="planning-customer-site">@cliente.City@if(!string.IsNullOrWhiteSpace(cliente.District)){<text> · @cliente.District</text>}</span></header>
         <div class="due-assets">
         @foreach (var item in cliente.Items)
         {
-            <div class="due-asset"><div><strong>@(string.IsNullOrWhiteSpace(item.ArticleDescription) ? item.ArticleCode : item.ArticleDescription)</strong><span>@item.ArticleCode · @item.Category</span></div><div><span>Ultimo intervento</span><strong>@(item.LastServiceDate?.ToString("dd/MM/yyyy") ?? "—")</strong></div><div><span>Prossima data</span><strong>@item.DueDate.ToString("dd/MM/yyyy")</strong></div></div>
+            <div class="due-asset"><div><strong>@(string.IsNullOrWhiteSpace(item.ArticleDescription) ? item.ArticleCode : item.ArticleDescription)</strong><span>@item.ArticleCode · @item.Category</span></div><div><span>Ultimo intervento</span><strong>@(item.LastServiceDate?.ToString("dd/MM/yyyy") ?? "—")</strong></div><div><span>Scadenza prevista</span><strong>@item.DueDate.ToString("dd/MM/yyyy")</strong></div><div class="due-asset-action">@if(item.CommitmentId is null){<button class="btn customer-menu-button" type="button" data-acquire-open data-machine="@item.MachineId" data-customer="@item.CustomerId" data-due="@item.DueDate.ToString("yyyy-MM-dd")" data-description="@item.ArticleDescription">Prenota</button>}else{<span class="commitment-badge">@(item.CommitmentStatus=="P"?"Intervento pianificato":"Prenotato")</span>@if(item.AgreedOn is not null){<small>@item.AgreedOn.Value.ToString("dd/MM/yyyy") @(item.AgreedAt?.ToString(@"hh\:mm")??"")</small>}}</div></div>
         }
         </div>
     </article>
 }
 </div>
+</section>
+
+<dialog class="commitment-dialog" data-acquire-dialog><form method="post" asp-page-handler="Acquire"><input type="hidden" asp-for="Dal"/><input type="hidden" asp-for="Al"/><input type="hidden" asp-for="Cerca"/><input type="hidden" asp-for="Tipologia"/><input type="hidden" asp-for="Distretto"/><input type="hidden" name="macchinaId" data-acquire-machine/><input type="hidden" name="clienteId" data-acquire-customer/><input type="hidden" name="scadenza" data-acquire-due/><h2>Acquisisci impegno</h2><div asp-validation-summary="ModelOnly" class="validation-summary text-danger"></div><div class="commitment-fields"><label><span>Intervento</span><input name="descrizione" maxlength="255" data-acquire-description/></label><label class="commitment-compact"><span>Data concordata</span><span class="micronote-date-control" data-date-control><input name="dataIntervento" type="hidden" data-filter-date-hidden data-acquire-date-hidden/><input class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="gg/mm/aaaa" required aria-required="true" data-filter-date-display data-acquire-date-display/><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data concordata" data-date-picker-button></button></span></label><label class="commitment-compact"><span>Ora concordata</span><input name="oraIntervento" type="time"/></label><label><span>Note</span><input name="note" maxlength="500"/></label></div><div class="commitment-actions"><button class="btn customer-menu-button" type="submit">Conferma</button><button class="btn customer-menu-button" type="button" data-acquire-cancel>Annulla</button></div></form></dialog>
+
+@section Scripts {<script>document.addEventListener("DOMContentLoaded",()=>{const filters=document.querySelector("[data-planning-filters]"),search=filters?.querySelector("input[type=search]");let timer;filters?.querySelectorAll("select").forEach(control=>control.addEventListener("change",()=>filters.requestSubmit()));search?.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(()=>filters.requestSubmit(),300)});const dialog=document.querySelector("[data-acquire-dialog]");document.querySelectorAll("[data-acquire-open]").forEach(button=>button.addEventListener("click",()=>{const due=button.dataset.due||"",parts=due.split("-");dialog.querySelector("[data-acquire-machine]").value=button.dataset.machine;dialog.querySelector("[data-acquire-customer]").value=button.dataset.customer;dialog.querySelector("[data-acquire-due]").value=due;dialog.querySelector("[data-acquire-description]").value=button.dataset.description||"";dialog.querySelector("[data-acquire-date-hidden]").value=due;dialog.querySelector("[data-acquire-date-display]").value=parts.length===3?`${parts[2]}/${parts[1]}/${parts[0]}`:"";dialog.showModal()}));dialog?.querySelector("[data-acquire-cancel]")?.addEventListener("click",()=>dialog.close())});</script>}

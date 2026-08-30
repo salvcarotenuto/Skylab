@@ -1,0 +1,9 @@
+ALTER TABLE Lavorichrg
+  DROP FOREIGN KEY FK_Lavorichrg_Lavori;
+
+RENAME TABLE Lavorichrg TO LavoriChiusiRg;
+
+ALTER TABLE LavoriChiusiRg
+  ADD CONSTRAINT FK_LavoriChiusiRg_Lavori
+  FOREIGN KEY (ID) REFERENCES Lavori(ID)
+  ON DELETE RESTRICT ON UPDATE RESTRICT;
