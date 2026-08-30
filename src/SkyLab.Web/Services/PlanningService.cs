@@ -188,27 +188,78 @@ public sealed class PlanningService(IConfiguration configuration)
         var result=Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));await tx.CommitAsync(ct);return result;
     }
 
+    public async Task<int> CreateExtraordinaryCommitmentAsync(int customerId,int? siteId,int? machineId,DateTime agreedOn,TimeSpan? agreedAt,string description,string? notes,CancellationToken ct)
+    {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var tx=await cn.BeginTransactionAsync(ct);
+        await using(var customer=new MySqlCommand("SELECT COUNT(*) FROM Clienti WHERE Codice=@customer AND COALESCE(Attivo,0)<>0",cn,tx))
+        {customer.Parameters.AddWithValue("@customer",customerId);if(Convert.ToInt32(await customer.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Cliente non valido.");}
+        if(siteId.HasValue)
+        {await using var site=new MySqlCommand("SELECT COUNT(*) FROM Destini WHERE ID=@site AND Ditta=@customer AND CliFor='C'",cn,tx);site.Parameters.AddWithValue("@site",siteId.Value);site.Parameters.AddWithValue("@customer",customerId);if(Convert.ToInt32(await site.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Sede non valida.");}
+        if(machineId.HasValue)
+        {await using var machine=new MySqlCommand("SELECT COUNT(*) FROM MacchineCli WHERE ID=@machine AND Cliente=@customer",cn,tx);machine.Parameters.AddWithValue("@machine",machineId.Value);machine.Parameters.AddWithValue("@customer",customerId);if(Convert.ToInt32(await machine.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Macchina non valida.");}
+        const string sql="""
+          INSERT INTO ImpegniLavoro(Cliente_ID,Destino_ID,MacchinaCli_ID,Origine,DataScadenzaOrigine,DataAcquisizione,DataIntervento,OraIntervento,Stato,Descrizione,Note)
+          VALUES(@customer,@site,@machine,'S',NULL,NOW(),@agreedOn,@agreedAt,'P',@description,NULLIF(@notes,''));
+          SELECT LAST_INSERT_ID();
+          """;
+        await using var cmd=new MySqlCommand(sql,cn,tx);cmd.Parameters.AddWithValue("@customer",customerId);cmd.Parameters.AddWithValue("@site",(object?)siteId??DBNull.Value);cmd.Parameters.AddWithValue("@machine",(object?)machineId??DBNull.Value);cmd.Parameters.AddWithValue("@agreedOn",agreedOn.Date);cmd.Parameters.AddWithValue("@agreedAt",(object?)agreedAt??DBNull.Value);cmd.Parameters.AddWithValue("@description",description.Trim());cmd.Parameters.AddWithValue("@notes",notes?.Trim()??"");
+        var id=Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));await tx.CommitAsync(ct);return id;
+    }
+
+    public async Task<int> CreateNewWorkCommitmentAsync(int customerId,int? siteId,string articleCode,DateTime agreedOn,TimeSpan? agreedAt,string description,string? notes,CancellationToken ct)
+    {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var tx=await cn.BeginTransactionAsync(ct);
+        await using(var customer=new MySqlCommand("SELECT COUNT(*) FROM Clienti WHERE Codice=@customer AND COALESCE(Attivo,0)<>0",cn,tx)){customer.Parameters.AddWithValue("@customer",customerId);if(Convert.ToInt32(await customer.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Cliente non valido.");}
+        if(siteId.HasValue){await using var site=new MySqlCommand("SELECT COUNT(*) FROM Destini WHERE ID=@site AND Ditta=@customer AND CliFor='C'",cn,tx);site.Parameters.AddWithValue("@site",siteId.Value);site.Parameters.AddWithValue("@customer",customerId);if(Convert.ToInt32(await site.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Sede non valida.");}
+        await using(var article=new MySqlCommand("SELECT COUNT(*) FROM Articoli WHERE Codice=@article",cn,tx)){article.Parameters.AddWithValue("@article",articleCode);if(Convert.ToInt32(await article.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Articolo non valido.");}
+        const string sql="""
+          INSERT INTO ImpegniLavoro(Cliente_ID,Destino_ID,MacchinaCli_ID,Articolo,Origine,DataScadenzaOrigine,DataAcquisizione,DataIntervento,OraIntervento,Stato,Descrizione,Note)
+          VALUES(@customer,@site,NULL,@article,'N',NULL,NOW(),@agreedOn,@agreedAt,'P',@description,NULLIF(@notes,''));
+          SELECT LAST_INSERT_ID();
+          """;
+        await using var cmd=new MySqlCommand(sql,cn,tx);cmd.Parameters.AddWithValue("@customer",customerId);cmd.Parameters.AddWithValue("@site",(object?)siteId??DBNull.Value);cmd.Parameters.AddWithValue("@article",articleCode.Trim());cmd.Parameters.AddWithValue("@agreedOn",agreedOn.Date);cmd.Parameters.AddWithValue("@agreedAt",(object?)agreedAt??DBNull.Value);cmd.Parameters.AddWithValue("@description",description.Trim());cmd.Parameters.AddWithValue("@notes",notes?.Trim()??"");var id=Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));await tx.CommitAsync(ct);return id;
+    }
+
+    public async Task<IReadOnlyList<PlanningExtraordinaryItem>> ExtraordinaryAsync(DateTime from,DateTime to,string? search,short district,CancellationToken ct)
+    {
+        const string sql="""
+          SELECT i.ID,i.Lavoro_ID,i.Cliente_ID,COALESCE(c.Nome,''),COALESCE(c.Citta,''),COALESCE(di.Descrizione,''),
+                 COALESCE(NULLIF(CONCAT_WS(' · ',NULLIF(d.Nome,''),NULLIF(d.Citta,'')),''),'Sede principale'),
+                 COALESCE(i.Descrizione,''),m.DataRif,i.DataIntervento,i.OraIntervento,COALESCE(i.Note,''),i.Origine,COALESCE(i.Articolo,'')
+          FROM ImpegniLavoro i
+          JOIN Clienti c ON c.Codice=i.Cliente_ID
+          LEFT JOIN Distretti di ON di.Codice=c.Distretto
+          LEFT JOIN Destini d ON d.ID=i.Destino_ID
+          LEFT JOIN MacchineCli m ON m.ID=i.MacchinaCli_ID
+          WHERE i.Origine IN ('S','N') AND i.Stato<>'X' AND i.DataIntervento BETWEEN @from AND @to
+            AND (@search='' OR c.Nome LIKE CONCAT('%',@search,'%') OR i.Descrizione LIKE CONCAT('%',@search,'%'))
+            AND (@district=0 OR c.Distretto=@district)
+          ORDER BY c.Nome,i.DataIntervento,i.OraIntervento;
+          """;
+        var result=new List<PlanningExtraordinaryItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@from",from.Date);cmd.Parameters.AddWithValue("@to",to.Date);cmd.Parameters.AddWithValue("@search",search?.Trim()??"");cmd.Parameters.AddWithValue("@district",district);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(r.GetInt32(0),r.IsDBNull(1)?null:r.GetInt32(1),r.GetInt32(2),r.GetString(3),r.GetString(4),r.GetString(5),r.GetString(6),r.GetString(7),r.IsDBNull(8)?null:r.GetDateTime(8),r.GetDateTime(9),r.IsDBNull(10)?null:r.GetTimeSpan(10),r.GetString(11),r.GetString(12),r.GetString(13)));return result;
+    }
+
     public async Task<int> CreateWorkFromCommitmentAsync(int commitmentId,CancellationToken ct)
     {
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var tx=await cn.BeginTransactionAsync(ct);
         const string sourceSql="""
           SELECT i.Cliente_ID,i.MacchinaCli_ID,i.DataIntervento,i.OraIntervento,
                  COALESCE(i.Descrizione,''),COALESCE(i.Note,''),i.Lavoro_ID,
-                 m.DestinoID,m.DataRif,COALESCE(m.Articolo,''),COALESCE(a.Descrizione,''),COALESCE(cat.Descrizione,'')
+                 COALESCE(i.Destino_ID,m.DestinoID),m.DataRif,COALESCE(i.Articolo,m.Articolo,''),COALESCE(a.Descrizione,''),COALESCE(cat.Descrizione,''),i.Origine
           FROM ImpegniLavoro i
           LEFT JOIN MacchineCli m ON m.ID=i.MacchinaCli_ID
-          LEFT JOIN Articoli a ON a.Codice=m.Articolo
+          LEFT JOIN Articoli a ON a.Codice=COALESCE(i.Articolo,m.Articolo)
           LEFT JOIN Categorie cat ON cat.Codice=m.Categoria
           WHERE i.ID=@id AND i.Stato<>'X' FOR UPDATE
           """;
-        int customer;int? machine;DateTime? plannedOn;TimeSpan? plannedAt;string description;string notes;int? existingWork;int? site;DateTime? lastService;string article;string articleDescription;string category;
+        int customer;int? machine;DateTime? plannedOn;TimeSpan? plannedAt;string description;string notes;int? existingWork;int? site;DateTime? lastService;string article;string articleDescription;string category;string origin;
         await using(var source=new MySqlCommand(sourceSql,cn,tx))
         {
             source.Parameters.AddWithValue("@id",commitmentId);await using var r=await source.ExecuteReaderAsync(ct);
             if(!await r.ReadAsync(ct))throw new InvalidOperationException("Prenotazione non trovata.");
             customer=r.GetInt32(0);machine=r.IsDBNull(1)?null:r.GetInt32(1);plannedOn=r.IsDBNull(2)?null:r.GetDateTime(2);plannedAt=r.IsDBNull(3)?null:r.GetTimeSpan(3);
             description=r.GetString(4);notes=r.GetString(5);existingWork=r.IsDBNull(6)?null:r.GetInt32(6);site=r.IsDBNull(7)?null:r.GetInt32(7);lastService=r.IsDBNull(8)?null:r.GetDateTime(8);
-            article=r.GetString(9);articleDescription=r.GetString(10);category=r.GetString(11);
+            article=r.GetString(9);articleDescription=r.GetString(10);category=r.GetString(11);origin=r.GetString(12);
         }
         if(existingWork.HasValue){await tx.CommitAsync(ct);return existingWork.Value;}
         if(!plannedOn.HasValue)throw new InvalidOperationException("Definire la data della prenotazione prima di preparare la scheda.");
@@ -241,6 +292,18 @@ public sealed class PlanningService(IConfiguration configuration)
         }
         await using(var history=new MySqlCommand("INSERT INTO LavoriStorico(Lavoro_ID,TipoEvento,DataEvento,StatoNuovo_ID,DataPianificataNuova,Note) VALUES(@work,'REDAZIONE_SCHEDA',NOW(),1,@planned,'Scheda preparata dalla prenotazione')",cn,tx))
         {history.Parameters.AddWithValue("@work",workId);history.Parameters.AddWithValue("@planned",plannedOn.Value.Date);await history.ExecuteNonQueryAsync(ct);}
+        if(origin=="N"&&!string.IsNullOrWhiteSpace(article))
+        {
+            const string addArticle="""
+              INSERT INTO LavoriRg(ID,Anno,Codice,Riga,Articolo,TipoRiga,Quantita,Prezzo)
+              SELECT l.ID,l.Anno,l.Codice,1,@article,'A',1,COALESCE(a.PrezzoStd,0)
+              FROM Lavori l JOIN Articoli a ON a.Codice=@article WHERE l.ID=@work;
+              UPDATE Lavori l SET ImportoMaterialiPreventivato=COALESCE((SELECT SUM(r.Quantita*r.Prezzo) FROM LavoriRg r WHERE r.ID=l.ID AND r.TipoRiga='A'),0),
+                ImportoPreventivoNetto=COALESCE((SELECT SUM(r.Quantita*r.Prezzo) FROM LavoriRg r WHERE r.ID=l.ID AND r.TipoRiga IN ('A','P')),0)
+              WHERE l.ID=@work;
+              """;
+            await using var add=new MySqlCommand(addArticle,cn,tx);add.Parameters.AddWithValue("@article",article);add.Parameters.AddWithValue("@work",workId);await add.ExecuteNonQueryAsync(ct);
+        }
         await using(var link=new MySqlCommand("UPDATE ImpegniLavoro SET Lavoro_ID=@work,Stato='T' WHERE ID=@id AND Lavoro_ID IS NULL",cn,tx))
         {link.Parameters.AddWithValue("@work",workId);link.Parameters.AddWithValue("@id",commitmentId);if(await link.ExecuteNonQueryAsync(ct)!=1)throw new InvalidOperationException("La prenotazione è già stata trasformata.");}
         await tx.CommitAsync(ct);return workId;

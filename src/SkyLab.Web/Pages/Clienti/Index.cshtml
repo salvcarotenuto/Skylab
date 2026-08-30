@@ -29,7 +29,7 @@
             @foreach (var customer in Model.Items)
             {
                 <article class="customer-row" data-customer-row data-filter-name="@customer.Name" data-filter-code="@customer.Code">
-                    <div><span class="status">#@customer.Code</span><h2>@customer.Name</h2><small>@customer.City @customer.Province</small></div>
+                    <div><div class="customer-identity-line"><span class="status">@customer.Code.ToString("00000")</span><h2>@customer.Name</h2><small>@customer.City @customer.Province</small></div></div>
                     <div><span>Contatti</span><strong>@customer.Phone</strong><small>@customer.Email</small></div>
                     <div><span>Sedi</span><strong>@customer.Sites</strong></div>
                     <div><span>Installato</span><strong>@customer.Machines</strong></div>

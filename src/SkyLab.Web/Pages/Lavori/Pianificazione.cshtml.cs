@@ -15,7 +15,8 @@ public sealed class PianificazioneModel(PlanningService service) : PageModel
 
     public IReadOnlyList<PlanningDistrict> Distretti { get; private set; } = [];
     public IReadOnlyList<PlanningCustomerGroup> Clienti { get; private set; } = [];
-    public int TotaleMacchine => Clienti.Sum(x => x.Items.Count);
+    public IReadOnlyList<PlanningExtraordinaryGroup> Straordinari { get; private set; } = [];
+    public int TotaleMacchine => Clienti.Sum(x => x.Items.Count) + Straordinari.Sum(x => x.Items.Count);
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
@@ -29,6 +30,9 @@ public sealed class PianificazioneModel(PlanningService service) : PageModel
             .Select(g => new PlanningCustomerGroup(g.Key.CustomerId, g.Key.CustomerName, g.Key.City,
                 g.Key.District, g.Key.CustomerType, g.ToList()))
             .ToList();
+        var extraordinary=await service.ExtraordinaryAsync(Dal.Value,Al.Value,Cerca,Distretto,cancellationToken);
+        Straordinari=extraordinary.GroupBy(x=>new{x.CustomerId,x.CustomerName,x.City,x.District})
+            .Select(g=>new PlanningExtraordinaryGroup(g.Key.CustomerId,g.Key.CustomerName,g.Key.City,g.Key.District,g.ToList())).ToList();
     }
 
     public async Task<IActionResult> OnPostAcquireAsync(int macchinaId,int clienteId,DateTime scadenza,DateTime? dataIntervento,TimeSpan? oraIntervento,string? descrizione,string? note,CancellationToken cancellationToken)

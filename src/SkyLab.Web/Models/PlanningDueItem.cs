@@ -31,6 +31,29 @@ public sealed record PlanningCustomerGroup(
     byte CustomerType,
     IReadOnlyList<PlanningDueItem> Items);
 
+public sealed record PlanningExtraordinaryItem(
+    int CommitmentId,
+    int? WorkId,
+    int CustomerId,
+    string CustomerName,
+    string City,
+    string District,
+    string Site,
+    string Description,
+    DateTime? LastServiceDate,
+    DateTime AgreedOn,
+    TimeSpan? AgreedAt,
+    string Notes,
+    string Origin,
+    string ArticleCode);
+
+public sealed record PlanningExtraordinaryGroup(
+    int CustomerId,
+    string CustomerName,
+    string City,
+    string District,
+    IReadOnlyList<PlanningExtraordinaryItem> Items);
+
 public sealed record PlanningDistrict(short Code, string Description);
 
 public sealed record PlanningCategory(short Code, string Description);

@@ -1,4 +1,10 @@
 @page
 @model SkyLab.Web.Pages.Clienti.Sedi.IndexModel
-@{ViewData["Title"]="Sedi di "+Model.Cliente;}
-<header class="planning-heading customer-list-heading"><div><p class="eyebrow">Sedi aggiuntive · Cliente #@Model.ClienteId</p><h1>@Model.Cliente</h1><p>Sedi operative diverse dall’indirizzo principale.</p></div><div class="customer-list-heading-actions"><a class="btn btn-primary new-site-button" asp-page="Edit" asp-route-clienteId="@Model.ClienteId">Nuova sede</a><a class="btn customer-menu-button" asp-page="../Index">Esci</a></div></header><div class="site-list">@foreach(var s in Model.Items){<article class="site-card"><div><span class="status">Sede @s.Code</span><h2>@s.Name</h2><p>@s.Street · @s.City @s.Province</p></div><div><span>Referente</span><strong>@s.Contact</strong></div><a class="btn btn-outline-primary" asp-page="Edit" asp-route-id="@s.Id">Modifica</a></article>}</div>
+@{ViewData["Title"]="Sedi di "+Model.Cliente;ViewData["HideFooter"]=true;}
+<section class="additional-sites-page">
+    <header class="module-header customer-form-header operational-record-header">
+        <div class="module-title-identity"><a class="skylab-header-brand" asp-page="../Index" aria-label="Torna all'elenco clienti"><img src="~/images/skylab-logo.png" alt="SkyLab" /></a><div><p class="eyebrow">Sedi aggiuntive</p><h1>@Model.Cliente</h1><p>Codice cliente @Model.ClienteId.ToString("00000")</p></div></div>
+        <div class="customer-form-toolbar"><a class="btn btn-primary new-site-button" asp-page="Edit" asp-route-clienteId="@Model.ClienteId">Nuova sede</a><a class="btn customer-menu-button" asp-page="../Index">Esci</a></div>
+    </header>
+    <div class="site-list additional-sites-list">@foreach(var s in Model.Items){<article class="site-card"><div><div class="additional-site-heading"><span class="status">Sede @s.Code</span><h2>@s.Name</h2></div>@if(!string.IsNullOrWhiteSpace(s.Street)||!string.IsNullOrWhiteSpace(s.City)||!string.IsNullOrWhiteSpace(s.Province)){<p>@string.Join(" · ",new[]{s.Street,string.Join(" ",new[]{s.City,s.Province}.Where(x=>!string.IsNullOrWhiteSpace(x)))}.Where(x=>!string.IsNullOrWhiteSpace(x)))</p>}</div><div><span>Referente</span><strong>@s.Contact</strong></div><a class="btn customer-menu-button" asp-page="Edit" asp-route-id="@s.Id">Modifica</a></article>}</div>
+</section>

@@ -6,11 +6,11 @@ public static class MainMenuCatalog
 {
     public static IReadOnlyList<QuickLinkDefinition> QuickLinks { get; } =
     [
-        new("Interventi in scadenza", "IS", "/Lavori/Pianificazione"),
-        new("Agenda del giorno", "AG", "/Interventi/Index"),
-        new("Schede lavori", "LV", "/Lavori/Schede"),
         new("Clienti", "CL", "/Clienti/Index"),
-        new("Articoli", "AR", "/Magazzino/Articoli/Index")
+        new("Articoli", "AR", "/Magazzino/Articoli/Index"),
+        new("Interventi in scadenza", "IS", "/Lavori/Pianificazione"),
+        new("Schede lavori", "LV", "/Lavori/Schede"),
+        new("Agenda del giorno", "AG", "/Interventi/Index")
     ];
 
     public static IReadOnlyList<MenuSectionDefinition> Sections { get; } =
@@ -37,6 +37,7 @@ public static class MainMenuCatalog
             Group("Pianificazione",
                 Link("Interventi in scadenza", "/Lavori/Pianificazione"),
                 Link("Intervento straordinario", "/Lavori/InterventoStraordinario"),
+                Link("Nuovo lavoro", "/Lavori/NuovoLavoro"),
                 Link("Agenda del giorno", "/Interventi/Index"),
                 Link("Agenda lavori", "/Interventi/Index"),
                 Link("Macchine installate", "/Lavori/MacchineInstallate")),

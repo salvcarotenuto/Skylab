@@ -3,11 +3,13 @@
 @{
     var isNew = Model.Cliente.Code == 0;
     ViewData["Title"] = isNew ? "Nuovo cliente" : Model.Cliente.Name;
+    if(Model.Modal){ViewData["BodyClass"]="customer-modal-body";ViewData["HideFooter"]=true;}
     var validationMessage = ViewData.ModelState.Values
         .SelectMany(value => value.Errors)
         .Select(error => error.ErrorMessage)
         .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message));
 }
+@if(Model.Modal){<style>html,body.customer-modal-body{min-height:0!important}body.customer-modal-body{overflow:auto}body.customer-modal-body>.page-container{margin:0!important;max-width:none!important;padding:10px!important}body.customer-modal-body main{padding:0!important}body.customer-modal-body .customer-form-page{gap:10px;padding:0!important}</style>}
 
 <section class="module-page customer-form-page data-form-skin">
     <header class="module-header customer-form-header">
@@ -23,11 +25,12 @@
         </div>
         <div class="customer-form-toolbar">
             <button class="btn btn-primary" type="submit" form="customer-form">Salva</button>
-            <a class="btn customer-menu-button" asp-page="Index">Esci</a>
+            @if(Model.Modal){<button class="btn customer-menu-button" type="button" onclick="parent.postMessage({type:'skylab-customer-cancel'},location.origin)">Esci</button>}else{<a class="btn customer-menu-button" asp-page="Index">Esci</a>}
         </div>
     </header>
 
     <form id="customer-form" method="post" class="entity-form customer-entity-form" autocomplete="off" data-form-type="other">
+        <input asp-for="Modal" type="hidden" />
         <input asp-for="Cliente.Code" type="hidden" />
         <div asp-validation-summary="ModelOnly" class="validation-summary text-danger"></div>
 
@@ -93,6 +96,7 @@
 
     </form>
 </section>
+@if(Model.Modal){<script>document.addEventListener("DOMContentLoaded",()=>{const report=()=>parent.postMessage({type:"skylab-customer-size",height:document.documentElement.scrollHeight},location.origin);new ResizeObserver(report).observe(document.querySelector(".customer-form-page"));report()});</script>}
 
 @if (!string.IsNullOrWhiteSpace(validationMessage))
 {

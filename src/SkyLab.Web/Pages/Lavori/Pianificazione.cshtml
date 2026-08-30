@@ -40,7 +40,7 @@
 </form>
 
 <div class="planning-list">
-@if (Model.Clienti.Count == 0)
+@if (Model.Clienti.Count == 0 && Model.Straordinari.Count == 0)
 {
     <div class="empty-panel"><h2>Nessuna scadenza</h2><p>Non risultano macchine da pianificare nell’intervallo selezionato.</p></div>
 }
@@ -51,7 +51,56 @@
         <div class="due-assets">
         @foreach (var item in cliente.Items)
         {
-            <div class="due-asset"><div><strong>@(string.IsNullOrWhiteSpace(item.ArticleDescription) ? item.ArticleCode : item.ArticleDescription)</strong><span>@item.ArticleCode · @item.Category</span></div><div><span>Ultimo intervento</span><strong>@(item.LastServiceDate?.ToString("dd/MM/yyyy") ?? "—")</strong></div><div><span>Scadenza prevista</span><strong>@item.DueDate.ToString("dd/MM/yyyy")</strong></div><div><span>Data prenotata</span><strong>@(item.AgreedOn?.ToString("dd/MM/yyyy") ?? "—")</strong>@if(item.AgreedAt is not null){<span>ore @item.AgreedAt.Value.ToString(@"hh\:mm")</span>}</div><div class="due-asset-action">@if(item.CommitmentId is null){<button class="btn customer-menu-button" type="button" data-acquire-open data-machine="@item.MachineId" data-customer="@item.CustomerId" data-due="@item.DueDate.ToString("yyyy-MM-dd")" data-description="@item.ArticleDescription">Prenota</button>}else if(item.WorkId is null){<div class="due-asset-buttons"><button class="btn customer-menu-button" type="button" data-acquire-open data-machine="@item.MachineId" data-customer="@item.CustomerId" data-due="@item.DueDate.ToString("yyyy-MM-dd")" data-agreed="@item.AgreedOn?.ToString("yyyy-MM-dd")" data-time="@item.AgreedAt?.ToString(@"hh\:mm")" data-description="@item.CommitmentDescription" data-notes="@item.CommitmentNotes">Modifica</button><form method="post" asp-page-handler="PrepareWork"><input type="hidden" name="impegnoId" value="@item.CommitmentId"/><button class="btn btn-primary" type="submit">Prepara scheda</button></form></div>}else{<a class="btn customer-menu-button" asp-page="/Lavori/Scheda" asp-route-id="@item.WorkId">Apri scheda</a>}</div></div>
+            <div class="due-asset">
+                <div><strong>@(string.IsNullOrWhiteSpace(item.ArticleDescription) ? item.ArticleCode : item.ArticleDescription)</strong><span>@item.ArticleCode · @item.Category</span></div>
+                <div><span>Ultimo intervento</span><strong>@(item.LastServiceDate?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
+                <div><span>Scadenza prevista</span><strong>@item.DueDate.ToString("dd/MM/yyyy")</strong></div>
+                <div><span>Data prenotata</span><strong>@(item.AgreedOn?.ToString("dd/MM/yyyy") ?? "—")</strong>@if(item.AgreedAt is not null){<span>ore @item.AgreedAt.Value.ToString(@"hh\:mm")</span>}</div>
+                <div class="due-asset-action">
+                    @if(item.CommitmentId is null)
+                    {
+                        <button class="btn customer-menu-button" type="button" data-acquire-open data-machine="@item.MachineId" data-customer="@item.CustomerId" data-due="@item.DueDate.ToString("yyyy-MM-dd")" data-description="@item.ArticleDescription">Prenota</button>
+                    }
+                    else if(item.WorkId is null)
+                    {
+                        <div class="due-asset-buttons">
+                            <button class="btn customer-menu-button" type="button" data-acquire-open data-machine="@item.MachineId" data-customer="@item.CustomerId" data-due="@item.DueDate.ToString("yyyy-MM-dd")" data-agreed="@item.AgreedOn?.ToString("yyyy-MM-dd")" data-time="@item.AgreedAt?.ToString(@"hh\:mm")" data-description="@item.CommitmentDescription" data-notes="@item.CommitmentNotes">Modifica</button>
+                            <form method="post" asp-page-handler="PrepareWork"><input type="hidden" name="impegnoId" value="@item.CommitmentId"/><button class="btn btn-primary" type="submit">Prepara scheda</button></form>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="btn customer-menu-button" asp-page="/Lavori/Scheda" asp-route-id="@item.WorkId">Apri scheda</a>
+                    }
+                </div>
+            </div>
+        }
+        </div>
+    </article>
+}
+@foreach (var cliente in Model.Straordinari)
+{
+    <article class="planning-customer">
+        <header><strong class="planning-customer-code">@cliente.CustomerId.ToString("00000")</strong><h2>@cliente.CustomerName</h2><span class="planning-customer-site">@cliente.City@if(!string.IsNullOrWhiteSpace(cliente.District)){<text> · @cliente.District</text>}</span></header>
+        <div class="due-assets">
+        @foreach(var item in cliente.Items)
+        {
+            <div class="due-asset">
+                <div><strong>@item.Description</strong><span>@(item.Origin=="N" ? $"{item.ArticleCode} · Nuovo lavoro" : "Straordinario") · @item.Site</span></div>
+                <div><span>Ultimo intervento</span><strong>@(item.LastServiceDate?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
+                <div><span>Scadenza prevista</span><strong>@(item.Origin=="N" ? "Nuovo lavoro" : "Straordinaria")</strong></div>
+                <div><span>Data prenotata</span><strong>@item.AgreedOn.ToString("dd/MM/yyyy")</strong>@if(item.AgreedAt is not null){<span>ore @item.AgreedAt.Value.ToString(@"hh\:mm")</span>}</div>
+                <div class="due-asset-action">
+                    @if(item.WorkId is null)
+                    {
+                        <form method="post" asp-page-handler="PrepareWork"><input type="hidden" name="impegnoId" value="@item.CommitmentId"/><button class="btn btn-primary" type="submit">Prepara scheda</button></form>
+                    }
+                    else
+                    {
+                        <a class="btn customer-menu-button" asp-page="/Lavori/Scheda" asp-route-id="@item.WorkId">Apri scheda</a>
+                    }
+                </div>
+            </div>
         }
         </div>
     </article>
