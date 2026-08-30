@@ -16,9 +16,12 @@ public sealed record PlanningDueItem(
     DateTime? LastServiceDate,
     DateTime DueDate,
     int? CommitmentId,
+    int? WorkId,
     string CommitmentStatus,
     DateTime? AgreedOn,
-    TimeSpan? AgreedAt);
+    TimeSpan? AgreedAt,
+    string CommitmentDescription,
+    string CommitmentNotes);
 
 public sealed record PlanningCustomerGroup(
     int CustomerId,
@@ -31,6 +34,20 @@ public sealed record PlanningCustomerGroup(
 public sealed record PlanningDistrict(short Code, string Description);
 
 public sealed record PlanningCategory(short Code, string Description);
+
+public sealed record PlanningDayCommitment(string Time, string Customer, string Description, string Operator);
+
+public sealed record PlanningAgendaItem(DateTime Date, string Time, string Customer, string Site, string Description, string Operator, string Kind);
+
+public sealed record PlanningDayAvailability(
+    DateTime Date,
+    bool IsWorkingDay,
+    string CalendarStatus,
+    int? ActiveOperators,
+    int AssignedOperators,
+    int Reservations,
+    int PlannedWorks,
+    IReadOnlyList<PlanningDayCommitment> Commitments);
 
 public sealed record InstalledMachine(
     int Id,

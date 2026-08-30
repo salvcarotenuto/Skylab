@@ -36,6 +36,7 @@ public static class MainMenuCatalog
         [
             Group("Pianificazione",
                 Link("Interventi in scadenza", "/Lavori/Pianificazione"),
+                Link("Intervento straordinario", "/Lavori/InterventoStraordinario"),
                 Link("Agenda del giorno", "/Interventi/Index"),
                 Link("Agenda lavori", "/Interventi/Index"),
                 Link("Macchine installate", "/Lavori/MacchineInstallate")),

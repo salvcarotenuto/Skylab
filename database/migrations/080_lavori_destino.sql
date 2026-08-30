@@ -1,0 +1,6 @@
+ALTER TABLE Lavori
+  ADD COLUMN Destino_ID INT NULL AFTER Cliente,
+  ADD KEY IX_Lavori_Destino (Destino_ID),
+  ADD CONSTRAINT FK_Lavori_Destini
+    FOREIGN KEY (Destino_ID) REFERENCES Destini(ID)
+    ON DELETE RESTRICT ON UPDATE CASCADE;

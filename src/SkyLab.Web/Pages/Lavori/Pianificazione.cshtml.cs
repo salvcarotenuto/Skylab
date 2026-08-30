@@ -43,4 +43,30 @@ public sealed class PianificazioneModel(PlanningService service) : PageModel
         await service.AcquireCommitmentAsync(macchinaId,clienteId,scadenza,dataIntervento,oraIntervento,descrizione,note,cancellationToken);
         return RedirectToPage(new { dal=Dal?.ToString("yyyy-MM-dd"),al=Al?.ToString("yyyy-MM-dd"),cerca=Cerca,tipologia=Tipologia,distretto=Distretto });
     }
+
+    public async Task<IActionResult> OnPostPrepareWorkAsync(int impegnoId,CancellationToken cancellationToken)
+    {
+        try
+        {
+            var workId=await service.CreateWorkFromCommitmentAsync(impegnoId,cancellationToken);
+            return RedirectToPage("/Lavori/Scheda",new{id=workId});
+        }
+        catch(InvalidOperationException exception)
+        {
+            TempData["ErrorMessage"]=exception.Message;
+            return RedirectToPage(new{Dal,Al,Cerca,Tipologia,Distretto});
+        }
+    }
+
+    public async Task<JsonResult> OnGetAvailabilityAsync(DateTime date,CancellationToken cancellationToken)
+        => new(await service.DayAvailabilityAsync(date,cancellationToken));
+
+    public async Task<JsonResult> OnGetAgendaAsync(DateTime? to,CancellationToken cancellationToken)
+    {
+        var start=DateTime.Today;
+        var end=(to??DateTime.Today.AddDays(60)).Date;
+        if(end<start)end=start;
+        if((end-start).TotalDays>366)end=start.AddDays(366);
+        return new JsonResult(await service.AgendaAsync(start,end,cancellationToken));
+    }
 }

@@ -1,0 +1,152 @@
+@page
+@model SkyLab.Web.Pages.Lavori.InterventoStraordinarioModel
+@{
+    ViewData["Title"] = "Intervento straordinario";
+    ViewData["HideFooter"] = true;
+}
+
+<style>
+    .extra-work-page {
+        margin-left: 50%;
+        padding-top: 10px;
+        transform: translateX(-50%);
+        user-select: none;
+        width: min(1380px, calc(100vw - 32px));
+    }
+
+    .extra-work-heading {
+        box-sizing: border-box;
+        height: 96px;
+        padding: 10px 18px;
+    }
+
+    .extra-work-heading h1 {
+        font-size: 1.65rem;
+        line-height: 1.05;
+    }
+
+    .extra-work-heading p {
+        margin: 2px 0 0;
+    }
+
+    .extra-work-heading .btn {
+        align-items: center;
+        display: inline-flex;
+        height: 40px;
+        justify-content: center;
+        width: 160px;
+    }
+
+    .extra-work-actions { display: flex; gap: 8px; }
+    .extra-work-form { background: #fff; border: 1px solid #9baabd; border-radius: 10px; margin-top: 10px; padding: 14px; }
+    .extra-work-form h2 { background: #6aa4dc; font-size: 16px; font-weight: 500; height: 38px; line-height: 38px; margin: 0 0 14px; padding: 0 16px; }
+    .extra-work-fields { background: #e7e7f7; border: 1px solid #7e8491; display: grid; gap: 8px; padding: 16px; }
+    .extra-work-fields label { display: grid; gap: 5px; grid-template-columns: 175px minmax(0,1fr); }
+    .extra-work-fields label > span:first-child { align-items: center; background: #b8cbe0; border: 1px solid #8a8f98; border-radius: 6px; display: flex; padding: 0 8px; }
+    .extra-work-fields input,.extra-work-fields select,.extra-work-fields textarea { border: 1px solid #8a8f98; border-radius: 6px; box-sizing: border-box; min-height: 32px; }
+    .extra-work-fields input:focus,.extra-work-fields select:focus,.extra-work-fields textarea:focus { border-color: #6f7f92; box-shadow: 0 0 0 1px #6f7f9226; outline: none; }
+    .extra-work-fields textarea { min-height: 64px; resize: vertical; }
+    .extra-work-client { display: grid; gap: 6px; grid-template-columns: 115px minmax(0,1fr) 34px; }
+    .extra-work-client button { align-items: center; background: #eef2fb; border: 1px solid var(--BlueButton); border-radius: 6px; color: #334d8c; display: flex; justify-content: center; }
+    .extra-work-compact { width: 160px; }
+    .extra-work-compact .micronote-date-input, input.extra-work-compact { text-align: center; }
+    .customer-lookup-dialog { background:#e7edf5; border:1px solid #7d8794; box-shadow:0 18px 42px #14202d3d; display:grid; gap:8px; grid-template-rows:38px 34px minmax(0,1fr) 40px; height:min(620px,calc(100vh - 80px)); padding:10px; width:min(900px,calc(100vw - 80px)); }
+    .customer-lookup-dialog::backdrop { background:#0f172a3d; }
+    .customer-lookup-title { align-items:center; background:#6aa4dc; display:flex; justify-content:space-between; padding:0 10px; }
+    .customer-lookup-title h2 { font-size:16px; font-weight:500; margin:0; }
+    .customer-lookup-toolbar { align-items:center; display:grid; gap:6px; grid-template-columns:82px minmax(0,1fr); }
+    .customer-lookup-toolbar label { align-items:center; background:#b8cbe0; border:1px solid #8a8f98; display:flex; font-size:12px; height:30px; padding:0 8px; }
+    .customer-lookup-toolbar input { border:1px solid #8a8f98; border-radius:5px; height:30px; padding:0 8px; }
+    .customer-lookup-grid { background:#fff; border:1px solid #8a8f98; overflow:auto; outline:none; }
+    .customer-lookup-grid table { border-collapse:collapse; font-size:13px; width:100%; }
+    .customer-lookup-grid thead { position:sticky; top:0; z-index:1; }
+    .customer-lookup-grid th { background:#b8cbe0; padding:0; text-align:left; }
+    .customer-lookup-grid th button { background:transparent; border:0; font-weight:600; height:32px; padding:0 9px; text-align:left; width:100%; }
+    .customer-lookup-grid td { border-bottom:1px solid #d7e0ea; padding:7px 9px; }
+    .customer-lookup-grid th:first-child,.customer-lookup-grid td:first-child { width:100px; }
+    .customer-lookup-grid th:last-child,.customer-lookup-grid td:last-child { width:210px; }
+    .customer-lookup-grid tbody tr.selected { background:#d9e8fb; box-shadow:inset 3px 0 var(--BlueButton); }
+    .customer-lookup-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .customer-lookup-actions .btn { height:34px; width:120px; }
+
+    .extra-work-intro {
+        background: #ffffffd9;
+        border: 1px solid #c8d6e6;
+        border-radius: 10px;
+        margin-top: 10px;
+        padding: 24px;
+    }
+
+    .extra-work-intro h2 {
+        font-size: 1.05rem;
+        margin: 0 0 6px;
+    }
+
+    .extra-work-intro p {
+        color: #53657c;
+        margin: 0;
+    }
+</style>
+
+<section class="extra-work-page">
+    <header class="planning-heading customer-form-header extra-work-heading">
+        <div class="module-title-identity">
+            <div class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></div>
+            <div>
+                <p class="eyebrow">Lavorazione · Pianificazione</p>
+                <h1>Intervento straordinario</h1>
+                <p>Richieste fuori pianificazione da prenotare e trasformare in schede lavoro.</p>
+            </div>
+        </div>
+        <div class="extra-work-actions">
+            <button class="btn btn-primary" type="submit" form="extra-work-form">Salva</button>
+            <a class="btn customer-menu-button" asp-page="/Index">Esci</a>
+        </div>
+    </header>
+
+    <form id="extra-work-form" class="extra-work-form" method="post">
+        <h2>Nuovo intervento straordinario</h2>
+        <div class="extra-work-fields">
+            <label><span>Cliente</span><span class="extra-work-client"><input id="extra-customer-id" name="clienteId" aria-label="Codice cliente" readonly/><input id="extra-customer-name" aria-label="Nome cliente" readonly/><button type="button" aria-label="Cerca cliente" data-customer-lookup-open>⌕</button></span></label>
+            <label><span>Sede</span><select id="extra-site-id" name="sedeId" disabled><option value="0">Selezionare prima il cliente</option></select></label>
+            <label><span>Macchina</span><select id="extra-machine-id" name="macchinaId" disabled><option value="">Nessuna macchina specifica</option></select></label>
+            <label><span>Intervento richiesto</span><input name="descrizione" maxlength="255" required/></label>
+            <label><span>Data concordata</span><span class="micronote-date-control extra-work-compact" data-date-control><input name="dataIntervento" type="hidden" data-filter-date-hidden/><input class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="gg/mm/aaaa" required data-filter-date-display/><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data concordata" data-date-picker-button></button></span></label>
+            <label><span>Ora concordata</span><input class="extra-work-compact" name="oraIntervento" type="time"/></label>
+            <label><span>Note</span><textarea name="note" maxlength="500"></textarea></label>
+        </div>
+    </form>
+</section>
+
+<dialog class="customer-lookup-dialog" data-customer-lookup>
+    <div class="customer-lookup-title"><h2>Clienti</h2></div>
+    <div class="customer-lookup-toolbar"><label for="customer-lookup-search">Cerca</label><input id="customer-lookup-search" type="search" autocomplete="off" data-customer-search/></div>
+    <div class="customer-lookup-grid" tabindex="0" data-customer-grid><table><thead><tr><th><button type="button" data-sort="code">Codice</button></th><th><button type="button" data-sort="name">Nome</button></th><th><button type="button" data-sort="site">Sede</button></th></tr></thead><tbody data-customer-rows></tbody></table></div>
+    <div class="customer-lookup-actions"><button class="btn btn-primary" type="button" data-customer-select>Conferma</button><button class="btn customer-menu-button" type="button" data-customer-cancel>Annulla</button></div>
+</dialog>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+ const source=@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Clienti.Select(x=>new{code=x.Code,name=x.Name,site=string.Join(" · ",new[]{x.City,x.Province}.Where(v=>!string.IsNullOrWhiteSpace(v)))})));
+ const dialog=document.querySelector("[data-customer-lookup]"),grid=dialog.querySelector("[data-customer-grid]"),body=dialog.querySelector("[data-customer-rows]"),search=dialog.querySelector("[data-customer-search]");
+ let rows=[],selected=0,sortKey="name",sortDirection=1,lastScroll=0;
+ const esc=value=>String(value??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
+ const visible=()=>Array.from(body.querySelectorAll("tr")).filter(row=>{const r=row.getBoundingClientRect(),g=grid.getBoundingClientRect(),h=grid.querySelector("thead")?.offsetHeight||0;return r.top>=g.top+h&&r.bottom<=g.bottom});
+ const ensure=(direction=0)=>{const row=body.querySelector("tr.selected");if(!row)return;const top=grid.scrollTop+(grid.querySelector("thead")?.offsetHeight||0),bottom=grid.scrollTop+grid.clientHeight,rowTop=row.offsetTop,rowBottom=rowTop+row.offsetHeight;if(rowTop<top)grid.scrollTop=Math.max(0,rowTop-(grid.querySelector("thead")?.offsetHeight||0));else if(rowBottom>bottom)grid.scrollTop=rowBottom-grid.clientHeight+1};
+ const select=(index,direction=0)=>{if(!rows.length)return;selected=Math.max(0,Math.min(rows.length-1,index));body.querySelectorAll("tr").forEach((row,i)=>row.classList.toggle("selected",i===selected));ensure(direction)};
+ const render=()=>{body.innerHTML=rows.map((x,i)=>`<tr data-index="${i}" class="${i===selected?"selected":""}"><td>${String(x.code).padStart(5,"0")}</td><td>${esc(x.name)}</td><td>${esc(x.site)}</td></tr>`).join("");ensure()};
+ const refresh=()=>{const q=search.value.trim().toLocaleLowerCase("it");rows=source.filter(x=>!q||String(x.code).includes(q)||x.name.toLocaleLowerCase("it").includes(q)||x.site.toLocaleLowerCase("it").includes(q));rows.sort((a,b)=>sortKey==="code"?(a.code-b.code)*sortDirection:String(a[sortKey]).localeCompare(String(b[sortKey]),"it",{numeric:true,sensitivity:"base"})*sortDirection);selected=0;render()};
+ const loadCustomerData=async customerId=>{const site=document.querySelector("#extra-site-id"),machine=document.querySelector("#extra-machine-id");site.disabled=true;machine.disabled=true;site.innerHTML='<option>Caricamento…</option>';machine.innerHTML='<option value="">Caricamento…</option>';try{const response=await fetch(`?handler=CustomerData&customerId=${encodeURIComponent(customerId)}`);if(!response.ok)throw new Error();const data=await response.json();site.innerHTML=data.sites.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join("");machine.innerHTML='<option value="">Nessuna macchina specifica</option>'+data.machines.map(x=>`<option value="${x.id}" data-site="${x.siteId}">${esc(x.label)}</option>`).join("");site.disabled=false;machine.disabled=false}catch{site.innerHTML='<option value="0">Sede principale</option>';machine.innerHTML='<option value="">Nessuna macchina specifica</option>';site.disabled=false;machine.disabled=false}};
+ const confirm=()=>{const row=rows[selected];if(!row)return;document.querySelector("#extra-customer-id").value=String(row.code).padStart(5,"0");document.querySelector("#extra-customer-name").value=row.name;dialog.close();loadCustomerData(row.code)};
+ const key=event=>{if(event.key==="ArrowDown"){event.preventDefault();select(selected+1,1)}else if(event.key==="ArrowUp"){event.preventDefault();select(selected-1,-1)}else if(event.key==="Home"){event.preventDefault();select(0,-1)}else if(event.key==="End"){event.preventDefault();select(rows.length-1,1)}else if(event.key==="Enter"){event.preventDefault();confirm()}else if(event.key==="Escape"){event.preventDefault();dialog.close()}};
+ document.querySelector("[data-customer-lookup-open]").addEventListener("click",()=>{search.value="";refresh();dialog.showModal();setTimeout(()=>search.focus(),0)});
+ search.addEventListener("input",refresh);search.addEventListener("keydown",key);grid.addEventListener("keydown",key);
+ body.addEventListener("click",event=>{const row=event.target.closest("tr");if(row){select(Number(row.dataset.index));grid.focus({preventScroll:true})}});body.addEventListener("dblclick",confirm);
+ dialog.querySelectorAll("[data-sort]").forEach(button=>button.addEventListener("click",()=>{const next=button.dataset.sort;sortDirection=sortKey===next?-sortDirection:1;sortKey=next;refresh()}));
+ dialog.querySelector("[data-customer-select]").addEventListener("click",confirm);dialog.querySelector("[data-customer-cancel]").addEventListener("click",()=>dialog.close());
+ document.querySelector("#extra-machine-id").addEventListener("change",event=>{const selectedOption=event.target.selectedOptions[0];if(selectedOption?.dataset.site!==undefined)document.querySelector("#extra-site-id").value=selectedOption.dataset.site});
+ grid.addEventListener("scroll",()=>requestAnimationFrame(()=>{const delta=grid.scrollTop-lastScroll;lastScroll=grid.scrollTop;const current=body.querySelector("tr.selected");if(!current||visible().includes(current))return;const shown=visible();if(shown.length)select(Number((delta>0?shown[0]:shown.at(-1)).dataset.index),delta>0?1:-1)}),{passive:true});
+});
+</script>
+}
