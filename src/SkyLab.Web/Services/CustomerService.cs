@@ -76,6 +76,107 @@ public sealed class CustomerService(IConfiguration configuration)
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",code.Trim());await using var r=await cmd.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))return null;
         return new(S(r,0),S(r,1),S(r,2),S(r,3),S(r,4),S(r,5),S(r,6),S(r,7),r.GetDecimal(8),r.GetInt16(9),r.GetInt16(10),r.GetDecimal(11),r.GetDecimal(12),r.GetDecimal(13),r.GetDecimal(14),r.GetDecimal(15),r.GetDecimal(16),S(r,17),S(r,18));
     }
+    public async Task<ArticleEditModel?> ArticleAsync(string? code,CancellationToken ct)
+    {
+        if(string.IsNullOrWhiteSpace(code))return null;
+        const string sql="SELECT Codice,Descrizione,Categoria,Gruppo,Marca,COALESCE(Uma,''),COALESCE(Uml,''),COALESCE(Umv,''),Peso,Pezzi,Durata,Consumo,CostoStd,PrezzoStd,Giacin,ScortaMin,ScortaMax,COALESCE(Ubicazione,''),COALESCE(Codiva,''),COALESCE(Notes,''),Fornitore,COALESCE(CodiceFornitore,'') FROM Articoli WHERE Codice=@code";
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",code.Trim());await using var r=await cmd.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))return null;
+        return new(){Code=S(r,0),Description=S(r,1),CategoryCode=r.GetInt16(2),GroupCode=r.GetInt16(3),BrandCode=r.GetInt16(4),PurchaseUnit=S(r,5),WorkUnit=S(r,6),SalesUnit=S(r,7),Weight=r.GetDecimal(8),Pieces=r.GetInt16(9),DurationDays=r.GetInt16(10),DailyConsumption=r.GetDecimal(11),Cost=r.GetDecimal(12),Price=r.GetDecimal(13),Stock=r.GetDecimal(14),MinimumStock=r.GetDecimal(15),MaximumStock=r.GetDecimal(16),Location=S(r,17),VatCode=S(r,18),Notes=S(r,19),SupplierCode=r.GetInt32(20),SupplierArticleCode=S(r,21)};
+    }
+    public async Task SaveArticleAsync(ArticleEditModel m,bool isNew,CancellationToken ct)
+    {
+        m.Code=m.Code.Trim().ToUpperInvariant();m.Description=m.Description.Trim();m.PurchaseUnit=m.PurchaseUnit.Trim();m.WorkUnit=m.WorkUnit.Trim();m.SalesUnit=m.SalesUnit.Trim();m.SupplierArticleCode=m.SupplierArticleCode.Trim();m.Location=m.Location.Trim();m.VatCode=m.VatCode.Trim();m.Notes=m.Notes.Trim();
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
+        if(isNew){await using var exists=new MySqlCommand("SELECT COUNT(*) FROM Articoli WHERE Codice=@Code",cn);exists.Parameters.AddWithValue("@Code",m.Code);if(Convert.ToInt32(await exists.ExecuteScalarAsync(ct))>0)throw new InvalidOperationException($"Esiste già un articolo con codice {m.Code}.");}
+        const string sql="""
+            INSERT INTO Articoli(Codice,Descrizione,Categoria,Gruppo,Specie,Marca,Livello,Uma,Uml,Umv,Peso,Pezzi,Durata,Consumo,Fornitore,CodiceFornitore,ScortaMin,ScortaMax,Ubicazione,Giacin,CostoStd,PrezzoStd,Codiva,Notes)
+            VALUES(@Code,@Description,@CategoryCode,@GroupCode,0,@BrandCode,0,@PurchaseUnit,@WorkUnit,@SalesUnit,@Weight,@Pieces,@DurationDays,@DailyConsumption,@SupplierCode,@SupplierArticleCode,@MinimumStock,@MaximumStock,@Location,@Stock,@Cost,@Price,NULLIF(@VatCode,''),@Notes)
+            ON DUPLICATE KEY UPDATE Descrizione=VALUES(Descrizione),Categoria=VALUES(Categoria),Gruppo=VALUES(Gruppo),Marca=VALUES(Marca),Uma=VALUES(Uma),Uml=VALUES(Uml),Umv=VALUES(Umv),Peso=VALUES(Peso),Pezzi=VALUES(Pezzi),Durata=VALUES(Durata),Consumo=VALUES(Consumo),Fornitore=VALUES(Fornitore),CodiceFornitore=VALUES(CodiceFornitore),ScortaMin=VALUES(ScortaMin),ScortaMax=VALUES(ScortaMax),Ubicazione=VALUES(Ubicazione),Giacin=VALUES(Giacin),CostoStd=VALUES(CostoStd),PrezzoStd=VALUES(PrezzoStd),Codiva=VALUES(Codiva),Notes=VALUES(Notes)
+            """;
+        await using var cmd=new MySqlCommand(sql,cn);AddModel(cmd,m);await cmd.ExecuteNonQueryAsync(ct);
+    }
+    public async Task<string?> DeleteArticleAsync(string? code,CancellationToken ct)
+    {
+        if(string.IsNullOrWhiteSpace(code))return "Selezionare un articolo da eliminare.";
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
+        try{await using var cmd=new MySqlCommand("DELETE FROM Articoli WHERE Codice=@code",cn);cmd.Parameters.AddWithValue("@code",code.Trim());return await cmd.ExecuteNonQueryAsync(ct)==1?null:"Articolo non trovato.";}
+        catch(MySqlException ex) when(ex.Number==1451){return "L'articolo è già utilizzato e non può essere eliminato.";}
+    }
+    public async Task<IReadOnlyList<ArticleBarcodeItem>> ArticleBarcodesAsync(string? articleCode,CancellationToken ct)
+    {
+        if(string.IsNullOrWhiteSpace(articleCode))return [];
+        const string sql="""
+            SELECT b.ID,b.Barcode,b.Tipo,b.Fornitore,COALESCE(f.Nome,'')
+            FROM Barcodes b LEFT JOIN Fornitori f ON f.Codice=b.Fornitore
+            WHERE b.Articolo=@code ORDER BY CASE WHEN b.Tipo=0 AND b.Fornitore IS NULL THEN 0 ELSE 1 END,b.Tipo,b.ID
+            """;
+        var result=new List<ArticleBarcodeItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",articleCode.Trim());await using var r=await cmd.ExecuteReaderAsync(ct);
+        while(await r.ReadAsync(ct)){var value=S(r,1);var type=r.GetByte(2);var supplier=r.IsDBNull(3)?(int?)null:r.GetInt32(3);var valid=type==13&&IsValidEan13(value);result.Add(new(r.GetInt32(0),value,type,supplier,S(r,4),valid,type==13&&!valid));}return result;
+    }
+    public async Task SaveArticleBarcodeAsync(string articleCode,int id,string? value,int? supplierCode,CancellationToken ct)
+    {
+        articleCode=(articleCode??"").Trim().ToUpperInvariant();value=(value??"").Trim();if(articleCode.Length==0)throw new InvalidOperationException("Articolo non valido.");
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
+        int? supplier=supplierCode>0?supplierCode:null;if(supplier.HasValue){await using var supplierCmd=new MySqlCommand("SELECT COUNT(*) FROM Fornitori WHERE Codice=@supplier",cn);supplierCmd.Parameters.AddWithValue("@supplier",supplier.Value);if(Convert.ToInt32(await supplierCmd.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Fornitore non valido.");}
+        string? oldValue=null;byte? oldType=null;if(id>0){await using var old=new MySqlCommand("SELECT Barcode,Tipo FROM Barcodes WHERE ID=@id AND Articolo=@code",cn);old.Parameters.AddWithValue("@id",id);old.Parameters.AddWithValue("@code",articleCode);await using var row=await old.ExecuteReaderAsync(ct);if(await row.ReadAsync(ct)){oldValue=row.GetString(0);oldType=row.GetByte(1);}else throw new InvalidOperationException("Barcode non trovato.");}
+        if(value.Length==0&&!supplier.HasValue)value=articleCode;if(value.Length==0)throw new InvalidOperationException("Inserire il barcode.");if(value.Length>30)throw new InvalidOperationException("Il barcode non può superare 30 caratteri.");var validEan=IsValidEan13(value);if(!validEan&&value.Any(c=>c<32||c>126))throw new InvalidOperationException("Tipo di barcode non riconosciuto.");var type=(byte)(validEan?13:0);if(id>0&&oldType==13&&string.Equals(oldValue,value,StringComparison.Ordinal))type=13;
+        try{await using var cmd=new MySqlCommand(id==0?"INSERT INTO Barcodes(Articolo,Barcode,Tipo,Fornitore) VALUES(@code,@value,@type,@supplier)":"UPDATE Barcodes SET Barcode=@value,Tipo=@type,Fornitore=@supplier WHERE ID=@id AND Articolo=@code",cn);cmd.Parameters.AddWithValue("@id",id);cmd.Parameters.AddWithValue("@code",articleCode);cmd.Parameters.AddWithValue("@value",value);cmd.Parameters.AddWithValue("@type",type);cmd.Parameters.AddWithValue("@supplier",supplier is null?DBNull.Value:supplier.Value);await cmd.ExecuteNonQueryAsync(ct);}
+        catch(MySqlException ex) when(ex.Number==1062){throw new InvalidOperationException("Il barcode è già presente in archivio.");}
+    }
+    public async Task DeleteArticleBarcodeAsync(string articleCode,int id,CancellationToken ct)
+    {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand("DELETE FROM Barcodes WHERE ID=@id AND Articolo=@code",cn);cmd.Parameters.AddWithValue("@id",id);cmd.Parameters.AddWithValue("@code",articleCode.Trim());if(await cmd.ExecuteNonQueryAsync(ct)!=1)throw new InvalidOperationException("Barcode non trovato.");
+    }
+    public async Task<IReadOnlyList<ArticlePhotoItem>> ArticlePhotosAsync(string? articleCode,CancellationToken ct)
+    {
+        if(string.IsNullOrWhiteSpace(articleCode))return [];var code=articleCode.Trim();const string sql="SELECT FileName,DataOraFoto,COALESCE(Notes,'') FROM Artfoto WHERE Codice=@code ORDER BY DataOraFoto DESC,FileName";var result=new List<ArticlePhotoItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",code);await using var r=await cmd.ExecuteReaderAsync(ct);var folder=Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(code));while(await r.ReadAsync(ct)){var file=r.GetString(0);var url=file.StartsWith('/')?file:$"/uploads/articoli/{folder}/{Uri.EscapeDataString(file)}";result.Add(new(file,r.IsDBNull(1)?null:r.GetDateTime(1),r.GetString(2),url));}return result;
+    }
+    public async Task AddArticlePhotoAsync(string articleCode,string fileName,string description,CancellationToken ct)
+    {
+        const string sql="INSERT INTO Artfoto(Codice,FileName,DataOraFoto,Notes) SELECT Codice,@file,NOW(),NULLIF(@description,'') FROM Articoli WHERE Codice=@code";await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",articleCode.Trim());cmd.Parameters.AddWithValue("@file",fileName);cmd.Parameters.AddWithValue("@description",description.Trim());if(await cmd.ExecuteNonQueryAsync(ct)!=1)throw new InvalidOperationException("Articolo non trovato.");
+    }
+    public async Task<string?> DeleteArticlePhotoAsync(string articleCode,string fileName,CancellationToken ct)
+    {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand("DELETE FROM Artfoto WHERE Codice=@code AND FileName=@file",cn);cmd.Parameters.AddWithValue("@code",articleCode.Trim());cmd.Parameters.AddWithValue("@file",fileName);return await cmd.ExecuteNonQueryAsync(ct)==1?fileName:null;
+    }
+    public async Task<IReadOnlyList<ArticlePriceListEditModel>> ArticlePriceListsAsync(string? articleCode,decimal vatRate,CancellationToken ct)
+    {
+        var result=Enumerable.Range(1,6).Select(n=>new ArticlePriceListEditModel{ListNumber=(byte)n}).ToList();if(string.IsNullOrWhiteSpace(articleCode))return result;
+        const string sql="SELECT Listino,Ricarico,Prezzo,PrIvato FROM ArtListini WHERE Articolo=@code AND Listino BETWEEN 1 AND 6 ORDER BY Listino";await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",articleCode.Trim());await using var r=await cmd.ExecuteReaderAsync(ct);var factor=1m+vatRate/100m;
+        while(await r.ReadAsync(ct)){var number=r.GetByte(0);var row=result.First(x=>x.ListNumber==number);row.Markup=r.GetDecimal(1);row.Price=r.GetDecimal(2);row.VatPrice=r.GetDecimal(3);if(row.VatPrice==0&&row.Price!=0)row.VatPrice=decimal.Round(row.Price*factor,3,MidpointRounding.AwayFromZero);}return result;
+    }
+    public async Task<decimal> ArticleVatRateAsync(string? articleCode,CancellationToken ct)
+    {
+        if(string.IsNullOrWhiteSpace(articleCode))return 0;const string sql="SELECT COALESCE(i.Aliquota,0) FROM Articoli a LEFT JOIN Codiciiva i ON i.Codice=a.Codiva WHERE a.Codice=@code";await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",articleCode.Trim());return Convert.ToDecimal(await cmd.ExecuteScalarAsync(ct));
+    }
+    public async Task SaveArticlePriceListsAsync(string articleCode,IReadOnlyList<ArticlePriceListEditModel> rows,CancellationToken ct)
+    {
+        articleCode=(articleCode??"").Trim();if(articleCode.Length==0)throw new InvalidOperationException("Articolo non valido.");if(rows.Count!=6||rows.Select(x=>x.ListNumber).Distinct().Count()!=6||rows.Any(x=>x.ListNumber is <1 or >6))throw new InvalidOperationException("Righe listino non valide.");if(rows.Any(x=>x.Markup<0||x.Markup>999.99m||x.VatPrice<0||x.VatPrice>999999999.999m))throw new InvalidOperationException("Valori listino non validi.");
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var tx=await cn.BeginTransactionAsync(ct);decimal vatRate;await using(var rate=new MySqlCommand("SELECT COALESCE(i.Aliquota,0) FROM Articoli a LEFT JOIN Codiciiva i ON i.Codice=a.Codiva WHERE a.Codice=@code",cn,tx)){rate.Parameters.AddWithValue("@code",articleCode);var value=await rate.ExecuteScalarAsync(ct);if(value is null)throw new InvalidOperationException("Articolo non trovato.");vatRate=Convert.ToDecimal(value);}var factor=1m+vatRate/100m;
+        foreach(var row in rows){if(row.Markup==0&&row.VatPrice==0){await using var delete=new MySqlCommand("DELETE FROM ArtListini WHERE Articolo=@article AND Listino=@list",cn,tx);delete.Parameters.AddWithValue("@article",articleCode);delete.Parameters.AddWithValue("@list",row.ListNumber);await delete.ExecuteNonQueryAsync(ct);continue;}var price=decimal.Round(row.VatPrice/factor,3,MidpointRounding.AwayFromZero);await using var save=new MySqlCommand("INSERT INTO ArtListini(Articolo,Listino,Ricarico,Prezzo,PrIvato) VALUES(@article,@list,@markup,@price,@vatPrice) ON DUPLICATE KEY UPDATE Ricarico=VALUES(Ricarico),Prezzo=VALUES(Prezzo),PrIvato=VALUES(PrIvato)",cn,tx);save.Parameters.AddWithValue("@article",articleCode);save.Parameters.AddWithValue("@list",row.ListNumber);save.Parameters.AddWithValue("@markup",decimal.Round(row.Markup,2,MidpointRounding.AwayFromZero));save.Parameters.AddWithValue("@price",price);save.Parameters.AddWithValue("@vatPrice",decimal.Round(row.VatPrice,3,MidpointRounding.AwayFromZero));await save.ExecuteNonQueryAsync(ct);}await tx.CommitAsync(ct);
+    }
+    private static bool IsValidEan13(string value)
+    {
+        if(value.Length!=13||value.Any(c=>c<'0'||c>'9'))return false;var sum=0;for(var i=0;i<12;i++)sum+=(value[i]-'0')*(i%2==0?1:3);return (10-sum%10)%10==value[12]-'0';
+    }
+    public async Task<IReadOnlyList<LookupItem>> ArticleCategoriesAsync(CancellationToken ct)=>await LookupAsync("SELECT Codice,Descrizione FROM Categorie ORDER BY Descrizione",ct);
+    public async Task<IReadOnlyList<LookupItem>> ArticleGroupsAsync(CancellationToken ct)=>await LookupAsync("SELECT Codice,Descrizione FROM Gruppi ORDER BY Descrizione",ct);
+    public async Task<IReadOnlyList<LookupItem>> ArticleBrandsAsync(CancellationToken ct)=>await LookupAsync("SELECT Codice,Descrizione FROM Marche ORDER BY Descrizione",ct);
+    public async Task<IReadOnlyList<CodeLookupItem>> UnitMeasuresAsync(CancellationToken ct)
+    {
+        const string sql="SELECT Codice,COALESCE(Descrizione,'') FROM Umisura ORDER BY Descrizione,Codice";
+        var result=new List<CodeLookupItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(S(r,0),S(r,1)));return result;
+    }
+    public async Task<IReadOnlyList<CodeLookupItem>> VatCodesAsync(CancellationToken ct)
+    {
+        const string sql="SELECT Codice,CONCAT(Descrizione,' · ',FORMAT(Aliquota,2,'it_IT'),'%') FROM Codiciiva ORDER BY Descrizione,Codice";
+        var result=new List<CodeLookupItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(S(r,0),S(r,1)));return result;
+    }
+    public async Task<IReadOnlyList<SupplierLookupItem>> SuppliersAsync(CancellationToken ct)
+    {
+        const string sql="SELECT Codice,Nome,COALESCE(Citta,''),COALESCE(Provincia,'') FROM Fornitori ORDER BY Nome,Codice";
+        var result=new List<SupplierLookupItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(r.GetInt32(0),S(r,1),S(r,2),S(r,3)));return result;
+    }
     public async Task<IReadOnlyList<ArticleChoice>> ArticleChoicesAsync(CancellationToken ct){const string sql="SELECT COALESCE(a.Codice,''),COALESCE(a.Descrizione,''),COALESCE(a.Categoria,0),COALESCE(c.Descrizione,''),COALESCE(a.PrezzoStd,0),COALESCE(a.Durata,0),COALESCE(a.Consumo,0) FROM Articoli a LEFT JOIN Categorie c ON c.Codice=a.Categoria ORDER BY a.Descrizione,a.Codice";var result=new List<ArticleChoice>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(S(r,0),S(r,1),r.GetInt16(2),S(r,3),r.GetDecimal(4),r.GetInt16(5),r.GetDecimal(6)));return result;}
     public async Task<IReadOnlyList<ArticleListItem>> ArticlesAsync(CancellationToken ct)
     {

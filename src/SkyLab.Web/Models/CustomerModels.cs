@@ -4,6 +4,10 @@ namespace SkyLab.Web.Models;
 
 public sealed record CustomerListItem(int Code, string Name, string City, string Province, string Phone, string Email, bool Active, int Sites, int Machines);
 public sealed record LookupItem(int Id, string Label);
+public sealed record CodeLookupItem(string Code, string Label);
+public sealed record SupplierLookupItem(int Code, string Name, string City, string Province);
+public sealed record PartyLookupItem(int Code, string Name, string City, string Province);
+public sealed record PartyLookupModel(string Kind, IReadOnlyList<PartyLookupItem> Items);
 
 public sealed class CustomerEditModel
 {
@@ -74,6 +78,17 @@ public sealed record ArticleListItem(
     string Code, string Description, short CategoryCode, string Category,
     short GroupCode, string Group, short BrandCode, string Brand, string SalesUnit,
     decimal Price, short DurationDays, decimal DailyConsumption);
+public sealed record ArticleBarcodeItem(
+    int Id, string Value, byte Type, int? SupplierCode, string SupplierName,
+    bool IsValidEan, bool IsLegacy);
+public sealed record ArticlePhotoItem(string FileName,DateTime? TakenOn,string Description,string Url);
+public sealed class ArticlePriceListEditModel
+{
+    public byte ListNumber { get; set; }
+    public decimal Markup { get; set; }
+    public decimal Price { get; set; }
+    public decimal VatPrice { get; set; }
+}
 
 public sealed record ArticleDetail(
     string Code, string Description,
@@ -82,3 +97,29 @@ public sealed record ArticleDetail(
     decimal Weight, short Pieces, short DurationDays, decimal DailyConsumption,
     decimal Cost, decimal Price, decimal Stock, decimal MinimumStock, decimal MaximumStock,
     string Location, string Notes);
+
+public sealed class ArticleEditModel
+{
+    [Required(ErrorMessage = "Inserire il codice articolo."), StringLength(30)] public string Code { get; set; } = "";
+    [Required(ErrorMessage = "Inserire la descrizione."), StringLength(255)] public string Description { get; set; } = "";
+    public short CategoryCode { get; set; }
+    public short GroupCode { get; set; }
+    public short BrandCode { get; set; }
+    [StringLength(4)] public string PurchaseUnit { get; set; } = "";
+    [StringLength(4)] public string WorkUnit { get; set; } = "";
+    [StringLength(4)] public string SalesUnit { get; set; } = "";
+    public int SupplierCode { get; set; }
+    [StringLength(30)] public string SupplierArticleCode { get; set; } = "";
+    public decimal Weight { get; set; }
+    public short Pieces { get; set; }
+    public short DurationDays { get; set; }
+    public decimal DailyConsumption { get; set; }
+    public decimal Cost { get; set; }
+    public decimal Price { get; set; }
+    public decimal Stock { get; set; }
+    public decimal MinimumStock { get; set; }
+    public decimal MaximumStock { get; set; }
+    [StringLength(50)] public string Location { get; set; } = "";
+    [StringLength(12)] public string VatCode { get; set; } = "";
+    [StringLength(255)] public string Notes { get; set; } = "";
+}

@@ -11,7 +11,7 @@
 <section class="list-page article-list-page" data-article-list-page data-menu-url="/">
  <header class="list-titlebar">
   <a class="list-title-identity" asp-page="/Index"><span class="list-title-layout"><span class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></span><span><strong>Articoli</strong><small>SkyLab · Anagrafica articoli di magazzino</small></span></span></a>
-  <div class="list-title-actions"><span class="list-records-box article-records-box"><strong data-article-count>@Model.Items.Count</strong><span>record</span></span><button class="list-title-button" type="button" data-article-open>Apri</button><a class="btn customer-menu-button" asp-page="/Index">Esci</a></div>
+  <div class="list-title-actions"><span class="list-records-box article-records-box"><strong data-article-count>@Model.Items.Count</strong><span>record</span></span><a class="list-title-button" asp-page="/Magazzino/Articolo" asp-route-nuovo="true">Nuovo articolo</a><button class="list-title-button" type="button" data-article-edit>Modifica</button><button class="list-title-button list-title-delete" type="button" data-article-delete>Elimina</button><a class="btn customer-menu-button" asp-page="/Index">Esci</a></div>
  </header>
  <section class="list-panel">
   <div class="list-toolbar article-list-toolbar">
@@ -26,4 +26,6 @@
   </table><div class="list-empty" data-article-empty hidden>Nessun articolo trovato.</div></div>
  </section>
 </section>
+<form method="post" asp-page-handler="Delete" hidden data-article-delete-form><input type="hidden" name="codice" data-article-delete-code /></form>
+@if(!string.IsNullOrWhiteSpace(Model.ErrorMessage)){<div class="messagebox-overlay messagebox-error active" data-skylab-messagebox aria-hidden="false"><div class="messagebox" role="alertdialog" aria-modal="true"><div class="messagebox-title">SkyLab - attenzione</div><div class="messagebox-body"><div class="messagebox-message">@Model.ErrorMessage</div></div><div class="messagebox-actions"><button class="btn btn-primary messagebox-ok" type="button" onclick="this.closest('.messagebox-overlay').classList.remove('active')">OK</button></div></div></div>}
 @section Scripts { <script src="~/js/articles-list.js" asp-append-version="true"></script> }

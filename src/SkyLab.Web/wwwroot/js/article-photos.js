@@ -1,0 +1,7 @@
+document.addEventListener("DOMContentLoaded",()=>{
+ const rows=[...document.querySelectorAll("[data-article-photo-row]")],preview=document.querySelector("[data-article-photo-preview]"),dialog=document.querySelector("[data-article-photo-dialog]");
+ const select=row=>{if(!row||!preview)return;rows.forEach(x=>x.classList.toggle("selected",x===row));preview.innerHTML="";const image=document.createElement("img");image.src=row.dataset.photoUrl;image.alt=row.dataset.photoDescription||"Immagine articolo";preview.appendChild(image)};
+ rows.forEach(row=>{row.addEventListener("click",event=>{if(!event.target.closest("button"))select(row)});row.addEventListener("keydown",event=>{const index=rows.indexOf(row);if(event.key==="ArrowDown"){event.preventDefault();const next=rows[Math.min(index+1,rows.length-1)];select(next);next.focus()}if(event.key==="ArrowUp"){event.preventDefault();const previous=rows[Math.max(index-1,0)];select(previous);previous.focus()}})});
+ document.querySelector("[data-article-photo-add]")?.addEventListener("click",()=>dialog?.showModal());dialog?.querySelector("[data-article-photo-cancel]")?.addEventListener("click",()=>dialog.close());
+ const deleteForm=document.querySelector("[data-article-photo-delete-form]");document.querySelectorAll("[data-article-photo-delete]").forEach(button=>button.addEventListener("click",()=>{if(!confirm(`Eliminare l'immagine “${button.dataset.photoFile}”?`))return;deleteForm.querySelector("[data-article-photo-delete-file]").value=button.dataset.photoFile;deleteForm.submit()}));
+});

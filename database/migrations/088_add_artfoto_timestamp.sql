@@ -1,0 +1,2 @@
+ALTER TABLE Artfoto
+    ADD COLUMN DataOraFoto DATETIME NULL AFTER FileName;

@@ -33,3 +33,7 @@
     height: 40px;
     justify-content: center;
 }
+
+.article-list-page .list-title-button { white-space: nowrap; }
+.article-list-page .list-title-delete { background: #b64040; border-color: #8f2f2f; }
+.article-list-page .list-title-delete:hover { background: #8f2f2f; }

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Intervento straordinario";
     ViewData["HideFooter"] = true;
+    var customerLookup = new SkyLab.Web.Models.PartyLookupModel("C", Model.Clienti.Select(x => new SkyLab.Web.Models.PartyLookupItem(x.Code, x.Name, x.City, x.Province)).ToList());
 }
 
 <style>
@@ -121,7 +122,7 @@
     <form id="extra-work-form" class="extra-work-form" method="post" novalidate>
         <h2>Nuovo intervento straordinario</h2>
         <div class="extra-work-fields">
-            <label><span>Cliente</span><span class="extra-work-client"><input id="extra-customer-value" name="clienteId" type="hidden"/><input id="extra-customer-id" aria-label="Codice cliente" inputmode="numeric" maxlength="5" autocomplete="off"/><input id="extra-customer-name" class="extra-work-readonly" aria-label="Nome cliente" readonly tabindex="-1"/><button type="button" aria-label="Cerca cliente" data-customer-lookup-open>⌕</button></span></label>
+            <label><span>Cliente</span><span class="extra-work-client"><input id="extra-customer-value" name="clienteId" type="hidden"/><input id="extra-customer-id" aria-label="Codice cliente" inputmode="numeric" maxlength="5" autocomplete="off"/><input id="extra-customer-name" class="extra-work-readonly" aria-label="Nome cliente" readonly tabindex="-1"/><button type="button" aria-label="Cerca cliente" data-party-lookup-open="C">⌕</button></span></label>
             <label><span>Sede</span><select id="extra-site-id" name="sedeId" disabled><option value=""></option></select></label>
             <label><span>Macchina</span><select id="extra-machine-id" name="macchinaId" disabled><option value=""></option></select></label>
             <label><span>Intervento richiesto</span><span class="extra-work-editable-select"><input name="descrizione" list="extra-work-descriptions" maxlength="255" required data-extra-description/><button type="button" aria-label="Mostra prestazioni" data-extra-description-open></button></span><datalist id="extra-work-descriptions">@foreach(var item in Model.Prestazioni){<option value="@item.Description"></option>}</datalist></label>
@@ -132,18 +133,18 @@
     </form>
 </section>
 
-<partial name="_CustomerLookup" model="Model.Clienti" />
+<partial name="_PartyLookup" model="customerLookup" />
 
 @section Scripts {
 <script>
 document.addEventListener("DOMContentLoaded",()=>{
  const esc=value=>String(value??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
  const loadCustomerData=async customerId=>{const site=document.querySelector("#extra-site-id"),machine=document.querySelector("#extra-machine-id");site.disabled=true;machine.disabled=true;site.innerHTML='<option value=""></option>';machine.innerHTML='<option value=""></option>';try{const response=await fetch(`?handler=CustomerData&customerId=${encodeURIComponent(customerId)}`);if(!response.ok)throw new Error();const data=await response.json();site.innerHTML=data.sites.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join("");machine.innerHTML='<option value=""></option>'+data.machines.map(x=>`<option value="${x.id}" data-site="${x.siteId}">${esc(x.label)}</option>`).join("");site.disabled=false;machine.disabled=false}catch{site.innerHTML='<option value="0"></option>';machine.innerHTML='<option value=""></option>';site.disabled=false;machine.disabled=false}};
- document.querySelector("[data-customer-lookup]").addEventListener("skylab:customer-selected",event=>{const customer=event.detail;document.querySelector("#extra-customer-value").value=customer.code;document.querySelector("#extra-customer-id").value=String(customer.code).padStart(5,"0");document.querySelector("#extra-customer-name").value=customer.name;loadCustomerData(customer.code)});
+ document.querySelector('[data-party-lookup="C"]').addEventListener("skylab:party-selected",event=>{const customer=event.detail;document.querySelector("#extra-customer-value").value=customer.code;document.querySelector("#extra-customer-id").value=String(customer.code).padStart(5,"0");document.querySelector("#extra-customer-name").value=customer.name;loadCustomerData(customer.code)});
  document.querySelector("#extra-machine-id").addEventListener("change",event=>{const selectedOption=event.target.selectedOptions[0];if(selectedOption?.dataset.site!==undefined)document.querySelector("#extra-site-id").value=selectedOption.dataset.site});
  const description=document.querySelector("[data-extra-description]");document.querySelector("[data-extra-description-open]").addEventListener("click",()=>{description.focus();if(typeof description.showPicker==="function")description.showPicker()});
  const showError=(message,focusTarget)=>window.SkyLabMessageBox.show({title:"SkyLab - attenzione",message,variant:"error",okText:"OK",onConfirm:()=>focusTarget.focus()});
- document.querySelector("#extra-work-form").addEventListener("submit",event=>{const customer=document.querySelector("#extra-customer-value"),date=document.querySelector("input[name='dataIntervento']");let message="",focusTarget=null;if(!customer.value){message="Selezionare il cliente.";focusTarget=document.querySelector("[data-customer-lookup-open]")}else if(!description.value.trim()){message="Inserire l’intervento richiesto.";focusTarget=description}else if(!date.value){message="Inserire la data concordata.";focusTarget=document.querySelector("[data-filter-date-display]")}if(message){event.preventDefault();showError(message,focusTarget)}});
+ document.querySelector("#extra-work-form").addEventListener("submit",event=>{const customer=document.querySelector("#extra-customer-value"),date=document.querySelector("input[name='dataIntervento']");let message="",focusTarget=null;if(!customer.value){message="Selezionare il cliente.";focusTarget=document.querySelector('[data-party-lookup-open="C"]')}else if(!description.value.trim()){message="Inserire l’intervento richiesto.";focusTarget=description}else if(!date.value){message="Inserire la data concordata.";focusTarget=document.querySelector("[data-filter-date-display]")}if(message){event.preventDefault();showError(message,focusTarget)}});
 });
 </script>
 <script>

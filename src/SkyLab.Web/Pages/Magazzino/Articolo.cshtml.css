@@ -27,3 +27,16 @@
     margin: 0;
     padding: 30px 34px 28px 24px;
 }
+
+.article-form-page .article-fields-grid input:not([readonly]),
+.article-form-page .article-fields-grid select,
+.article-form-page .article-fields-grid textarea:not([readonly]) {
+    background: #fff;
+    color: #000;
+    -webkit-text-fill-color: #000;
+}
+
+.article-form-page .article-fields-grid input[readonly],
+.article-form-page .article-fields-grid textarea[readonly] {
+    background: rgb(230, 230, 240);
+}
