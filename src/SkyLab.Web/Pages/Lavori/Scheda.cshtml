@@ -27,7 +27,7 @@
 <section class="module-page customer-form-page data-form-skin work-edit-page">
  <header class="module-header customer-form-header">
   <div class="module-title-identity"><a class="skylab-header-brand" asp-page="Schede"><img src="~/images/skylab-logo.png" alt="SkyLab" /></a><div><p class="eyebrow">Lavorazione · Scheda</p><h1>Scheda @Model.Lavoro.Code.ToString("000000")/@Model.Lavoro.Year</h1><p>@Model.Lavoro.Customer</p></div></div>
-  <div class="customer-form-toolbar"><button class="btn btn-primary" type="submit" form="work-form">Salva</button><a class="btn customer-menu-button" asp-page="Schede">Esci</a></div>
+  <div class="customer-form-toolbar"><button class="btn btn-primary" type="submit" form="work-form">Salva</button>@if(Model.Azione==103){<a class="btn customer-menu-button" asp-page="/Interventi/Index">Esci</a>}else{<a class="btn customer-menu-button" asp-page="Schede">Esci</a>}</div>
  </header>
  <nav class="work-section-tabs" aria-label="Sezioni scheda lavoro" data-work-tabs>
   <button class="work-section-tab is-active" type="button" data-work-tab="pianificazione">Pianificazione</button>
@@ -37,7 +37,7 @@
   <button class="work-section-tab" type="button" data-work-tab="storico">Storico</button>
  </nav>
  <form id="work-form" method="post" class="entity-form customer-entity-form" autocomplete="off" data-form-type="other" data-enter-navigation>
-  <input asp-for="Lavoro.Id" type="hidden"/><input asp-for="Lavoro.Year" type="hidden"/><input asp-for="Lavoro.Code" type="hidden"/><input asp-for="Lavoro.CustomerId" type="hidden"/><input asp-for="Lavoro.Customer" type="hidden"/>
+  <input asp-for="Azione" type="hidden"/><input asp-for="Lavoro.Id" type="hidden"/><input asp-for="Lavoro.Year" type="hidden"/><input asp-for="Lavoro.Code" type="hidden"/><input asp-for="Lavoro.CustomerId" type="hidden"/><input asp-for="Lavoro.Customer" type="hidden"/>
   <fieldset class="form-frame compact-frame work-tab-panel" data-work-tab-panel="pianificazione"><div class="work-form-grid">
    <div class="field work-code"><label>Numero scheda</label><input value="@Model.Lavoro.Code.ToString("000000")/@Model.Lavoro.Year" readonly tabindex="-1"/></div>
    <div class="work-client-line"><label>Cliente</label><input class="work-client-code" value="@Model.Lavoro.CustomerId.ToString("00000")" aria-label="Codice cliente" readonly tabindex="-1"/><input value="@Model.Lavoro.Customer" aria-label="Denominazione cliente" readonly tabindex="-1"/></div>

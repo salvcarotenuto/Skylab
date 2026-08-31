@@ -1,13 +1,61 @@
 @page
 @model SkyLab.Web.Pages.Interventi.IndexModel
-@{ ViewData["Title"]="Interventi"; }
-<nav class="module-nav mb-3" aria-label="Navigazione lavorazione">
- <a class="module-home" asp-page="/Index">← Menu generale</a>
- <span>Lavorazione</span>
-</nav>
-<div class="d-flex justify-content-between align-items-end mb-3"><div><span class="eyebrow">Agenda tecnico</span><h1 class="h2 mb-0">Interventi di oggi</h1></div><span class="status">@Model.Items.Count lavori</span></div>
-<div class="d-grid gap-3">
-@foreach(var item in Model.Items){
- <article class="job-card"><div class="d-flex justify-content-between gap-3"><div><span class="status">@item.Status</span><h2 class="h4 mt-2 mb-1">@item.Customer</h2><div class="text-secondary">@item.Site</div></div><strong>@item.ScheduledAt.ToString("HH:mm")</strong></div><hr/><p class="mb-1"><strong>@item.Kind</strong></p><p class="text-secondary">@item.Plant</p><a class="btn btn-primary w-100" asp-page="Detail" asp-route-id="@item.Id">Apri intervento</a></article>
+@using SkyLab.Web.Models
+@{
+    ViewData["Title"] = "Agenda lavori";
+    string StatusLabel(InterventionStatus status) => status switch
+    {
+        InterventionStatus.Planned => "Pianificato",
+        InterventionStatus.InProgress => "In corso",
+        InterventionStatus.Completed => "Completato",
+        _ => status.ToString()
+    };
 }
-</div>
+<link rel="stylesheet" href="~/css/agenda-period.css" asp-append-version="true" />
+<section class="list-page agenda-list-page" data-agenda-list-page data-menu-url="/">
+    <header class="list-titlebar">
+        <a class="list-title-identity" asp-page="/Index"><strong>Agenda lavori</strong><small>Pianificazione e consultazione degli interventi</small></a>
+        <div class="list-title-actions agenda-title-actions">
+            <span class="agenda-selected-box"><strong data-agenda-selected-count>0</strong><span>selezionate</span></span>
+            <button class="list-title-button agenda-print-button" type="button" data-agenda-print="sheets" disabled>Stampa schede</button>
+            <button class="list-title-button agenda-print-button" type="button" data-agenda-print="summary" disabled>Stampa riepilogo</button>
+            <span class="list-records-box"><strong data-agenda-count>@Model.Items.Count</strong><span>record</span></span>
+            <a class="btn customer-menu-button" asp-page="/Index">Esci</a>
+        </div>
+    </header>
+    <section class="list-panel">
+        <div class="list-toolbar agenda-list-toolbar">
+            <div class="list-filter-field agenda-period-field"><label for="agenda-period">Periodo</label><div class="agenda-period-control"><select id="agenda-period" data-agenda-period><option value="today">Oggi</option><option value="week">Settimana</option><option value="15days">15 giorni</option><option value="month">Mese</option><option value="custom">Periodo personalizzato…</option></select><input class="agenda-period-summary" type="text" value="@DateTime.Today.ToString("dd/MM/yyyy")" aria-label="Date del periodo" readonly tabindex="-1" data-agenda-period-summary /></div></div>
+            <div class="list-filter-field agenda-search-field"><label for="agenda-search">Cerca</label><div class="list-search-control"><input id="agenda-search" type="text" placeholder="Cliente, sede, intervento o incaricato" autocomplete="off" autofocus data-agenda-search/><button class="list-search-clear" type="button" aria-label="Pulisci filtro" data-agenda-search-clear hidden>×</button></div></div>
+            <div class="list-filter-field"><label for="agenda-status">Stato</label><select id="agenda-status" data-agenda-status><option value="">Tutti</option>@foreach(var status in Enum.GetValues<InterventionStatus>()){<option value="@status">@StatusLabel(status)</option>}</select></div>
+        </div>
+        <div class="list-grid-frame agenda-grid-frame" tabindex="0" data-agenda-grid>
+            <table class="list-grid agenda-grid">
+                <thead><tr><th class="agenda-check-column"><input type="checkbox" aria-label="Seleziona tutte le schede visibili" data-agenda-check-all /></th><th>Data</th><th>Ora</th><th>Cliente</th><th>Sede</th><th>Intervento</th><th>Incaricato</th><th>Stato</th><th></th></tr></thead>
+                <tbody>@foreach(var item in Model.Items){<tr tabindex="-1" data-agenda-row data-work-id="@item.Id" data-operator="@item.Plant" data-date="@item.ScheduledAt.ToString("yyyy-MM-dd")" data-status="@item.Status" data-filter-text="@($"{item.Customer} {item.Site} {item.Kind} {item.Plant} {StatusLabel(item.Status)}")" data-open-url="@Url.Page("/Lavori/Scheda",new{id=item.Id,azione=103})"><td class="agenda-check-column"><input type="checkbox" aria-label="Seleziona scheda" data-agenda-check /></td><td>@item.ScheduledAt.ToString("dd/MM/yyyy")</td><td>@item.ScheduledAt.ToString("HH:mm")</td><td>@item.Customer</td><td>@item.Site</td><td>@item.Kind</td><td>@item.Plant</td><td><span class="agenda-status agenda-status-@item.Status.ToString().ToLowerInvariant()">@StatusLabel(item.Status)</span></td><td><button class="agenda-open" type="button" data-agenda-open>Apri</button></td></tr>}</tbody>
+            </table>
+            <div class="list-empty" data-agenda-empty hidden>Nessun lavoro corrisponde ai filtri impostati.</div>
+        </div>
+    </section>
+</section>
+
+<dialog class="agenda-period-dialog" data-agenda-period-dialog>
+    <div class="agenda-period-title">Periodo personalizzato</div>
+    <div class="agenda-period-fields">
+        <label><span>Dal</span><span class="micronote-date-control" data-date-control><input type="hidden" value="@DateTime.Today.ToString("yyyy-MM-dd")" data-filter-date-hidden data-agenda-custom-from/><input class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" value="@DateTime.Today.ToString("dd/MM/yyyy")" placeholder="gg/mm/aaaa" data-filter-date-display/><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data iniziale" data-date-picker-button></button></span></label>
+        <label><span>Al</span><span class="micronote-date-control" data-date-control><input type="hidden" value="@DateTime.Today.AddMonths(1).ToString("yyyy-MM-dd")" data-filter-date-hidden data-agenda-custom-to/><input class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" value="@DateTime.Today.AddMonths(1).ToString("dd/MM/yyyy")" placeholder="gg/mm/aaaa" data-filter-date-display/><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data finale" data-date-picker-button></button></span></label>
+        <p data-agenda-period-error hidden>La data finale deve essere uguale o successiva alla data iniziale.</p>
+    </div>
+    <div class="agenda-period-actions"><button class="btn btn-primary" type="button" data-agenda-period-apply>Conferma</button><button class="btn customer-menu-button" type="button" data-agenda-period-cancel>Annulla</button></div>
+</dialog>
+
+<dialog class="agenda-print-dialog" data-agenda-unassigned-dialog>
+    <div class="agenda-print-title">Schede senza operatore</div>
+    <div class="agenda-print-body agenda-unassigned-body">
+        <p data-agenda-unassigned-message></p>
+        <p>In anteprima saranno indicate automaticamente come <strong>Generico</strong>.</p>
+    </div>
+    <div class="agenda-print-actions"><button class="btn btn-primary" type="button" data-agenda-unassigned-confirm>Continua</button><button class="btn customer-menu-button" type="button" data-agenda-unassigned-cancel>Annulla</button></div>
+</dialog>
+
+@section Scripts{<script src="~/js/agenda-list.js" asp-append-version="true"></script>}

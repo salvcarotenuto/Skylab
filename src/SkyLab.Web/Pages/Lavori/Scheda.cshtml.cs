@@ -8,6 +8,7 @@ namespace SkyLab.Web.Pages.Lavori;
 public sealed class SchedaModel(WorkService service,IWebHostEnvironment environment) : PageModel
 {
     [BindProperty] public WorkEditModel Lavoro { get; set; } = new();
+    [BindProperty(SupportsGet = true)] public int Azione { get; set; } = 3;
     public IReadOnlyList<WorkLookupItem> Stati { get; private set; }=[];
     public IReadOnlyList<WorkLookupItem> Esiti { get; private set; }=[];
     public IReadOnlyList<OperatorLookupItem> Operatori { get; private set; }=[];
@@ -34,7 +35,9 @@ public sealed class SchedaModel(WorkService service,IWebHostEnvironment environm
         Lavoro.ActualLabour=precedente.ActualLabour;
         Lavoro.ActualMaterials=precedente.ActualMaterials;
         await service.SaveAsync(Lavoro,ct);
-        return RedirectToPage("Schede");
+        return Azione == 103
+            ? RedirectToPage("/Interventi/Index")
+            : RedirectToPage("Schede");
     }
     private async Task Lookups(CancellationToken ct)
     { Stati=await service.StatusesAsync(ct);Esiti=await service.OutcomesAsync(ct);Operatori=await service.OperatorsAsync(ct); }

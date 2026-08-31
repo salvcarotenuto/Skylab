@@ -1,0 +1,52 @@
+@page
+@model SkyLab.Web.Pages.Interventi.StampaModel
+@{ ViewData["Title"] = Model.Tipo == "schede" ? "Anteprima schede lavori" : "Anteprima riepilogo Agenda"; ViewData["HideFooter"] = true; }
+<link rel="stylesheet" href="~/css/agenda-print.css" asp-append-version="true" />
+@if (Model.Tipo == "riepilogo") { <style>@@media print { @@page { size: A4 landscape; } }</style> }
+<main class="agenda-print-page report-preview-backdrop" data-agenda-print-preview>
+  <section class="report-preview-window" role="dialog" aria-modal="true" aria-labelledby="agendaPrintPreviewTitle">
+    <header class="report-preview-toolbar">
+      <div><strong id="agendaPrintPreviewTitle">@ViewData["Title"]</strong><span>@(Model.Tipo == "schede" ? "Schede lavori" : "Riepilogo Agenda") · @Model.Items.Count documenti</span></div>
+      <div class="report-preview-actions">
+        <button type="button" data-agenda-preview-zoom-out aria-label="Riduci anteprima">−</button><span data-agenda-preview-zoom-label>80%</span><button type="button" data-agenda-preview-zoom-in aria-label="Ingrandisci anteprima">+</button>
+        <button type="button" data-agenda-preview-print>Stampa / PDF</button><button type="button" class="report-preview-close" data-agenda-preview-close>Chiudi</button>
+      </div>
+    </header>
+    <div class="report-preview-viewport"><div class="report-preview-document @(Model.Tipo == "riepilogo" ? "agenda-preview-landscape" : "agenda-preview-portrait")" data-agenda-preview-document>
+    @if (!Model.Items.Any())
+    {
+        <section class="agenda-print-empty">Nessuna scheda da stampare.</section>
+    }
+    else if (Model.Tipo == "riepilogo")
+    {
+        <section class="agenda-summary-sheet">
+            <header><h1>Agenda lavori</h1><p>Riepilogo operativo · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p></header>
+            <table><thead><tr><th>Data</th><th>Ora</th><th>Scheda</th><th>Cliente</th><th>Intervento</th><th>In carico a</th></tr></thead><tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr><td>@item.Work.PlannedOn?.ToString("dd/MM/yyyy")</td><td>@(item.Work.PlannedAt?.ToString(@"hh\:mm") ?? "—")</td><td>@item.Work.Code.ToString("000000")/@item.Work.Year</td><td>@item.Work.Customer</td><td>@item.Work.Summary</td><td class="agenda-operator">@item.Operator</td></tr>
+            }
+            </tbody></table>
+        </section>
+    }
+    else
+    {
+        @foreach (var item in Model.Items)
+        {
+            <article class="agenda-work-sheet">
+                <header><div><span>Scheda lavoro</span><h1>@item.Work.Code.ToString("000000")/@item.Work.Year</h1></div><div class="agenda-work-schedule"><div><span>Data intervento</span><strong>@(item.Work.PlannedOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div><div><span>Ora intervento</span><strong>@(item.Work.PlannedAt?.ToString(@"hh\:mm") ?? "—")</strong></div></div></header>
+                <section class="agenda-work-assignment"><span>Operatore</span><strong>@item.Operator</strong></section>
+                <dl class="agenda-work-data"><div><dt>Cliente</dt><dd>@item.Work.Customer</dd></div><div><dt>Intervento</dt><dd>@item.Work.Summary</dd></div><div><dt>Istruzioni operative</dt><dd>@item.Work.Instructions</dd></div></dl>
+                <section class="agenda-work-details"><h2>Materiali e prestazioni previste</h2><table><thead><tr><th>Codice</th><th>Descrizione</th><th>Quantità</th></tr></thead><tbody>
+                @if (!item.Details.Any()) { <tr><td colspan="3">Nessuna riga prevista.</td></tr> }
+                @foreach (var detail in item.Details) { <tr><td>@detail.Reference</td><td>@detail.Description</td><td>@detail.Quantity.ToString("N3")</td></tr> }
+                </tbody></table></section>
+                <section class="agenda-work-notes"><h2>Annotazioni dell’operatore</h2></section>
+                <footer><span>Firma operatore</span><span>Firma cliente</span></footer>
+            </article>
+        }
+    }
+    </div></div>
+  </section>
+</main>
+@section Scripts { <script src="~/js/agenda-print-preview.js" asp-append-version="true"></script> }

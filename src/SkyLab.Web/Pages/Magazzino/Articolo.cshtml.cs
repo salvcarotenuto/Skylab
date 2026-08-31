@@ -9,6 +9,7 @@ public sealed class ArticoloModel(CustomerService service,IWebHostEnvironment en
 {
     [BindProperty] public ArticleEditModel Articolo { get; set; } = new();
     [BindProperty] public bool IsNew { get; set; }
+    [BindProperty] public int Azione { get; set; } = FormAzione.Inserimento;
     public IReadOnlyList<LookupItem> Categorie { get; private set; } = [];
     public IReadOnlyList<LookupItem> Gruppi { get; private set; } = [];
     public IReadOnlyList<LookupItem> Marche { get; private set; } = [];
@@ -17,6 +18,9 @@ public sealed class ArticoloModel(CustomerService service,IWebHostEnvironment en
     public IReadOnlyList<SupplierLookupItem> Fornitori { get; private set; } = [];
     public IReadOnlyList<ArticleBarcodeItem> Barcodes { get; private set; } = [];
     public IReadOnlyList<ArticlePhotoItem> Photos { get; private set; } = [];
+    public int ClienteId { get; private set; }
+    public bool IsReadOnly => FormAzione.IsReadonly(Azione);
+    public bool IsModal => FormAzione.IsModal(Azione);
     [BindProperty] public List<ArticlePriceListEditModel> PriceLists { get; set; } = [];
     public decimal VatRate { get; private set; }
     public string ActiveTab { get; private set; } = "anagrafica";
@@ -25,11 +29,12 @@ public sealed class ArticoloModel(CustomerService service,IWebHostEnvironment en
     [TempData] public string? PhotoError { get; set; }
     public string NomeFornitore => Fornitori.FirstOrDefault(x=>x.Code==Articolo.SupplierCode)?.Name ?? "";
 
-    public async Task<IActionResult> OnGetAsync(string? codice,bool nuovo=false,string? tab=null,CancellationToken ct=default)
+    public async Task<IActionResult> OnGetAsync(string? codice,bool nuovo=false,string? tab=null,int clienteId=0,int? azione=null,CancellationToken ct=default)
     {
-        IsNew=nuovo;ActiveTab=!nuovo&&tab is "barcode" or "listini" or "immagini"?tab:"anagrafica";
-        if(!nuovo){var article=await service.ArticleAsync(codice,ct);if(article is null)return NotFound();Articolo=article;}
-        await LoadLookupsAsync(ct);if(!nuovo&&ActiveTab=="barcode")Barcodes=await service.ArticleBarcodesAsync(Articolo.Code,ct);if(!nuovo&&ActiveTab=="listini"){VatRate=await service.ArticleVatRateAsync(Articolo.Code,ct);PriceLists=(await service.ArticlePriceListsAsync(Articolo.Code,VatRate,ct)).ToList();}if(!nuovo&&ActiveTab=="immagini")Photos=await service.ArticlePhotosAsync(Articolo.Code,ct);return Page();
+        var fallback=nuovo||string.IsNullOrWhiteSpace(codice)?FormAzione.Inserimento:FormAzione.Modifica;Azione=FormAzione.Normalize(azione??0,fallback);IsNew=FormAzione.IsInserimento(Azione);ClienteId=clienteId;
+        ActiveTab=!IsNew&&tab is "barcode" or "listini" or "immagini"?tab:"anagrafica";
+        if(!IsNew){var article=await service.ArticleAsync(codice,ct);if(article is null)return NotFound();Articolo=article;}
+        await LoadLookupsAsync(ct);if(!IsNew&&ActiveTab=="barcode")Barcodes=await service.ArticleBarcodesAsync(Articolo.Code,ct);if(!IsNew){VatRate=await service.ArticleVatRateAsync(Articolo.Code,ct);PriceLists=(await service.ArticlePriceListsAsync(Articolo.Code,VatRate,ct)).ToList();}if(!IsNew&&ActiveTab=="immagini")Photos=await service.ArticlePhotosAsync(Articolo.Code,ct);return Page();
     }
     public async Task<IActionResult> OnPostSaveBarcodeAsync(string codice,int barcodeId,string? barcodeValue,int? barcodeSupplierCode,CancellationToken ct)
     {
@@ -43,6 +48,13 @@ public sealed class ArticoloModel(CustomerService service,IWebHostEnvironment en
     {
         for(var i=0;i<PriceLists.Count;i++)PriceLists[i].ListNumber=(byte)(i+1);
         try{await service.SaveArticlePriceListsAsync(codice,PriceLists,ct);}catch(InvalidOperationException ex){ListError=ex.Message;}return RedirectToPage(new{codice,tab="listini"});
+    }
+    public async Task<IActionResult> OnPostSaveAllAsync(string? tab,CancellationToken ct)
+    {
+        ActiveTab=!IsNew&&tab is "barcode" or "listini" or "immagini"?tab:"anagrafica";if(!ModelState.IsValid){await LoadLookupsAsync(ct);return Page();}
+        try{await service.SaveArticleAsync(Articolo,IsNew,ct);if(PriceLists.Count==6){for(var i=0;i<PriceLists.Count;i++)PriceLists[i].ListNumber=(byte)(i+1);await service.SaveArticlePriceListsAsync(Articolo.Code,PriceLists,ct);}}
+        catch(InvalidOperationException ex){ModelState.AddModelError(string.Empty,ex.Message);await LoadLookupsAsync(ct);return Page();}
+        return RedirectToPage("/Magazzino/Articoli/Index");
     }
     public async Task<IActionResult> OnPostAddPhotoAsync(string codice,IFormFile? foto,string? descrizione,CancellationToken ct)
     {

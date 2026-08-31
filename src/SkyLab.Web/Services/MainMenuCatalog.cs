@@ -10,7 +10,7 @@ public static class MainMenuCatalog
         new("Articoli", "AR", "/Magazzino/Articoli/Index"),
         new("Interventi in scadenza", "IS", "/Lavori/Pianificazione"),
         new("Schede lavori", "LV", "/Lavori/Schede"),
-        new("Agenda del giorno", "AG", "/Interventi/Index")
+        new("Agenda lavori", "AG", "/Interventi/Index")
     ];
 
     public static IReadOnlyList<MenuSectionDefinition> Sections { get; } =
@@ -38,7 +38,6 @@ public static class MainMenuCatalog
                 Link("Interventi in scadenza", "/Lavori/Pianificazione"),
                 Link("Intervento straordinario", "/Lavori/InterventoStraordinario"),
                 Link("Nuovo lavoro", "/Lavori/NuovoLavoro"),
-                Link("Agenda del giorno", "/Interventi/Index"),
                 Link("Agenda lavori", "/Interventi/Index"),
                 Link("Macchine installate", "/Lavori/MacchineInstallate")),
             Group("Esecuzione",

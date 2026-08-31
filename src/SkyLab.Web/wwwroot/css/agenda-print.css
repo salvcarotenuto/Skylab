@@ -1,0 +1,50 @@
+body { background: #dfe7f0; overflow: hidden; }
+.agenda-print-page { color: #111; font-family: Arial,sans-serif; }
+.report-preview-backdrop { background:rgba(28,45,66,.66); display:grid; inset:0; padding:18px; place-items:center; position:fixed; z-index:3000; }
+.report-preview-window { background:#dce7f1; border:1px solid #8da5bd; border-radius:10px; box-shadow:0 20px 60px rgba(12,28,48,.35); height:min(930px,96vh); overflow:hidden; width:min(1500px,98vw); }
+.report-preview-toolbar { align-items:center; background:#f7fafc; border-bottom:1px solid #9db1c6; display:flex; gap:18px; justify-content:space-between; min-height:66px; padding:10px 14px; }
+.report-preview-toolbar>div:first-child { display:grid; gap:3px; }
+.report-preview-toolbar strong { color:#173f76; font-size:1.08rem; }
+.report-preview-toolbar span { color:#60758c; font-size:.84rem; }
+.report-preview-actions { align-items:center; display:flex; gap:7px; }
+.report-preview-actions button { background:#4d6dae; border:1px solid #365d9d; border-radius:6px; color:#fff; cursor:pointer; font-weight:700; min-height:40px; min-width:44px; padding:7px 14px; }
+.report-preview-actions button:hover,.report-preview-actions button:focus-visible { background:#36568f; }
+.report-preview-actions .report-preview-close { background:#a75d5d; border-color:#8f4d4d; margin-left:8px; }
+.report-preview-viewport { height:calc(100% - 66px); overflow:auto; padding:24px; }
+.report-preview-document { --report-preview-zoom:.8; display:grid; gap:24px; justify-content:center; min-width:100%; width:max-content; zoom:var(--report-preview-zoom); }
+.agenda-print-empty,.agenda-summary-sheet,.agenda-work-sheet { background: #fff; border: 1px solid #777; padding: 18px; }
+.agenda-print-empty { box-sizing:border-box; min-height:300px; width:794px; }
+.agenda-summary-sheet { box-shadow:0 3px 16px rgba(18,35,53,.28); box-sizing:border-box; min-height:794px; width:1123px; }
+.agenda-summary-sheet header,.agenda-work-sheet header { border-bottom: 2px solid #335d8e; margin-bottom: 14px; padding-bottom: 9px; }
+.agenda-summary-sheet h1,.agenda-work-sheet h1 { font-size: 22px; margin: 0; }
+.agenda-summary-sheet header p { margin: 4px 0 0; }
+.agenda-summary-sheet table,.agenda-work-details table { border-collapse: collapse; font-size: 12px; width: 100%; }
+.agenda-summary-sheet th,.agenda-summary-sheet td,.agenda-work-details th,.agenda-work-details td { border: 1px solid #888; padding: 7px; text-align: left; }
+.agenda-summary-sheet th,.agenda-work-details th { background: #d9e6f3; }
+.agenda-operator { font-weight: 700; }
+.agenda-work-sheet { break-after: page; box-shadow:0 3px 16px rgba(18,35,53,.28); box-sizing:border-box; margin-bottom:0; min-height:1123px; width:794px; }
+.agenda-work-sheet:last-child { break-after: auto; }
+.agenda-work-sheet > header { align-items: end; display: flex; justify-content: space-between; }
+.agenda-work-sheet header span,.agenda-work-assignment span { color: #46576b; display: block; font-size: 11px; text-transform: uppercase; }
+.agenda-work-schedule { display:grid; gap:8px; grid-template-columns:145px 125px; }
+.agenda-work-schedule div { background:#f4f7fa; border:1px solid #8799ad; padding:6px 9px; text-align:center; }
+.agenda-work-schedule span { white-space:nowrap; }
+.agenda-work-schedule strong { display:block; font-size:15px; margin-top:2px; }
+.agenda-work-assignment { background: #dce9f6; border: 2px solid #335d8e; margin-bottom: 14px; padding: 9px 12px; }
+.agenda-work-assignment strong { font-size: 18px; }
+.agenda-work-data { display: grid; gap: 7px; margin: 0 0 15px; }
+.agenda-work-data div { display: grid; grid-template-columns: 155px 1fr; }
+.agenda-work-data dt { background: #d9e6f3; border: 1px solid #888; font-weight: 700; padding: 7px; }
+.agenda-work-data dd { border: 1px solid #888; border-left: 0; margin: 0; min-height: 33px; padding: 7px; }
+.agenda-work-details h2,.agenda-work-notes h2 { font-size: 14px; margin: 0 0 7px; }
+.agenda-work-notes { border: 1px solid #888; height: 180px; margin-top: 18px; padding: 10px; }
+.agenda-work-sheet footer { display: grid; gap: 80px; grid-template-columns: 1fr 1fr; margin-top: 55px; }
+.agenda-work-sheet footer span { border-top: 1px solid #555; padding-top: 6px; text-align: center; }
+
+@media print {
+    @page { margin: 12mm; size: A4 portrait; }
+    body { background:#fff; overflow:visible; }
+    .report-preview-backdrop,.report-preview-window,.report-preview-viewport,.report-preview-document { background:#fff!important; border:0!important; box-shadow:none!important; display:block!important; height:auto!important; margin:0!important; overflow:visible!important; padding:0!important; position:static!important; width:auto!important; zoom:1!important; }
+    .report-preview-toolbar { display:none!important; }
+    .agenda-summary-sheet,.agenda-work-sheet { border:0; box-shadow:none; margin:0; min-height:0; padding:0; width:100%; }
+}
