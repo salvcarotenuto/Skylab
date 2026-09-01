@@ -1,0 +1,13 @@
+@page
+@model SkyLab.Web.Pages.Utenti.IndexModel
+@{ ViewData["Title"]="Utenti"; ViewData["HideFooter"]=true; }
+<section class="list-page user-list-page" data-list-page data-menu-url="/">
+ <header class="list-titlebar"><a class="list-title-identity" asp-page="/Index"><strong>Utenti</strong><small>Skylab · Gestione utenti</small></a><div class="list-title-actions"><a class="list-title-button" asp-page="./Edit">Aggiungi</a><button class="list-title-button" type="button" data-user-action="edit">Modifica</button><button class="list-title-button" type="button" data-user-action="delete">Elimina</button><a class="list-title-button" asp-page="/Index">Esci</a></div></header>
+ @if(!string.IsNullOrWhiteSpace(Model.ErrorMessage)){<span hidden data-page-message data-message-text="@Model.ErrorMessage"></span>}
+ <section class="list-panel"><div class="list-toolbar"><div class="list-filter-field list-search-field"><label for="user-search">Cerca</label><div class="list-search-control"><input id="user-search" placeholder="Cognome, nome o username" autocomplete="off" autofocus data-user-search/><button class="list-search-clear" type="button" data-user-search-clear hidden>×</button></div></div><span class="list-records-box"><strong data-user-count>@Model.Users.Count</strong><span>record</span></span></div>
+ <div class="list-grid-frame" data-user-grid><table class="list-grid user-grid"><thead><tr><th>Codice</th><th>Cognome</th><th>Nome</th><th>Username</th><th>Città</th><th>Telefono</th><th>E-mail</th><th>Attivo</th><th>Bloccato</th><th>Tipo</th></tr></thead><tbody>
+ @foreach(var user in Model.Users){<tr tabindex="0" data-user-row data-filter-name="@($"{user.LastName} {user.FirstName} {user.UserName}")" data-edit-url="@Url.Page("./Edit",new{code=user.Code})" data-delete-code="@user.Code" data-record-label="@($"{user.LastName} {user.FirstName}".Trim())"><td class="code-cell">@user.Code.ToString("000")</td><td>@user.LastName</td><td>@user.FirstName</td><td>@user.UserName</td><td>@user.City</td><td>@user.Phone</td><td>@user.Email</td><td>@(user.IsActive?"Sì":"No")</td><td>@(user.IsLocked?"Sì":"")</td><td>@user.TypeDescription</td></tr>}
+ </tbody></table><div class="list-empty" data-user-empty hidden>Nessun utente trovato.</div></div></section>
+ <form method="post" asp-page-handler="Delete" data-user-delete-form hidden><input type="hidden" name="code" data-user-delete-code/></form>
+</section>
+@section Scripts{<script src="~/js/users-list.js" asp-append-version="true"></script>}

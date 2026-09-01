@@ -1,5 +1,18 @@
 .agenda-period-field { grid-template-columns: max-content minmax(0, 1fr); }
 
+.agenda-grid th:nth-child(1), .agenda-grid td:nth-child(1) { width: 72px; }
+.agenda-grid th:nth-child(2), .agenda-grid td:nth-child(2) { width: 72px; }
+.agenda-grid th:nth-child(3), .agenda-grid td:nth-child(3) { min-width: 110px; width: 110px; }
+.agenda-grid th:nth-child(4), .agenda-grid td:nth-child(4) { min-width: 100px; white-space: nowrap; width: 100px; }
+.agenda-grid th:nth-child(5),
+.agenda-grid td:nth-child(5) { max-width: 58px; min-width: 58px; padding-left: 4px; padding-right: 4px; text-align: center; width: 58px; }
+.agenda-grid th:nth-child(6), .agenda-grid td:nth-child(6) { max-width: none; width: 20%; }
+.agenda-grid th:nth-child(7), .agenda-grid td:nth-child(7) { max-width: none; width: 30%; }
+.agenda-grid th:nth-child(8), .agenda-grid td:nth-child(8) { max-width: none; width: 30%; }
+.agenda-grid th:nth-child(9), .agenda-grid td:nth-child(9) { width: 135px; }
+.agenda-grid th:nth-child(10), .agenda-grid td:nth-child(10) { width: 110px; }
+.agenda-grid th:nth-child(11), .agenda-grid td:nth-child(11) { width: 64px; }
+
 .agenda-period-control {
     align-items: center;
     display: grid;

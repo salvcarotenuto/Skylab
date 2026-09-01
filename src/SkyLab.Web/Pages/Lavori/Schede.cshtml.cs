@@ -23,8 +23,7 @@ public sealed class SchedeModel(WorkService service) : PageModel
         if (OrdinaPer != "lavoro") OrdinaPer = "scheda";
         if (Da is null)
         {
-            var latest = await service.LatestDateAsync(OrdinaPer, cancellationToken) ?? DateTime.Today;
-            Da = latest.Date.AddDays(-29);
+            Da = DateTime.Today.AddDays(-29);
         }
         if (Indietro)
         {

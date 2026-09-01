@@ -16,7 +16,7 @@
     </header>
 
     <form method="get" class="work-filters" data-work-filter-form>
-        <input type="search" class="form-control work-search" placeholder="Cerca cliente, scheda o descrizione" autocomplete="off" data-work-search />
+        <input type="search" class="form-control work-search" placeholder="Cerca cliente, scheda o descrizione" autocomplete="off" autofocus data-work-search />
         <label><span class="work-filter-label">Ordina per</span>
             <select asp-for="OrdinaPer" class="form-select" data-work-order>
                 <option value="scheda">Data scheda</option>
@@ -61,4 +61,30 @@
     </div>
 </section>
 
-@section Scripts { <script src="~/js/work-list.js" asp-append-version="true"></script> }
+@section Scripts {
+    <script src="~/js/work-list.js" asp-append-version="true"></script>
+    <script>
+        (() => {
+            const search = document.querySelector('[data-work-search]');
+            if (!search) return;
+            search.focus({ preventScroll: true });
+            if (search.dataset.liveFilterBound === 'true') return;
+            search.dataset.liveFilterBound = 'true';
+            const normalize = value => (value || '').toLocaleLowerCase('it-IT').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            search.addEventListener('input', () => {
+                const term = normalize(search.value.trim());
+                const rows = [...document.querySelectorAll('[data-work-row]')];
+                let visible = 0;
+                rows.forEach(row => {
+                    const show = !term || normalize(row.dataset.filter).includes(term);
+                    row.hidden = !show;
+                    if (show) visible += 1;
+                });
+                const count = document.querySelector('[data-work-count]');
+                const empty = document.querySelector('[data-work-empty]');
+                if (count) count.textContent = visible;
+                if (empty) empty.hidden = visible !== 0;
+            });
+        })();
+    </script>
+}

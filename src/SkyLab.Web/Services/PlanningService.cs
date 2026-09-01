@@ -335,7 +335,7 @@ public sealed class PlanningService(IConfiguration configuration)
             WHERE i.DataIntervento=@date AND i.Stato<>'X'
             UNION ALL
             SELECT l.OraInterventoPianificata,COALESCE(c.Nome,''),COALESCE(l.DescrizioneSintetica,'Scheda lavoro'),
-                   COALESCE(NULLIF(CONCAT_WS(' ',u.Nome,u.Cognome),''),u.Username,''),1
+                   COALESCE(NULLIF(TRIM(u.Username),''),''),1
             FROM Lavori l JOIN Clienti c ON c.Codice=l.Cliente
             LEFT JOIN Utenti u ON u.Codice=NULLIF(l.OperatoreAssegnato,0)
             WHERE l.DataInterventoPianificata=@date
@@ -370,7 +370,7 @@ public sealed class PlanningService(IConfiguration configuration)
             SELECT l.DataInterventoPianificata,l.OraInterventoPianificata,COALESCE(c.Nome,''),
                    COALESCE(NULLIF(CONCAT_WS(' ',NULLIF(TRIM(c.Via),''),NULLIF(TRIM(c.Civico),''),NULLIF(TRIM(c.Citta),'')),''),'Sede principale'),
                    COALESCE(l.DescrizioneSintetica,'Scheda lavoro'),
-                   COALESCE(NULLIF(CONCAT_WS(' ',u.Nome,u.Cognome),''),u.Username,''),'Scheda lavoro'
+                   COALESCE(NULLIF(TRIM(u.Username),''),''),'Scheda lavoro'
             FROM Lavori l JOIN Clienti c ON c.Codice=l.Cliente
             LEFT JOIN Utenti u ON u.Codice=NULLIF(l.OperatoreAssegnato,0)
             WHERE l.DataInterventoPianificata BETWEEN @from AND @to

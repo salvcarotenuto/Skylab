@@ -9,15 +9,18 @@ public sealed record WorkListItem(
     TimeSpan? PlannedAt,
     int CustomerId,
     string Customer,
+    string Site,
     string Summary,
     string AssignedOperator,
+    short AssignedOperatorId,
     byte StatusId,
     string Status,
     byte? OutcomeId,
     string Outcome,
     decimal PlannedAmount,
     decimal RequestedAmount,
-    int? InvoiceId);
+    int? InvoiceId,
+    bool DispatchedToWork);
 
 public sealed record WorkLookupItem(byte Id, string Description);
 
@@ -28,6 +31,7 @@ public sealed class WorkEditModel
     public int Code { get; set; }
     public int CustomerId { get; set; }
     public string Customer { get; set; } = "";
+    public int? SiteId { get; set; }
     public DateTime? DraftedOn { get; set; }
     public DateTime? PlannedOn { get; set; }
     public TimeSpan? PlannedAt { get; set; }
@@ -54,6 +58,8 @@ public sealed class WorkEditModel
 }
 
 public sealed record OperatorLookupItem(short Id, string Description);
+public sealed record WorkSiteLookupItem(int? Id,string Description);
+public sealed record MobileWorkItem(int Id,string Number,DateTime? PlannedOn,TimeSpan? PlannedAt,string Customer,string Site,string Summary,string Status);
 
 public sealed record WorkDetailItem(
     short Row,

@@ -12,6 +12,7 @@ public sealed class SchedaModel(WorkService service,IWebHostEnvironment environm
     public IReadOnlyList<WorkLookupItem> Stati { get; private set; }=[];
     public IReadOnlyList<WorkLookupItem> Esiti { get; private set; }=[];
     public IReadOnlyList<OperatorLookupItem> Operatori { get; private set; }=[];
+    public IReadOnlyList<WorkSiteLookupItem> Sedi { get; private set; }=[];
     public IReadOnlyList<WorkDetailItem> RighePreventivo { get; private set; }=[];
     public IReadOnlyList<WorkDetailItem> RigheConsuntivo { get; private set; }=[];
     public IReadOnlyList<WorkReferenceLookup> Riferimenti { get; private set; }=[];
@@ -40,7 +41,7 @@ public sealed class SchedaModel(WorkService service,IWebHostEnvironment environm
             : RedirectToPage("Schede");
     }
     private async Task Lookups(CancellationToken ct)
-    { Stati=await service.StatusesAsync(ct);Esiti=await service.OutcomesAsync(ct);Operatori=await service.OperatorsAsync(ct); }
+    { Stati=await service.StatusesAsync(ct);Esiti=await service.OutcomesAsync(ct);Operatori=await service.OperatorsAsync(ct);Sedi=await service.WorkSitesAsync(Lavoro.CustomerId,ct); }
 
     public async Task<IActionResult> OnPostAddDetailAsync(int id,string tipo,string riferimento,string ambito,CancellationToken ct)
     {

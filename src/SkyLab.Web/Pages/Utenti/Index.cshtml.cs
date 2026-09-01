@@ -1,0 +1,3 @@
+using Microsoft.AspNetCore.Mvc; using Microsoft.AspNetCore.Mvc.RazorPages; using SkyLab.Web.Models; using SkyLab.Web.Services;
+namespace SkyLab.Web.Pages.Utenti;
+public sealed class IndexModel(UserService service):PageModel { public IReadOnlyList<UserListItem> Users{get;private set;}=[]; [TempData] public string? ErrorMessage{get;set;} public async Task OnGetAsync(CancellationToken ct)=>Users=await service.SearchAsync(null,ct); public async Task<IActionResult> OnPostDeleteAsync(int code,CancellationToken ct){var result=await service.DeleteAsync(code,ct);if(!result.Deleted)ErrorMessage=result.Message;return RedirectToPage();} }

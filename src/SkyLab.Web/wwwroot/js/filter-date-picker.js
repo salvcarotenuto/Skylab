@@ -144,6 +144,17 @@ document.addEventListener("DOMContentLoaded", () => {
       if (event.key === "Enter") { event.preventDefault(); sync(field); }
     });
   });
+  document.querySelectorAll("form").forEach((form) => {
+    form.addEventListener("submit", () => {
+      form.querySelectorAll("[data-filter-date-display]").forEach((field) => {
+        const target = hidden(field);
+        if (!target) return;
+        const value = iso(field.value);
+        target.value = value;
+        target.setAttribute("value", value);
+      });
+    });
+  });
   document.addEventListener("click", (event) => {
     const target = event.target;
     const trigger = target.closest?.("[data-date-picker-button]");

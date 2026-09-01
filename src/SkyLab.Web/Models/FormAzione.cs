@@ -16,5 +16,6 @@ public static class FormAzione
     public static bool IsStampa(int azione)=>Base(azione)==Stampa;
     public static bool IsModal(int azione)=>HasContesto(azione,Modale);
     public static bool IsReadonly(int azione)=>IsVisualizzazione(azione)||IsCancellazione(azione)||IsZoom(azione)||IsStampa(azione);
+    public static int ForRecord(bool hasRecord)=>hasRecord?Modifica:Inserimento;
     public static int Normalize(int azione,int fallback)=>Base(azione) is Visualizzazione or Inserimento or Modifica or Cancellazione or Zoom or Stampa or Login or Logout?azione:fallback;
 }

@@ -19,6 +19,7 @@
             <span class="agenda-selected-box"><strong data-agenda-selected-count>0</strong><span>selezionate</span></span>
             <button class="list-title-button agenda-print-button" type="button" data-agenda-print="sheets" disabled>Stampa schede</button>
             <button class="list-title-button agenda-print-button" type="button" data-agenda-print="summary" disabled>Stampa riepilogo</button>
+            <button class="list-title-button agenda-dispatch-button" type="button" data-agenda-dispatch disabled>Conferma scarico</button>
             <span class="list-records-box"><strong data-agenda-count>@Model.Items.Count</strong><span>record</span></span>
             <a class="btn customer-menu-button" asp-page="/Index">Esci</a>
         </div>
@@ -31,13 +32,15 @@
         </div>
         <div class="list-grid-frame agenda-grid-frame" tabindex="0" data-agenda-grid>
             <table class="list-grid agenda-grid">
-                <thead><tr><th class="agenda-check-column"><input type="checkbox" aria-label="Seleziona tutte le schede visibili" data-agenda-check-all /></th><th>Data</th><th>Ora</th><th>Cliente</th><th>Sede</th><th>Intervento</th><th>Incaricato</th><th>Stato</th><th></th></tr></thead>
-                <tbody>@foreach(var item in Model.Items){<tr tabindex="-1" data-agenda-row data-work-id="@item.Id" data-operator="@item.Plant" data-date="@item.ScheduledAt.ToString("yyyy-MM-dd")" data-status="@item.Status" data-filter-text="@($"{item.Customer} {item.Site} {item.Kind} {item.Plant} {StatusLabel(item.Status)}")" data-open-url="@Url.Page("/Lavori/Scheda",new{id=item.Id,azione=103})"><td class="agenda-check-column"><input type="checkbox" aria-label="Seleziona scheda" data-agenda-check /></td><td>@item.ScheduledAt.ToString("dd/MM/yyyy")</td><td>@item.ScheduledAt.ToString("HH:mm")</td><td>@item.Customer</td><td>@item.Site</td><td>@item.Kind</td><td>@item.Plant</td><td><span class="agenda-status agenda-status-@item.Status.ToString().ToLowerInvariant()">@StatusLabel(item.Status)</span></td><td><button class="agenda-open" type="button" data-agenda-open>Apri</button></td></tr>}</tbody>
+                <thead><tr><th class="agenda-check-column agenda-check-heading" title="Stampa"><span>Stampa</span><input type="checkbox" aria-label="Seleziona tutte le schede visibili per la stampa" data-agenda-check-all /></th><th class="agenda-check-column" title="Scarico">Scarico</th><th>Data scheda</th><th title="Data lavorazione">Data lavor.ne</th><th>Ora</th><th>Cliente</th><th>Sede</th><th>Intervento</th><th>Incaricato</th><th>Stato</th><th></th></tr></thead>
+                <tbody>@foreach(var item in Model.Items){<tr class="@(item.DispatchedToWork?"agenda-row-dispatched":"")" tabindex="-1" data-agenda-row data-work-id="@item.Id" data-operator="@item.Plant" data-operator-id="@item.AssignedOperatorId" data-dispatched="@item.DispatchedToWork.ToString().ToLowerInvariant()" data-date="@item.ScheduledAt.ToString("yyyy-MM-dd")" data-status="@item.Status" data-filter-text="@($"{item.Customer} {item.Site} {item.Kind} {item.Plant} {StatusLabel(item.Status)}")" data-open-url="@Url.Page("/Lavori/Scheda",new{id=item.Id,azione=103})"><td class="agenda-check-column"><input type="checkbox" aria-label="Seleziona scheda per la stampa" data-agenda-check /></td><td class="agenda-check-column"><input type="checkbox" aria-label="Scarica scheda alla lavorazione" data-agenda-dispatch-check checked="@item.DispatchedToWork" disabled="@(item.DispatchedToWork||item.Status!=InterventionStatus.Planned)" /></td><td>@(item.DraftedAt?.ToString("dd/MM/yyyy")??"—")</td><td>@item.ScheduledAt.ToString("dd/MM/yyyy")</td><td>@item.ScheduledAt.ToString("HH:mm")</td><td>@item.Customer</td><td>@item.Site</td><td>@item.Kind</td><td data-agenda-operator-name>@item.Plant</td><td><span class="agenda-status agenda-status-@item.Status.ToString().ToLowerInvariant()">@StatusLabel(item.Status)</span></td><td><button class="agenda-open" type="button" data-agenda-open>Apri</button></td></tr>}</tbody>
             </table>
             <div class="list-empty" data-agenda-empty hidden>Nessun lavoro corrisponde ai filtri impostati.</div>
         </div>
     </section>
 </section>
+
+<form method="post" data-agenda-command-form>@Html.AntiForgeryToken()</form>
 
 <dialog class="agenda-period-dialog" data-agenda-period-dialog>
     <div class="agenda-period-title">Periodo personalizzato</div>
@@ -47,6 +50,21 @@
         <p data-agenda-period-error hidden>La data finale deve essere uguale o successiva alla data iniziale.</p>
     </div>
     <div class="agenda-period-actions"><button class="btn btn-primary" type="button" data-agenda-period-apply>Conferma</button><button class="btn customer-menu-button" type="button" data-agenda-period-cancel>Annulla</button></div>
+</dialog>
+
+<dialog class="agenda-print-dialog agenda-operator-dialog" data-agenda-operator-dialog>
+    <div class="agenda-print-title">Operatore per lo scarico</div>
+    <div class="agenda-print-body">
+        <label><span>Operatore</span><select data-agenda-operator-select><option value="">Seleziona…</option>@foreach(var item in Model.Operators){<option value="@item.Id">@item.Description</option>}</select></label>
+        <p class="agenda-print-error" data-agenda-operator-error hidden>Selezionare un operatore.</p>
+    </div>
+    <div class="agenda-print-actions"><button class="btn btn-primary" type="button" data-agenda-operator-confirm>Conferma</button><button class="btn customer-menu-button" type="button" data-agenda-operator-cancel>Annulla</button></div>
+</dialog>
+
+<dialog class="agenda-print-dialog" data-agenda-dispatch-dialog>
+    <div class="agenda-print-title">Conferma scarico</div>
+    <div class="agenda-print-body"><p data-agenda-dispatch-message></p><p>Le schede diventeranno disponibili alla lavorazione mobile.</p><p class="agenda-print-error" data-agenda-dispatch-error hidden></p></div>
+    <div class="agenda-print-actions"><button class="btn btn-primary" type="button" data-agenda-dispatch-confirm>Conferma</button><button class="btn customer-menu-button" type="button" data-agenda-dispatch-cancel>Annulla</button></div>
 </dialog>
 
 <dialog class="agenda-print-dialog" data-agenda-unassigned-dialog>
