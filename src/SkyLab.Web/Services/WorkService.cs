@@ -30,7 +30,7 @@ public sealed class WorkService(IConfiguration configuration)
 
 
     public async Task<IReadOnlyList<WorkListItem>> SearchAsync(
-        DateTime from, string order, byte statusId, byte outcomeId, CancellationToken cancellationToken)
+        DateTime from, DateTime? to, string order, byte statusId, short operatorId, byte outcomeId, CancellationToken cancellationToken)
     {
         var dateColumn = order == "lavoro" ? "l.DataInterventoPianificata" : "l.DataRedazione";
         var direction = order == "lavoro" ? "ASC" : "DESC";
@@ -54,7 +54,9 @@ public sealed class WorkService(IConfiguration configuration)
             INNER JOIN StatiLavoro s ON s.ID = l.StatoLavoro_ID
             LEFT JOIN EsitiLavoro e ON e.ID = l.EsitoLavoro_ID
             WHERE {dateColumn} >= @from
+              AND (@to IS NULL OR {dateColumn} <= @to)
               AND (@statusId = 0 OR l.StatoLavoro_ID = @statusId)
+              AND (@operatorId = 0 OR l.OperatoreAssegnato = @operatorId)
               AND (@outcomeId = 0 OR l.EsitoLavoro_ID = @outcomeId)
             ORDER BY {dateColumn} {direction}, l.OraInterventoPianificata {direction}, l.ID {direction}
             """;
@@ -64,7 +66,9 @@ public sealed class WorkService(IConfiguration configuration)
         await connection.OpenAsync(cancellationToken);
         await using var command = new MySqlCommand(sql, connection);
         command.Parameters.AddWithValue("@from", from.Date);
+        command.Parameters.AddWithValue("@to", to?.Date ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("@statusId", statusId);
+        command.Parameters.AddWithValue("@operatorId", operatorId);
         command.Parameters.AddWithValue("@outcomeId", outcomeId);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
@@ -150,9 +154,12 @@ public sealed class WorkService(IConfiguration configuration)
     public async Task<IReadOnlyList<MobileWorkItem>> MobileWorksAsync(string username,CancellationToken ct)
     {
         const string sql="""
-          SELECT l.ID,CONCAT(l.Anno,'/',l.Codice),l.DataInterventoPianificata,l.OraInterventoPianificata,
+          SELECT l.ID,CONCAT(l.Codice,'/',l.Anno),l.DataInterventoPianificata,l.OraInterventoPianificata,
                  COALESCE(c.Nome,''),
-                 COALESCE(NULLIF(CONCAT_WS(' · ',NULLIF(TRIM(d.Nome),''),NULLIF(TRIM(d.Citta),'')),''),'Sede principale'),
+                 COALESCE(
+                   NULLIF(CONCAT_WS(' · ',NULLIF(TRIM(d.Nome),''),NULLIF(CONCAT_WS(' ',NULLIF(TRIM(d.Via),''),NULLIF(TRIM(d.Civico),''),NULLIF(TRIM(d.Citta),'')),'')),''),
+                   NULLIF(CONCAT_WS(' ',NULLIF(TRIM(c.Via),''),NULLIF(TRIM(c.Civico),''),NULLIF(TRIM(c.Citta),'')),''),
+                   'Indirizzo non disponibile'),
                  COALESCE(l.DescrizioneSintetica,''),COALESCE(s.Descrizione,'')
           FROM Lavori l
           INNER JOIN Utenti u ON u.Codice=l.OperatoreAssegnato
@@ -166,10 +173,44 @@ public sealed class WorkService(IConfiguration configuration)
         while(await r.ReadAsync(ct))result.Add(new(r.GetInt32(0),r.GetString(1),r.IsDBNull(2)?null:r.GetDateTime(2),r.IsDBNull(3)?null:r.GetTimeSpan(3),r.GetString(4),r.GetString(5),r.GetString(6),r.GetString(7)));return result;
     }
 
+    public async Task<MobileWorkDetailItem?> MobileWorkDetailAsync(int id,string username,CancellationToken ct)
+    {
+        const string sql="""
+          SELECT l.ID,CONCAT(l.Codice,'/',l.Anno),l.DataRedazione,l.DataInterventoPianificata,l.OraInterventoPianificata,
+                 l.DataUltimoIntervento,COALESCE(c.Nome,''),
+                 COALESCE(NULLIF(CONCAT_WS(' · ',NULLIF(TRIM(d.Nome),''),NULLIF(CONCAT_WS(' ',NULLIF(TRIM(d.Via),''),NULLIF(TRIM(d.Civico),''),NULLIF(TRIM(d.Citta),'')),'')),''),
+                          CONCAT_WS(' · ','Sede principale',NULLIF(CONCAT_WS(' ',NULLIF(TRIM(c.Via),''),NULLIF(TRIM(c.Civico),''),NULLIF(TRIM(c.Citta),'')),''))),
+                 COALESCE(NULLIF(TRIM(u.Username),''),CONCAT('Operatore ',u.Codice)),
+                 COALESCE(s.Descrizione,''),COALESCE(e.Descrizione,''),COALESCE(l.DescrizioneSintetica,''),COALESCE(l.IstruzioniOperative,''),
+                 COALESCE(l.ImportoManodoperaPreventivato,0),COALESCE(l.ImportoMaterialiPreventivato,0),COALESCE(l.ImportoPreventivoNetto,0)
+          FROM Lavori l
+          INNER JOIN Utenti u ON u.Codice=l.OperatoreAssegnato
+          LEFT JOIN Clienti c ON c.Codice=l.Cliente
+          LEFT JOIN Destini d ON d.ID=l.Destino_ID
+          LEFT JOIN StatiLavoro s ON s.ID=l.StatoLavoro_ID
+          LEFT JOIN EsitiLavoro e ON e.ID=l.EsitoLavoro_ID
+          WHERE l.ID=@id AND u.Username=@username AND COALESCE(l.ScaricatoLavorazione,0)<>0 AND l.StatoLavoro_ID IN (1,2)
+          """;
+        int workId;string number,customer,site,assignedOperator,status,outcome,summary,instructions;
+        DateTime? draftedOn,plannedOn,lastServiceOn;TimeSpan? plannedAt;decimal plannedLabour,plannedMaterials,plannedNet;
+        await using(var cn=new MySqlConnection(ConnectionString))
+        {
+            await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@id",id);cmd.Parameters.AddWithValue("@username",username);
+            await using var r=await cmd.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))return null;
+            workId=r.GetInt32(0);number=r.GetString(1);draftedOn=D(r,2);plannedOn=D(r,3);plannedAt=T(r,4);lastServiceOn=D(r,5);
+            customer=r.GetString(6);site=r.GetString(7);assignedOperator=r.GetString(8);status=r.GetString(9);outcome=r.GetString(10);summary=r.GetString(11);instructions=r.GetString(12);
+            plannedLabour=r.GetDecimal(13);plannedMaterials=r.GetDecimal(14);plannedNet=r.GetDecimal(15);
+        }
+        var rows=await PlannedDetailsAsync(workId,ct);
+        static MobileWorkDetailRow Map(WorkDetailItem row)=>new(row.Reference,row.Description,row.Quantity,row.UnitPrice,row.Amount);
+        return new(workId,number,draftedOn,plannedOn,plannedAt,lastServiceOn,customer,site,assignedOperator,status,outcome,summary,instructions,
+            plannedLabour,plannedMaterials,plannedNet,rows.Where(x=>x.Type=="P").Select(Map).ToArray(),rows.Where(x=>x.Type=="A").Select(Map).ToArray());
+    }
+
     public async Task AssignOperatorForDispatchAsync(int workId,short operatorId,CancellationToken ct)
     {
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var tx=await cn.BeginTransactionAsync(ct);
-        const string validate="SELECT COUNT(*) FROM Utenti WHERE Codice=@operator AND COALESCE(Attivo,0)<>0 AND COALESCE(Qualifica,0) IN (1,4) AND COALESCE(Bloccato,0)<>0";
+        const string validate="SELECT COUNT(*) FROM Utenti WHERE Codice=@operator AND COALESCE(Attivo,0)<>0 AND COALESCE(Qualifica,0) IN (1,4) AND COALESCE(Bloccato,0)=0";
         await using(var check=new MySqlCommand(validate,cn,tx)){check.Parameters.AddWithValue("@operator",operatorId);if(Convert.ToInt32(await check.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("L'operatore selezionato non è abilitato alla lavorazione.");}
         const string update="""
           UPDATE Lavori SET OperatoreAssegnato=@operator,

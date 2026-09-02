@@ -1,8 +1,14 @@
 .agenda-list-toolbar {
     display: grid;
-    grid-template-columns: 480px 360px 260px;
+    grid-template-columns: 480px 360px 230px 260px;
     justify-content: start;
 }
+
+.agenda-list-page .list-titlebar { height: 96px; min-height: 96px; max-height: 96px; margin-bottom: 10px; }
+.agenda-list-page .list-panel { background: transparent; border: 0; box-shadow: none; padding: 0; }
+.agenda-list-page .agenda-list-toolbar { background: #fff; border: 1px solid #c8d6e6; border-radius: 10px; box-shadow: 0 4px 10px rgba(34,69,108,.08); margin-bottom: 10px; padding: 7px 10px; }
+.agenda-list-page .agenda-grid-frame { background: rgba(255,255,255,.78); border-color: #c8d6e6; border-radius: 10px; box-shadow: inset 0 1px 3px rgba(34,69,108,.06); }
+.agenda-list-page [data-agenda-search]:focus { border-color: #8799ad; box-shadow: none; outline: none; }
 
 .agenda-title-actions { flex-wrap: nowrap; }
 .agenda-print-button { min-width: 126px; }

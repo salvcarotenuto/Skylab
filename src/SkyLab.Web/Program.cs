@@ -16,7 +16,8 @@ public class Program
         builder.Services.AddRazorPages()
             .AddMvcOptions(options =>
                 options.ModelBinderProviders.Insert(0, new SkyLab.Web.Infrastructure.FlexibleDecimalModelBinderProvider()));
-        builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
+        builder.Services.AddDataProtection()
+            .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys")));
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();
         builder.Services.AddScoped<SkyLab.Web.Services.CustomerService>();
@@ -65,6 +66,13 @@ public class Program
             {
                 var username = auth.GetUsername(request.Headers.Authorization);
                 return username is null ? Results.Unauthorized() : Results.Ok(await works.MobileWorksAsync(username, ct));
+            });
+            app.MapGet("/api/mobile/my-works/{id:int}", async (int id, HttpRequest request, SkyLab.Web.Services.MobileAuthService auth, SkyLab.Web.Services.WorkService works, CancellationToken ct) =>
+            {
+                var username = auth.GetUsername(request.Headers.Authorization);
+                if (username is null) return Results.Unauthorized();
+                var detail = await works.MobileWorkDetailAsync(id, username, ct);
+                return detail is null ? Results.NotFound() : Results.Ok(detail);
             });
         }
 

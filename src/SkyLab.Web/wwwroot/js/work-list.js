@@ -43,8 +43,9 @@
         }
     });
     form.querySelector('[data-work-order]').addEventListener('change', () => {
-        form.querySelector('#Da').value = '';
+        form.querySelectorAll('[data-work-date]').forEach(control => control.value = '');
         form.submit();
     });
+    form.querySelectorAll('[data-work-date]').forEach(control => control.addEventListener('change', () => form.submit()));
     form.querySelectorAll('select:not([data-work-order])').forEach(control => control.addEventListener('change', () => form.submit()));
 })();

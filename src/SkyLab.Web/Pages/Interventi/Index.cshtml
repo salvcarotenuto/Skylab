@@ -16,23 +16,24 @@
     <header class="list-titlebar">
         <a class="list-title-identity" asp-page="/Index"><strong>Agenda lavori</strong><small>Pianificazione e consultazione degli interventi</small></a>
         <div class="list-title-actions agenda-title-actions">
+            <span class="list-records-box"><strong data-agenda-count>@Model.Items.Count</strong><span>record</span></span>
             <span class="agenda-selected-box"><strong data-agenda-selected-count>0</strong><span>selezionate</span></span>
             <button class="list-title-button agenda-print-button" type="button" data-agenda-print="sheets" disabled>Stampa schede</button>
             <button class="list-title-button agenda-print-button" type="button" data-agenda-print="summary" disabled>Stampa riepilogo</button>
             <button class="list-title-button agenda-dispatch-button" type="button" data-agenda-dispatch disabled>Conferma scarico</button>
-            <span class="list-records-box"><strong data-agenda-count>@Model.Items.Count</strong><span>record</span></span>
             <a class="btn customer-menu-button" asp-page="/Index">Esci</a>
         </div>
     </header>
     <section class="list-panel">
         <div class="list-toolbar agenda-list-toolbar">
             <div class="list-filter-field agenda-period-field"><label for="agenda-period">Periodo</label><div class="agenda-period-control"><select id="agenda-period" data-agenda-period><option value="today">Oggi</option><option value="week">Settimana</option><option value="15days">15 giorni</option><option value="month">Mese</option><option value="custom">Periodo personalizzato…</option></select><input class="agenda-period-summary" type="text" value="@DateTime.Today.ToString("dd/MM/yyyy")" aria-label="Date del periodo" readonly tabindex="-1" data-agenda-period-summary /></div></div>
-            <div class="list-filter-field agenda-search-field"><label for="agenda-search">Cerca</label><div class="list-search-control"><input id="agenda-search" type="text" placeholder="Cliente, sede, intervento o incaricato" autocomplete="off" autofocus data-agenda-search/><button class="list-search-clear" type="button" aria-label="Pulisci filtro" data-agenda-search-clear hidden>×</button></div></div>
+            <div class="list-filter-field agenda-search-field"><label for="agenda-search">Cerca</label><div class="list-search-control"><input id="agenda-search" type="text" placeholder="Cliente, sede, intervento o operatore" autocomplete="off" autofocus data-agenda-search/><button class="list-search-clear" type="button" aria-label="Pulisci filtro" data-agenda-search-clear hidden>×</button></div></div>
             <div class="list-filter-field"><label for="agenda-status">Stato</label><select id="agenda-status" data-agenda-status><option value="">Tutti</option>@foreach(var status in Enum.GetValues<InterventionStatus>()){<option value="@status">@StatusLabel(status)</option>}</select></div>
+            <div class="list-filter-field"><label for="agenda-operator">Operatore</label><select id="agenda-operator" data-agenda-operator-filter><option value="">Tutti</option><option value="0">Da assegnare</option>@foreach(var item in Model.Operators){<option value="@item.Id">@item.Description</option>}</select></div>
         </div>
         <div class="list-grid-frame agenda-grid-frame" tabindex="0" data-agenda-grid>
             <table class="list-grid agenda-grid">
-                <thead><tr><th class="agenda-check-column agenda-check-heading" title="Stampa"><span>Stampa</span><input type="checkbox" aria-label="Seleziona tutte le schede visibili per la stampa" data-agenda-check-all /></th><th class="agenda-check-column" title="Scarico">Scarico</th><th>Data scheda</th><th title="Data lavorazione">Data lavor.ne</th><th>Ora</th><th>Cliente</th><th>Sede</th><th>Intervento</th><th>Incaricato</th><th>Stato</th><th></th></tr></thead>
+                <thead><tr><th class="agenda-check-column agenda-check-heading" title="Stampa"><span>Stampa</span><input type="checkbox" aria-label="Seleziona tutte le schede visibili per la stampa" data-agenda-check-all /></th><th class="agenda-check-column" title="Scarico">Scarico</th><th>Data scheda</th><th title="Data lavorazione">Data lavor.ne</th><th>Ora</th><th>Cliente</th><th>Sede</th><th>Intervento</th><th>Operatore</th><th>Stato</th><th></th></tr></thead>
                 <tbody>@foreach(var item in Model.Items){<tr class="@(item.DispatchedToWork?"agenda-row-dispatched":"")" tabindex="-1" data-agenda-row data-work-id="@item.Id" data-operator="@item.Plant" data-operator-id="@item.AssignedOperatorId" data-dispatched="@item.DispatchedToWork.ToString().ToLowerInvariant()" data-date="@item.ScheduledAt.ToString("yyyy-MM-dd")" data-status="@item.Status" data-filter-text="@($"{item.Customer} {item.Site} {item.Kind} {item.Plant} {StatusLabel(item.Status)}")" data-open-url="@Url.Page("/Lavori/Scheda",new{id=item.Id,azione=103})"><td class="agenda-check-column"><input type="checkbox" aria-label="Seleziona scheda per la stampa" data-agenda-check /></td><td class="agenda-check-column"><input type="checkbox" aria-label="Scarica scheda alla lavorazione" data-agenda-dispatch-check checked="@item.DispatchedToWork" disabled="@(item.DispatchedToWork||item.Status!=InterventionStatus.Planned)" /></td><td>@(item.DraftedAt?.ToString("dd/MM/yyyy")??"—")</td><td>@item.ScheduledAt.ToString("dd/MM/yyyy")</td><td>@item.ScheduledAt.ToString("HH:mm")</td><td>@item.Customer</td><td>@item.Site</td><td>@item.Kind</td><td data-agenda-operator-name>@item.Plant</td><td><span class="agenda-status agenda-status-@item.Status.ToString().ToLowerInvariant()">@StatusLabel(item.Status)</span></td><td><button class="agenda-open" type="button" data-agenda-open>Apri</button></td></tr>}</tbody>
             </table>
             <div class="list-empty" data-agenda-empty hidden>Nessun lavoro corrisponde ai filtri impostati.</div>
@@ -71,7 +72,7 @@
     <div class="agenda-print-title">Schede senza operatore</div>
     <div class="agenda-print-body agenda-unassigned-body">
         <p data-agenda-unassigned-message></p>
-        <p>In anteprima saranno indicate automaticamente come <strong>Generico</strong>.</p>
+        <p>In anteprima saranno indicate automaticamente come <strong>Da assegnare</strong>.</p>
     </div>
     <div class="agenda-print-actions"><button class="btn btn-primary" type="button" data-agenda-unassigned-confirm>Continua</button><button class="btn customer-menu-button" type="button" data-agenda-unassigned-cancel>Annulla</button></div>
 </dialog>

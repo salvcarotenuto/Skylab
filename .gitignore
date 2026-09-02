@@ -18,6 +18,7 @@ artifacts/
 *.tmp
 *.bak
 src/SkyLab.Web/wwwroot/uploads/
+src/SkyLab.Web/App_Data/DataProtectionKeys/
 
 # Local secrets and configuration overrides
 appsettings.Development.json

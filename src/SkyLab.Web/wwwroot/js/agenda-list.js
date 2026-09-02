@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const summary = page?.querySelector("[data-agenda-period-summary]");
   const search = page?.querySelector("[data-agenda-search]");
   const status = page?.querySelector("[data-agenda-status]");
+  const operatorFilter = page?.querySelector("[data-agenda-operator-filter]");
   const clear = page?.querySelector("[data-agenda-search-clear]");
   const count = page?.querySelector("[data-agenda-count]");
   const empty = page?.querySelector("[data-agenda-empty]");
@@ -44,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveState = () => {
     const value = {
       range, period: period?.value || lastApplied, lastApplied,
-      search: search?.value || "", status: status?.value || "",
+      search: search?.value || "", status: status?.value || "", operator: operatorFilter?.value || "",
       scrollTop: grid.scrollTop, scrollLeft: grid.scrollLeft,
       printIds: selectedRows().map(row => row.dataset.workId),
       dispatchIds: dispatchRows().map(row => row.dataset.workId)
@@ -57,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
     range=value.range;lastApplied=value.lastApplied||value.period||"custom";
     if(period)period.value=value.period||lastApplied;
     if(summary)summary.value=range.from===range.to?italian(range.from):`${italian(range.from)} - ${italian(range.to)}`;
-    if(search)search.value=value.search||"";if(status)status.value=value.status||"";
+    if(search)search.value=value.search||"";if(status)status.value=value.status||"";if(operatorFilter)operatorFilter.value=value.operator||"";
     const printIds=new Set(value.printIds||[]),dispatchIds=new Set(value.dispatchIds||[]);
     rows.forEach(row=>{const print=row.querySelector("[data-agenda-check]"),dispatch=row.querySelector("[data-agenda-dispatch-check]");if(print)print.checked=printIds.has(row.dataset.workId);if(dispatch&&!dispatch.disabled)dispatch.checked=dispatchIds.has(row.dataset.workId);});
     requestAnimationFrame(()=>{grid.scrollTop=Number(value.scrollTop)||0;grid.scrollLeft=Number(value.scrollLeft)||0;});
@@ -111,10 +112,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (summary) summary.value = range.from === range.to ? italian(range.from) : `${italian(range.from)} - ${italian(range.to)}`;
   };
   const filter = () => {
-    const term = norm(search?.value), state = norm(status?.value); let visible = 0;
+    const term = norm(search?.value), state = norm(status?.value), operator = operatorFilter?.value || ""; let visible = 0;
     rows.forEach(row => {
       const rowState = norm(row.dataset.status), rowDate = row.dataset.date || "";
-      row.hidden = !!((rowDate < range.from || rowDate > range.to) || (state && rowState !== state) || (term && !norm(row.dataset.filterText).includes(term)));
+      const rowOperator = row.dataset.operatorId || "0";
+      row.hidden = !!((rowDate < range.from || rowDate > range.to) || (state && rowState !== state) || (operator && rowOperator !== operator) || (term && !norm(row.dataset.filterText).includes(term)));
       if (!row.hidden) visible += 1;
     });
     if (count) count.textContent = visible;
@@ -195,6 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
   periodDialog?.querySelector("[data-agenda-period-apply]")?.addEventListener("click", applyCustom);
   periodDialog?.querySelector("[data-agenda-period-cancel]")?.addEventListener("click", () => { periodDialog.close(); period.value = lastApplied; });
   status?.addEventListener("change", filter);
+  operatorFilter?.addEventListener("change", filter);
   search?.addEventListener("input", filter);
   clear?.addEventListener("click", () => { search.value = ""; search.focus(); filter(); });
   window.addEventListener("pagehide",saveState);

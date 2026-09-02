@@ -23,15 +23,18 @@
                 <option value="lavoro">Data lavoro</option>
             </select>
         </label>
-        <label><span class="work-filter-label">Dal</span><input asp-for="Da" type="date" class="form-control" readonly tabindex="-1" /></label>
-        <div class="work-period-actions">
-            <button class="btn customer-menu-button work-back-period" type="submit" name="indietro" value="true">← 30 gg</button>
-            <button class="btn customer-menu-button work-back-period" type="submit" name="indietroAnno" value="true">← 1 anno</button>
-        </div>
+        <label><span class="work-filter-label">Dal</span><span class="micronote-date-control" data-date-control><input name="Da" type="hidden" value="@Model.Da?.ToString("yyyy-MM-dd")" data-filter-date-hidden data-work-date/><input class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" value="@Model.Da?.ToString("dd/MM/yyyy")" placeholder="gg/mm/aaaa" data-filter-date-display/><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data iniziale" data-date-picker-button></button></span></label>
+        <label><span class="work-filter-label">Al</span><span class="micronote-date-control" data-date-control><input name="Al" type="hidden" value="@Model.Al?.ToString("yyyy-MM-dd")" data-filter-date-hidden data-work-date/><input class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" value="@Model.Al?.ToString("dd/MM/yyyy")" placeholder="gg/mm/aaaa" data-filter-date-display/><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data finale" data-date-picker-button></button></span></label>
         <label><span class="work-filter-label">Stato</span>
             <select asp-for="Stato" class="form-select">
                 <option value="0">Tutti</option>
                 @foreach (var item in Model.Stati) { <option value="@item.Id">@item.Description</option> }
+            </select>
+        </label>
+        <label><span class="work-filter-label">Operatore</span>
+            <select asp-for="Operatore" class="form-select">
+                <option value="0">Tutti</option>
+                @foreach (var item in Model.Operatori) { <option value="@item.Id">@item.Description</option> }
             </select>
         </label>
         <label><span class="work-filter-label">Esito</span>
@@ -46,10 +49,11 @@
         <div class="work-list" data-work-list>
             @foreach (var item in Model.Items)
             {
-                <article class="work-row" data-work-row data-filter="@item.Code @item.Year @item.Customer @item.Summary @item.AssignedOperator @item.Status @item.Outcome">
+                <article class="work-row" data-work-row data-filter="@item.Code @item.Year @item.Customer @item.Site @item.Summary @item.AssignedOperator @item.Status @item.Outcome">
                     <div class="work-number"><span>Scheda</span><strong>@item.Code.ToString("000000")/@item.Year</strong><small>Redatta @item.DraftedOn?.ToString("dd/MM/yyyy")</small></div>
                     <div class="work-date"><span>Intervento</span><strong>@item.PlannedOn?.ToString("dd/MM/yyyy")</strong><small>@(item.PlannedAt is null ? "" : $"ore {item.PlannedAt:hh\\:mm}")</small></div>
                     <div class="work-customer"><span>Cliente</span><strong>@item.Customer</strong><small>@item.Summary</small></div>
+                    <div class="work-site"><span>Sede lavoro</span><strong>@item.Site</strong></div>
                     <div><span>Operatore</span><strong>@(string.IsNullOrWhiteSpace(item.AssignedOperator) ? "—" : item.AssignedOperator)</strong></div>
                     <div><span>Stato / esito</span><strong class="work-status status-@item.StatusId">@item.Status</strong><small>@(string.IsNullOrWhiteSpace(item.Outcome) ? "Esito da definire" : item.Outcome)</small></div>
                     <div class="work-amount"><span>Preventivo</span><strong>@item.PlannedAmount.ToString("N2")</strong><small>@(item.InvoiceId is null ? "Da fatturare" : $"Fattura #{item.InvoiceId}")</small></div>

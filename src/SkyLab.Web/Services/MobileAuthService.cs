@@ -1,17 +1,17 @@
-using System.Collections.Concurrent;
+using Microsoft.AspNetCore.DataProtection;
 using System.Security.Cryptography;
 
 namespace SkyLab.Web.Services;
 
-public sealed class MobileAuthService
+public sealed class MobileAuthService(IDataProtectionProvider dataProtectionProvider)
 {
-    private readonly ConcurrentDictionary<string, Session> sessions = new();
+    private readonly ITimeLimitedDataProtector protector = dataProtectionProvider
+        .CreateProtector("SkyLab.Mobile.Session.v1")
+        .ToTimeLimitedDataProtector();
 
     public string CreateSession(string username)
     {
-        var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        sessions[token] = new(username, DateTimeOffset.UtcNow.AddHours(8));
-        return token;
+        return protector.Protect(username, TimeSpan.FromHours(8));
     }
 
     public string? GetUsername(string? authorization)
@@ -19,11 +19,14 @@ public sealed class MobileAuthService
         const string prefix = "Bearer ";
         if (string.IsNullOrWhiteSpace(authorization) || !authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return null;
         var token = authorization[prefix.Length..].Trim();
-        if (!sessions.TryGetValue(token, out var session)) return null;
-        if (session.ExpiresAt > DateTimeOffset.UtcNow) return session.Username;
-        sessions.TryRemove(token, out _);
-        return null;
+        try
+        {
+            var username = protector.Unprotect(token, out var expiresAt);
+            return expiresAt > DateTimeOffset.UtcNow ? username : null;
+        }
+        catch (CryptographicException)
+        {
+            return null;
+        }
     }
-
-    private sealed record Session(string Username, DateTimeOffset ExpiresAt);
 }

@@ -22,7 +22,7 @@ public sealed class StampaModel(WorkService service) : PageModel
             var work = await service.WorkAsync(id, cancellationToken);
             if (work is null) continue;
             var assigned = operatorNames.GetValueOrDefault(work.AssignedOperator) ?? "";
-            var printedOperator = string.IsNullOrWhiteSpace(assigned) ? "Generico" : assigned;
+            var printedOperator = string.IsNullOrWhiteSpace(assigned) ? "Da assegnare" : assigned;
             var details = Tipo == "schede" ? await service.PlannedDetailsAsync(id, cancellationToken) : [];
             result.Add(new(work, printedOperator, details));
         }

@@ -1,6 +1,24 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+}
+
+val configureDebugApiReverse by tasks.registering(Exec::class) {
+    group = "development"
+    description = "Collega automaticamente l'emulatore all'API SkyLab locale."
+    commandLine(
+        File(System.getenv("LOCALAPPDATA"), "Android/Sdk/platform-tools/adb.exe").absolutePath,
+        "reverse",
+        "tcp:5187",
+        "tcp:5187"
+    )
+}
+
+tasks.configureEach {
+    if (name == "assembleDebug" || name == "installDebug") {
+        dependsOn(configureDebugApiReverse)
+    }
 }
 
 android {
@@ -44,6 +62,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

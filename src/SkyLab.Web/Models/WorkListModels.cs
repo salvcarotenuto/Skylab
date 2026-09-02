@@ -60,6 +60,12 @@ public sealed class WorkEditModel
 public sealed record OperatorLookupItem(short Id, string Description);
 public sealed record WorkSiteLookupItem(int? Id,string Description);
 public sealed record MobileWorkItem(int Id,string Number,DateTime? PlannedOn,TimeSpan? PlannedAt,string Customer,string Site,string Summary,string Status);
+public sealed record MobileWorkDetailRow(string Reference,string Description,decimal Quantity,decimal UnitPrice,decimal Amount);
+public sealed record MobileWorkDetailItem(
+    int Id,string Number,DateTime? DraftedOn,DateTime? PlannedOn,TimeSpan? PlannedAt,DateTime? LastServiceOn,
+    string Customer,string Site,string AssignedOperator,string Status,string Outcome,string Summary,string Instructions,
+    decimal PlannedLabour,decimal PlannedMaterials,decimal PlannedNet,
+    IReadOnlyList<MobileWorkDetailRow> Services,IReadOnlyList<MobileWorkDetailRow> Materials);
 
 public sealed record WorkDetailItem(
     short Row,

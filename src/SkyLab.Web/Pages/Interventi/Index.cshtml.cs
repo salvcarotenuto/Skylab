@@ -14,7 +14,7 @@ public sealed class IndexModel(WorkService service) : PageModel
     {
         // Il periodo viene applicato lato client: carichiamo anche lo storico,
         // altrimenti un intervallo personalizzato non può raggiungere le schede legacy.
-        var works = await service.SearchAsync(new DateTime(1900, 1, 1), "lavoro", 0, 0, cancellationToken);
+        var works = await service.SearchAsync(new DateTime(1900, 1, 1), null, "lavoro", 0, 0, 0, cancellationToken);
         Operators=await service.OperatorsAsync(cancellationToken);
         Items = works
             .Where(item => item.PlannedOn is not null)

@@ -2,6 +2,7 @@ package it.skylab.mobile
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -30,6 +32,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -57,7 +63,11 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.NumberFormat
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -80,7 +90,9 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
     loadUsers: suspend () -> List<String> = ::loadLoginUsers
 ) {
-    var username by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val sessionPreferences = remember(context) { context.getSharedPreferences("skylab-session", android.content.Context.MODE_PRIVATE) }
+    var username by remember { mutableStateOf(sessionPreferences.getString("username", "").orEmpty()) }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -89,22 +101,51 @@ fun LoginScreen(
     var usersError by remember { mutableStateOf(false) }
     var loginInProgress by remember { mutableStateOf(false) }
     var loginError by remember { mutableStateOf(false) }
-    var loggedIn by remember { mutableStateOf(false) }
-    var sessionToken by remember { mutableStateOf("") }
+    var loggedIn by remember { mutableStateOf(username.isNotBlank()) }
+    var sessionToken by remember { mutableStateOf(sessionPreferences.getString("token", "").orEmpty()) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
+        if (loggedIn) {
+            loadingUsers = false
+            return@LaunchedEffect
+        }
         try {
             users = loadUsers()
-        } catch (_: Exception) {
+        } catch (exception: Exception) {
             usersError = true
+            android.util.Log.e("SkyLabMobile", "Caricamento utenti non riuscito", exception)
         } finally {
             loadingUsers = false
         }
     }
 
     if (loggedIn) {
-        WelcomeScreen(username = username, token = sessionToken, modifier = modifier)
+        WelcomeScreen(
+            username = username,
+            token = sessionToken,
+            onLogout = {
+                sessionPreferences.edit().clear().apply()
+                username = ""
+                sessionToken = ""
+                password = ""
+                users = emptyList()
+                loadingUsers = true
+                loggedIn = false
+                usersError = false
+                scope.launch {
+                    try {
+                        users = loadUsers()
+                    } catch (exception: Exception) {
+                        usersError = true
+                        android.util.Log.e("SkyLabMobile", "Caricamento utenti non riuscito", exception)
+                    } finally {
+                        loadingUsers = false
+                    }
+                }
+            },
+            modifier = modifier
+        )
         return
     }
 
@@ -135,7 +176,7 @@ fun LoginScreen(
                 if (loadingUsers) {
                     CircularProgressIndicator(modifier = Modifier.height(20.dp))
                 } else {
-                    Text(username.ifEmpty { "Seleziona utente" }, fontSize = 20.sp)
+                    Text(username.ifEmpty { "Login utente" }, fontSize = 20.sp)
                 }
             }
             DropdownMenu(
@@ -191,6 +232,7 @@ fun LoginScreen(
                     try {
                         sessionToken = authenticate(username, password).orEmpty()
                         loggedIn = sessionToken.isNotEmpty()
+                        if (loggedIn) sessionPreferences.edit().putString("username", username).putString("token", sessionToken).apply()
                         loginError = !loggedIn
                     } catch (_: Exception) {
                         loginError = true
@@ -216,10 +258,10 @@ fun LoginScreen(
 }
 
 @Composable
-private fun WelcomeScreen(username: String, token: String, modifier: Modifier = Modifier) {
+private fun WelcomeScreen(username: String, token: String, onLogout: () -> Unit, modifier: Modifier = Modifier) {
     var showWorks by remember { mutableStateOf(false) }
     if (showWorks) {
-        MyWorksScreen(token = token, onBack = { showWorks = false }, modifier = modifier)
+        MyWorksScreen(username = username, token = token, onBack = { showWorks = false }, modifier = modifier)
         return
     }
     Column(
@@ -237,7 +279,7 @@ private fun WelcomeScreen(username: String, token: String, modifier: Modifier = 
             onClick = { showWorks = true },
             modifier = Modifier.fillMaxWidth().height(58.dp)
         ) {
-            Text("I miei lavori", fontSize = 20.sp)
+            Text("Lavori assegnati", fontSize = 20.sp)
         }
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedButton(
@@ -246,30 +288,94 @@ private fun WelcomeScreen(username: String, token: String, modifier: Modifier = 
         ) {
             Text("Agenda", fontSize = 20.sp)
         }
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            Text("Cambia operatore", fontSize = 18.sp)
+        }
     }
 }
 
 @Composable
-private fun MyWorksScreen(token: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
+private fun MyWorksScreen(username: String, token: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
     var works by remember { mutableStateOf<List<MobileWork>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var failed by remember { mutableStateOf(false) }
+    var offline by remember { mutableStateOf(false) }
     var showAll by remember { mutableStateOf(false) }
+    var lastSync by remember { mutableStateOf("") }
+    var selectedWorkId by remember { mutableStateOf<Int?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val worksListState = rememberLazyListState()
+    val context = LocalContext.current
+    val workDao = remember(context) { SkyLabDatabase.get(context).cachedWorks() }
+    val scope = rememberCoroutineScope()
+
+    selectedWorkId?.let { workId ->
+        MobileWorkDetailScreen(username = username, token = token, workId = workId, workDao = workDao, onBack = { selectedWorkId = null }, modifier = modifier)
+        return
+    }
+
+    val synchronize: () -> Unit = {
+        scope.launch {
+            loading = true
+            failed = false
+            offline = false
+            try {
+                val previousIds = works.mapTo(mutableSetOf()) { it.id }
+                val synchronizedWorks = synchronizeMyWorks(token, username, workDao)
+                val newCount = synchronizedWorks.count { it.id !in previousIds }
+                works = synchronizedWorks
+                lastSync = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
+                val message = if (newCount == 0) {
+                    "Sincronizzazione completata — elenco invariato"
+                } else {
+                    "Sincronizzazione completata — $newCount ${if (newCount == 1) "nuovo lavoro" else "nuovi lavori"}"
+                }
+                snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+            } catch (_: Exception) {
+                if (works.isEmpty()) failed = true else offline = true
+            } finally {
+                loading = false
+            }
+        }
+        Unit
+    }
 
     LaunchedEffect(token) {
+        val cachedWorks = loadCachedWorks(username, workDao)
+        if (cachedWorks.isNotEmpty()) {
+            works = cachedWorks
+            val cachedAt = withContext(Dispatchers.IO) { workDao.lastSynchronization(username) }
+            if (cachedAt != null) lastSync = formatSyncTimestamp(cachedAt)
+        }
         try {
-            works = loadMyWorks(token)
+            works = synchronizeMyWorks(token, username, workDao)
+            lastSync = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
         } catch (_: Exception) {
-            failed = true
+            if (works.isEmpty()) failed = true else offline = true
         } finally {
             loading = false
         }
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
+    Box(modifier = modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
         OutlinedButton(onClick = onBack) { Text("← Indietro", fontSize = 17.sp) }
         Spacer(modifier = Modifier.height(18.dp))
-        Text("I miei lavori", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("Lavori assegnati", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = synchronize,
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth().height(52.dp)
+        ) {
+            Text(if (loading) "Sincronizzazione…" else "Sincronizza lavori", fontSize = 18.sp)
+        }
+        Text(
+            text = if (lastSync.isBlank()) "Ultima sincronizzazione: non disponibile" else "Ultima sincronizzazione: $lastSync",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 6.dp)
+        )
         Spacer(modifier = Modifier.height(12.dp))
         val today = LocalDate.now().toString()
         val todayCount = works.count { it.plannedOn.take(10) == today }
@@ -286,9 +392,10 @@ private fun MyWorksScreen(token: String, onBack: () -> Unit, modifier: Modifier 
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
+        if (failed) Text("Impossibile sincronizzare i lavori", color = MaterialTheme.colorScheme.error, fontSize = 17.sp)
+        if (offline) Text("Modalità offline — visualizzazione dell’ultima copia salvata", color = MaterialTheme.colorScheme.primary, fontSize = 16.sp)
         when {
-            loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            failed -> Text("Impossibile caricare i lavori", color = MaterialTheme.colorScheme.error, fontSize = 17.sp)
+            loading && works.isEmpty() -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             works.isEmpty() -> Text("Nessun lavoro assegnato", fontSize = 18.sp)
             else -> {
                 val orderedWorks = works.sortedWith(
@@ -299,7 +406,7 @@ private fun MyWorksScreen(token: String, onBack: () -> Unit, modifier: Modifier 
                 val visibleWorks = if (showAll) orderedWorks else orderedWorks.filter { it.plannedOn.take(10) == today }
                 if (visibleWorks.isEmpty()) {
                     Text("Nessun lavoro previsto per oggi", fontSize = 18.sp)
-                } else LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                } else LazyColumn(state = worksListState, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     visibleWorks.groupBy { it.dateKey }.forEach { (date, dayWorks) ->
                         item(key = "date-$date") {
                             Text(
@@ -311,7 +418,7 @@ private fun MyWorksScreen(token: String, onBack: () -> Unit, modifier: Modifier 
                             )
                         }
                         items(dayWorks, key = { it.id }) { work ->
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            Card(onClick = { selectedWorkId = work.id }, modifier = Modifier.fillMaxWidth()) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text("Scheda ${work.number}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                     Text(work.timeLabel, fontSize = 17.sp)
@@ -319,12 +426,131 @@ private fun MyWorksScreen(token: String, onBack: () -> Unit, modifier: Modifier 
                                     Text(work.customer, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
                                     Text(work.site, fontSize = 16.sp)
                                     if (work.summary.isNotBlank()) Text(work.summary, fontSize = 17.sp, modifier = Modifier.padding(top = 6.dp))
-                                    Text(work.status, color = MaterialTheme.colorScheme.primary, fontSize = 16.sp, modifier = Modifier.padding(top = 8.dp))
                                 }
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(20.dp)
+        )
+    }
+}
+
+@Composable
+private fun MobileWorkDetailScreen(username: String, token: String, workId: Int, workDao: CachedWorkDao, onBack: () -> Unit, modifier: Modifier = Modifier) {
+    var detail by remember(workId) { mutableStateOf<MobileWorkDetail?>(null) }
+    var failed by remember(workId) { mutableStateOf(false) }
+    BackHandler(onBack = onBack)
+    LaunchedEffect(workId, token) {
+        val cachedJson = workDao.detail(username, workId)
+        if (!cachedJson.isNullOrBlank()) detail = parseMobileWorkDetail(cachedJson)
+        try {
+            val (freshDetail, json) = loadMobileWorkDetail(token, workId)
+            detail = freshDetail
+            workDao.updateDetail(username, workId, json, System.currentTimeMillis())
+        } catch (exception: Exception) {
+            failed = detail == null
+            android.util.Log.e("SkyLabMobile", "Caricamento dettaglio non riuscito", exception)
+        }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 10.dp)
+            ) { Text("← Lavori assegnati", fontSize = 17.sp) }
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+        when {
+            failed -> item { Text("Impossibile caricare il dettaglio del lavoro", color = MaterialTheme.colorScheme.error, fontSize = 17.sp) }
+            detail == null -> item { CircularProgressIndicator() }
+            else -> {
+                val work = detail!!
+                item {
+                    Text("Scheda ${work.number}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(work.status, color = MaterialTheme.colorScheme.primary, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                }
+                item {
+                    DetailSection("Pianificazione") {
+                        DetailValue("Data scheda", formatMobileDate(work.draftedOn))
+                        DetailValue("Data intervento", formatMobileDate(work.plannedOn))
+                        DetailValue("Ora intervento", formatMobileTime(work.plannedAt))
+                        DetailValue("Ultimo intervento", formatMobileDate(work.lastServiceOn))
+                        DetailValue("Operatore", work.assignedOperator)
+                        if (work.outcome.isNotBlank()) DetailValue("Esito", work.outcome)
+                    }
+                }
+                item {
+                    DetailSection("Cliente e sede") {
+                        DetailValue("Cliente", work.customer)
+                        DetailValue("Sede lavoro", work.site)
+                    }
+                }
+                item {
+                    DetailSection("Lavoro") {
+                        DetailValue("Sintesi", work.summary.ifBlank { "Non specificata" })
+                        DetailValue("Istruzioni operative", work.instructions.ifBlank { "Nessuna istruzione" })
+                    }
+                }
+                item { DetailRowsSection("Prestazioni previste", work.services) }
+                item { DetailRowsSection("Materiali previsti", work.materials) }
+                item {
+                    DetailSection("Preventivo") {
+                        DetailValue("Manodopera", formatCurrency(work.plannedLabour))
+                        DetailValue("Materiali", formatCurrency(work.plannedMaterials))
+                        DetailValue("Totale netto", formatCurrency(work.plannedNet))
+                    }
+                }
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+            }
+        }
+        }
+    }
+}
+
+@Composable
+private fun DetailSection(title: String, content: @Composable () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text(title, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            content()
+        }
+    }
+}
+
+@Composable
+private fun DetailValue(label: String, value: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(132.dp).padding(top = 3.dp)
+        )
+        Text(value.ifBlank { "—" }, fontSize = 17.sp)
+    }
+}
+
+@Composable
+private fun DetailRowsSection(title: String, rows: List<MobileWorkDetailRow>) {
+    DetailSection(title) {
+        if (rows.isEmpty()) {
+            Text("Nessuna voce", fontSize = 17.sp)
+        } else rows.forEach { row ->
+            Column {
+                Text(listOf(row.reference, row.description).filter { it.isNotBlank() }.joinToString(" · "), fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Text("Quantità ${formatQuantity(row.quantity)} · ${formatCurrency(row.unitPrice)} · Totale ${formatCurrency(row.amount)}", fontSize = 15.sp)
             }
         }
     }
@@ -399,6 +625,73 @@ private data class MobileWork(
         }
 }
 
+private data class MobileWorkDetailRow(
+    val reference: String,
+    val description: String,
+    val quantity: Double,
+    val unitPrice: Double,
+    val amount: Double
+)
+
+private data class MobileWorkDetail(
+    val id: Int,
+    val number: String,
+    val draftedOn: String,
+    val plannedOn: String,
+    val plannedAt: String,
+    val lastServiceOn: String,
+    val customer: String,
+    val site: String,
+    val assignedOperator: String,
+    val status: String,
+    val outcome: String,
+    val summary: String,
+    val instructions: String,
+    val plannedLabour: Double,
+    val plannedMaterials: Double,
+    val plannedNet: Double,
+    val services: List<MobileWorkDetailRow>,
+    val materials: List<MobileWorkDetailRow>
+)
+
+private fun formatMobileDate(value: String): String = try {
+    LocalDate.parse(value.take(10)).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+} catch (_: Exception) { "—" }
+
+private fun formatMobileTime(value: String): String = if (value.length >= 5) value.substring(0, 5) else "—"
+private fun formatCurrency(value: Double): String = NumberFormat.getCurrencyInstance(Locale.ITALY).format(value)
+private fun formatQuantity(value: Double): String = NumberFormat.getNumberInstance(Locale.ITALY).apply { maximumFractionDigits = 3 }.format(value)
+private fun formatSyncTimestamp(value: Long): String = LocalDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneId.systemDefault())
+    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
+
+private fun CachedWorkEntity.toMobileWork() = MobileWork(workId, number, plannedOn, plannedAt, customer, site, summary, status)
+
+private fun MobileWork.toCache(username: String, detailJson: String?) = CachedWorkEntity(
+    username = username, workId = id, number = number, plannedOn = plannedOn, plannedAt = plannedAt,
+    customer = customer, site = site, summary = summary, status = status, detailJson = detailJson,
+    synchronizedAt = System.currentTimeMillis()
+)
+
+private suspend fun loadCachedWorks(username: String, dao: CachedWorkDao): List<MobileWork> =
+    withContext(Dispatchers.IO) { dao.works(username).map { it.toMobileWork() } }
+
+private suspend fun synchronizeMyWorks(token: String, username: String, dao: CachedWorkDao): List<MobileWork> {
+    val existingDetails = withContext(Dispatchers.IO) { dao.works(username).associate { it.workId to it.detailJson } }
+    val remoteWorks = loadMyWorks(token)
+    val cachedItems = remoteWorks.map { work ->
+        val detailJson = try {
+            loadMobileWorkDetail(token, work.id).second
+        } catch (_: Exception) {
+            existingDetails[work.id]
+        }
+        work.toCache(username, detailJson)
+    }
+    withContext(Dispatchers.IO) {
+        dao.replaceForUser(username, cachedItems)
+    }
+    return remoteWorks
+}
+
 private suspend fun loadMyWorks(token: String): List<MobileWork> = withContext(Dispatchers.IO) {
     val connection = URL("http://localhost:5187/api/mobile/my-works").openConnection() as HttpURLConnection
     try {
@@ -424,4 +717,42 @@ private suspend fun loadMyWorks(token: String): List<MobileWork> = withContext(D
     } finally {
         connection.disconnect()
     }
+}
+
+private suspend fun loadMobileWorkDetail(token: String, workId: Int): Pair<MobileWorkDetail, String> = withContext(Dispatchers.IO) {
+    val connection = URL("http://localhost:5187/api/mobile/my-works/$workId").openConnection() as HttpURLConnection
+    try {
+        connection.connectTimeout = 5_000
+        connection.readTimeout = 5_000
+        connection.requestMethod = "GET"
+        connection.setRequestProperty("Authorization", "Bearer $token")
+        if (connection.responseCode !in 200..299) error("Risposta server ${connection.responseCode}")
+        val json = connection.inputStream.bufferedReader().use { it.readText() }
+        parseMobileWorkDetail(json) to json
+    } finally {
+        connection.disconnect()
+    }
+}
+
+private fun parseMobileWorkDetail(json: String): MobileWorkDetail {
+    val item = JSONObject(json)
+    fun rows(name: String): List<MobileWorkDetailRow> {
+        val array = item.getJSONArray(name)
+        return List(array.length()) { index ->
+            val row = array.getJSONObject(index)
+            MobileWorkDetailRow(
+                reference = row.optString("reference"), description = row.optString("description"),
+                quantity = row.optDouble("quantity"), unitPrice = row.optDouble("unitPrice"), amount = row.optDouble("amount")
+            )
+        }
+    }
+    return MobileWorkDetail(
+        id = item.getInt("id"), number = item.getString("number"),
+        draftedOn = item.optString("draftedOn"), plannedOn = item.optString("plannedOn"), plannedAt = item.optString("plannedAt"),
+        lastServiceOn = item.optString("lastServiceOn"), customer = item.optString("customer"), site = item.optString("site"),
+        assignedOperator = item.optString("assignedOperator"), status = item.optString("status"), outcome = item.optString("outcome"),
+        summary = item.optString("summary"), instructions = item.optString("instructions"),
+        plannedLabour = item.optDouble("plannedLabour"), plannedMaterials = item.optDouble("plannedMaterials"), plannedNet = item.optDouble("plannedNet"),
+        services = rows("services"), materials = rows("materials")
+    )
 }
