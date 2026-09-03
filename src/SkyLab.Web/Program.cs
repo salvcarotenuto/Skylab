@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
+using SkyLab.Web.Models;
 
 namespace SkyLab.Web;
 
@@ -67,12 +68,29 @@ public class Program
                 var username = auth.GetUsername(request.Headers.Authorization);
                 return username is null ? Results.Unauthorized() : Results.Ok(await works.MobileWorksAsync(username, ct));
             });
+            app.MapGet("/api/mobile/outcomes", async (HttpRequest request, SkyLab.Web.Services.MobileAuthService auth, SkyLab.Web.Services.WorkService works, CancellationToken ct) =>
+            {
+                var username = auth.GetUsername(request.Headers.Authorization);
+                return username is null ? Results.Unauthorized() : Results.Ok(await works.OutcomesAsync(ct));
+            });
+            app.MapGet("/api/mobile/catalog", async (HttpRequest request, SkyLab.Web.Services.MobileAuthService auth, SkyLab.Web.Services.WorkService works, CancellationToken ct) =>
+            {
+                var username = auth.GetUsername(request.Headers.Authorization);
+                return username is null ? Results.Unauthorized() : Results.Ok(await works.WorkReferencesAsync(ct));
+            });
             app.MapGet("/api/mobile/my-works/{id:int}", async (int id, HttpRequest request, SkyLab.Web.Services.MobileAuthService auth, SkyLab.Web.Services.WorkService works, CancellationToken ct) =>
             {
                 var username = auth.GetUsername(request.Headers.Authorization);
                 if (username is null) return Results.Unauthorized();
                 var detail = await works.MobileWorkDetailAsync(id, username, ct);
                 return detail is null ? Results.NotFound() : Results.Ok(detail);
+            });
+            app.MapPost("/api/mobile/my-works/{id:int}/report", async (int id, MobileReportRequest report, HttpRequest request, SkyLab.Web.Services.MobileAuthService auth, SkyLab.Web.Services.WorkService works, CancellationToken ct) =>
+            {
+                var username = auth.GetUsername(request.Headers.Authorization);
+                if (username is null) return Results.Unauthorized();
+                try { return Results.Ok(await works.SubmitMobileReportAsync(id, username, report, ct)); }
+                catch (InvalidOperationException ex) { return Results.BadRequest(new { error = ex.Message }); }
             });
         }
 

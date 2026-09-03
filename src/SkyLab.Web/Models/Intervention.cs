@@ -14,6 +14,8 @@ public sealed class Intervention
     public short AssignedOperatorId { get; init; }
     public bool DispatchedToWork { get; init; }
     public InterventionStatus Status { get; set; }
+    public string WorkStatus { get; init; } = "";
+    public string SheetFlow { get; init; } = "";
     public string Notes { get; set; } = "";
     public List<UsedMaterial> Materials { get; } = [];
 }

@@ -19,20 +19,30 @@ public sealed class SchedaModel(WorkService service,IWebHostEnvironment environm
     public IReadOnlyList<WorkPhotoItem> Fotografie { get; private set; }=[];
     public IReadOnlyList<WorkDocumentItem> Documenti { get; private set; }=[];
     public IReadOnlyList<WorkHistoryItem> Storico { get; private set; }=[];
-    public bool PreventivoBloccato => Lavoro.StatusId >= 3;
+    public MobileReportPreview? ConsuntivoMobile { get; private set; }
+    public string StatoScheda { get; private set; } = "Da scaricare";
+    public bool PreventivoBloccato => StatoScheda != "Da scaricare";
+    public bool ConsuntivoDaConfermare => ConsuntivoMobile is not null;
+    public bool SchedaImmutabile => StatoScheda == "Confermato";
 
     public async Task<IActionResult> OnGetAsync(int id,CancellationToken ct)
     {
         var item=await service.WorkAsync(id,ct); if(item is null) return NotFound();
-        Lavoro=item; await Lookups(ct); RighePreventivo=await service.PlannedDetailsAsync(id,ct); RigheConsuntivo=await service.ActualDetailsAsync(id,ct); Riferimenti=await service.WorkReferencesAsync(ct); Fotografie=await service.PhotosAsync(id,ct); Documenti=await service.DocumentsAsync(id,ct); Storico=await service.HistoryAsync(id,ct); return Page();
+        Lavoro=item;StatoScheda=await service.WorkSheetFlowAsync(id,ct);await Lookups(ct);RighePreventivo=await service.PlannedDetailsAsync(id,ct);RigheConsuntivo=await service.ActualDetailsAsync(id,ct);Riferimenti=await service.WorkReferencesAsync(ct);Fotografie=await service.PhotosAsync(id,ct);Documenti=await service.DocumentsAsync(id,ct);Storico=await service.HistoryAsync(id,ct);ConsuntivoMobile=await service.PendingMobileReportAsync(id,ct);
+        if(ConsuntivoMobile is not null)PresentMobileReport(ConsuntivoMobile.Report);
+        return Page();
     }
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
         if(Lavoro.Id<=0) return BadRequest();
         var precedente=await service.WorkAsync(Lavoro.Id,ct);
         if(precedente is null) return NotFound();
+        var flow=await service.WorkSheetFlowAsync(Lavoro.Id,ct);
+        if(flow=="Confermato")throw new InvalidOperationException("La scheda confermata non è modificabile.");
+        if(flow is "Da confermare" or "Errore")throw new InvalidOperationException("Il consuntivo ricevuto deve essere gestito con il comando dedicato.");
         Lavoro.PlannedLabour=precedente.PlannedLabour;
         Lavoro.PlannedMaterials=precedente.PlannedMaterials;
+        if(flow!="Da scaricare")Lavoro.PlannedNet=precedente.PlannedNet;
         Lavoro.ActualLabour=precedente.ActualLabour;
         Lavoro.ActualMaterials=precedente.ActualMaterials;
         await service.SaveAsync(Lavoro,ct);
@@ -43,20 +53,50 @@ public sealed class SchedaModel(WorkService service,IWebHostEnvironment environm
     private async Task Lookups(CancellationToken ct)
     { Stati=await service.StatusesAsync(ct);Esiti=await service.OutcomesAsync(ct);Operatori=await service.OperatorsAsync(ct);Sedi=await service.WorkSitesAsync(Lavoro.CustomerId,ct); }
 
+    public async Task<IActionResult> OnPostConfirmMobileReportAsync(int id,long inboxId,CancellationToken ct)
+    {
+        await service.AcquireMobileReportAsync(inboxId,ct);
+        await service.UpdateConfirmedAdministrativeDataAsync(id,Lavoro.ExecutingOperator,Lavoro.RequestedAmount,Lavoro.CollectedAmount,ct);
+        return Redirect($"/Lavori/Scheda?id={id}&azione={Azione}#consuntivo");
+    }
+
+    private void PresentMobileReport(MobileReportRequest report)
+    {
+        if(DateTime.TryParseExact(report.CompletedOn,"yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None,out var date))Lavoro.CompletedOn=date;
+        if(TimeSpan.TryParse(report.CompletedAt,System.Globalization.CultureInfo.InvariantCulture,out var time))Lavoro.CompletedAt=time;
+        var hours=(report.ManHours??"").Trim().Replace(',','.');Lavoro.ManHours=decimal.TryParse(hours,System.Globalization.NumberStyles.Number,System.Globalization.CultureInfo.InvariantCulture,out var parsedHours)?parsedHours:null;
+        Lavoro.OutcomeId=Esiti.FirstOrDefault(x=>string.Equals(x.Description,report.Outcome,StringComparison.OrdinalIgnoreCase))?.Id;
+        Lavoro.ExecutingOperator=Lavoro.AssignedOperator;Lavoro.WorkPerformed=report.WorkPerformed??"";Lavoro.CollectedAmount=report.CollectedAmount;Lavoro.Notes=report.Notes??"";
+        var references=Riferimenti.ToDictionary(x=>$"{x.Type}|{x.Reference}",StringComparer.OrdinalIgnoreCase);short row=0;
+        RigheConsuntivo=(report.Rows??[]).Select(x=>{references.TryGetValue($"{x.Type}|{x.Reference}",out var reference);return new WorkDetailItem(++row,x.Type,x.Reference,reference?.Description??"",x.Quantity,x.Price,false);}).ToList();
+        Lavoro.ActualLabour=RigheConsuntivo.Where(x=>x.Type=="P").Sum(x=>x.Amount);Lavoro.ActualMaterials=RigheConsuntivo.Where(x=>x.Type=="A").Sum(x=>x.Amount);Lavoro.RequestedAmount=Lavoro.ActualLabour+Lavoro.ActualMaterials;
+    }
+
     public async Task<IActionResult> OnPostAddDetailAsync(int id,string tipo,string riferimento,string ambito,CancellationToken ct)
     {
+        await EnsureDetailsEditable(id,ambito,ct);
         if(ambito=="C")await service.AddActualDetailAsync(id,tipo,riferimento,ct);else await service.AddPlannedDetailAsync(id,tipo,riferimento,ct);
         return Redirect($"/Lavori/Scheda?id={id}#{(ambito=="C"?"consuntivo":"previsto")}");
     }
     public async Task<IActionResult> OnPostUpdateDetailAsync(int id,short riga,decimal quantita,decimal prezzo,string ambito,CancellationToken ct)
     {
+        await EnsureDetailsEditable(id,ambito,ct);
         if(ambito=="C")await service.UpdateActualDetailAsync(id,riga,quantita,prezzo,ct);else await service.UpdatePlannedDetailAsync(id,riga,quantita,prezzo,ct);
         return Redirect($"/Lavori/Scheda?id={id}#{(ambito=="C"?"consuntivo":"previsto")}");
     }
     public async Task<IActionResult> OnPostDeleteDetailAsync(int id,short riga,string ambito,CancellationToken ct)
     {
+        await EnsureDetailsEditable(id,ambito,ct);
         if(ambito=="C")await service.DeleteActualDetailAsync(id,riga,ct);else await service.DeletePlannedDetailAsync(id,riga,ct);
         return Redirect($"/Lavori/Scheda?id={id}#{(ambito=="C"?"consuntivo":"previsto")}");
+    }
+
+    private async Task EnsureDetailsEditable(int id,string ambito,CancellationToken ct)
+    {
+        var flow=await service.WorkSheetFlowAsync(id,ct);
+        if(flow=="Confermato")throw new InvalidOperationException("La scheda confermata non è modificabile.");
+        if(flow is "Da confermare" or "Errore")throw new InvalidOperationException("La scheda è bloccata in attesa della conferma del consuntivo.");
+        if(flow!="Da scaricare"&&ambito!="C")throw new InvalidOperationException("Il preventivo è bloccato dallo stato della scheda.");
     }
 
     public async Task<IActionResult> OnPostAddPhotoAsync(int id,IFormFile? foto,string? descrizione,CancellationToken ct)

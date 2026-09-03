@@ -55,6 +55,7 @@ public sealed class WorkEditModel
     public decimal CollectedAmount { get; set; }
     public int? InvoiceId { get; set; }
     public string Notes { get; set; } = "";
+    public bool DispatchedToWork { get; set; }
 }
 
 public sealed record OperatorLookupItem(short Id, string Description);
@@ -63,7 +64,7 @@ public sealed record MobileWorkItem(int Id,string Number,DateTime? PlannedOn,Tim
 public sealed record MobileWorkDetailRow(string Reference,string Description,decimal Quantity,decimal UnitPrice,decimal Amount);
 public sealed record MobileWorkDetailItem(
     int Id,string Number,DateTime? DraftedOn,DateTime? PlannedOn,TimeSpan? PlannedAt,DateTime? LastServiceOn,
-    string Customer,string Site,string AssignedOperator,string Status,string Outcome,string Summary,string Instructions,
+    string Customer,string Site,byte PriceList,string AssignedOperator,string Status,string Outcome,string Summary,string Instructions,
     decimal PlannedLabour,decimal PlannedMaterials,decimal PlannedNet,
     IReadOnlyList<MobileWorkDetailRow> Services,IReadOnlyList<MobileWorkDetailRow> Materials);
 
@@ -79,7 +80,19 @@ public sealed record WorkDetailItem(
     public decimal Amount => Math.Round(Quantity * UnitPrice, 2);
 }
 
-public sealed record WorkReferenceLookup(string Type,string Reference,string Description,string Category,decimal Price);
+public sealed record WorkReferenceLookup(
+    string Type,string Reference,string Description,string Category,string Unit,decimal Price,
+    decimal? Price1,decimal? Price2,decimal? Price3,decimal? Price4,decimal? Price5,decimal? Price6,string Barcodes);
+
+public sealed record MobileReportRow(string Type,string Reference,decimal Quantity,decimal Price);
+public sealed record MobileReportRequest(
+    string SubmissionId,string CompletedOn,string CompletedAt,string ManHours,string Outcome,string WorkPerformed,
+    decimal CollectedAmount,string Notes,IReadOnlyList<MobileReportRow> Rows);
+public sealed record MobileReportInboxItem(long Id,string SubmissionId,int WorkId,string WorkNumber,string Customer,string Username,DateTime ReceivedOn,string Status,string Error);
+public sealed record MobileReportPreview(MobileReportInboxItem Inbox,MobileReportRequest Report);
+public sealed record AgendaFlowItem(
+    int WorkId,string WorkNumber,string Customer,string WorkStatus,string SheetFlow,
+    long? InboxId,DateTime? ReceivedOn,string Username);
 
 public sealed record WorkPhotoItem(short Number,string FileName,DateTime? TakenOn,string Description,string Url);
 public sealed record WorkDocumentItem(short Number,string FileName,string OriginalName,DateTime UploadedOn,string Description,string Url);

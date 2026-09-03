@@ -65,6 +65,14 @@
                     <label asp-for="Cliente.SdiCode">Codice SDI</label>
                     <input asp-for="Cliente.SdiCode" class="text-uppercase" autocomplete="off" />
                 </div>
+                <div class="field">
+                    <label asp-for="Cliente.PriceList">Listino</label>
+                    <select asp-for="Cliente.PriceList">
+                        <option value="0">Prezzo standard</option>
+                        @for(var list = 1; list <= 6; list++){<option value="@list">Listino @list</option>}
+                    </select>
+                    <span asp-validation-for="Cliente.PriceList"></span>
+                </div>
             </div>
         </fieldset>
 
@@ -76,8 +84,8 @@
                     <input asp-for="Cliente.Street" autocomplete="off" />
                 </div>
                 <div class="field"><label asp-for="Cliente.StreetNumber">Civico</label><input asp-for="Cliente.StreetNumber" autocomplete="off" /></div>
+                <div class="field field-span-2 customer-city-field"><label asp-for="Cliente.City">Città</label><input asp-for="Cliente.City" autocomplete="off" aria-autocomplete="list" aria-controls="customer-city-suggestions"/><div id="customer-city-suggestions" class="customer-city-suggestions" role="listbox" hidden></div></div>
                 <div class="field"><label asp-for="Cliente.PostalCode">CAP</label><input asp-for="Cliente.PostalCode" inputmode="numeric" autocomplete="off" /></div>
-                <div class="field field-span-2"><label asp-for="Cliente.City">Città</label><input asp-for="Cliente.City" autocomplete="off" /></div>
                 <div class="field"><label asp-for="Cliente.Province">Provincia</label><input asp-for="Cliente.Province" class="province-field text-uppercase" maxlength="2" autocomplete="off" /></div>
             </div>
         </fieldset>

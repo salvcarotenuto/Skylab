@@ -15,6 +15,7 @@ public sealed class IndexModel(WorkService service) : PageModel
         // Il periodo viene applicato lato client: carichiamo anche lo storico,
         // altrimenti un intervallo personalizzato non può raggiungere le schede legacy.
         var works = await service.SearchAsync(new DateTime(1900, 1, 1), null, "lavoro", 0, 0, 0, cancellationToken);
+        var flows = (await service.AgendaFlowAsync(cancellationToken)).ToDictionary(item => item.WorkId);
         Operators=await service.OperatorsAsync(cancellationToken);
         Items = works
             .Where(item => item.PlannedOn is not null)
@@ -29,6 +30,8 @@ public sealed class IndexModel(WorkService service) : PageModel
                 Kind = item.Summary,
                 AssignedOperatorId=item.AssignedOperatorId,
                 DispatchedToWork=item.DispatchedToWork,
+                WorkStatus=item.Status,
+                SheetFlow=flows.TryGetValue(item.Id,out var flow)?flow.SheetFlow:(item.DispatchedToWork?"Sul mobile":"Da scaricare"),
                 Status = item.StatusId switch
                 {
                     3 => InterventionStatus.InProgress,
@@ -51,4 +54,7 @@ public sealed class IndexModel(WorkService service) : PageModel
         try{var count=await service.DispatchToWorkAsync(workIds,cancellationToken);return new JsonResult(new{ok=true,count});}
         catch(InvalidOperationException exception){return BadRequest(new{message=exception.Message});}
     }
+
+    public async Task<IActionResult> OnGetFlowAsync(CancellationToken cancellationToken) =>
+        new JsonResult(await service.AgendaFlowAsync(cancellationToken));
 }

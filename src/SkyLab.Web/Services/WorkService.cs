@@ -27,6 +27,40 @@ public sealed class WorkService(IConfiguration configuration)
     public async Task<IReadOnlyList<WorkLookupItem>> OutcomesAsync(CancellationToken cancellationToken) =>
         await LoadLookupAsync("SELECT ID, Descrizione FROM EsitiLavoro ORDER BY Ordine", cancellationToken);
 
+    public async Task<IReadOnlyList<AgendaFlowItem>> AgendaFlowAsync(CancellationToken ct)
+    {
+        const string sql = """
+            SELECT l.ID,CONCAT(l.Codice,'/',l.Anno),COALESCE(c.Nome,''),COALESCE(s.Descrizione,''),
+                   COALESCE(l.ScaricatoLavorazione,0),m.ID,m.RicevutoIl,m.Stato,COALESCE(m.Username,'')
+            FROM Lavori l
+            LEFT JOIN Clienti c ON c.Codice=l.Cliente
+            LEFT JOIN StatiLavoro s ON s.ID=l.StatoLavoro_ID
+            LEFT JOIN MobileConsuntivi m ON m.ID=(
+                SELECT mx.ID FROM MobileConsuntivi mx WHERE mx.Lavoro_ID=l.ID
+                ORDER BY mx.RicevutoIl DESC,mx.ID DESC LIMIT 1)
+            WHERE l.DataInterventoPianificata IS NOT NULL
+            """;
+        var result=new List<AgendaFlowItem>();
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
+        await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);
+        while(await r.ReadAsync(ct))
+        {
+            var dispatched=r.GetBoolean(4);var inboxId=r.IsDBNull(5)?(long?)null:r.GetInt64(5);
+            var received=r.IsDBNull(6)?(DateTime?)null:r.GetDateTime(6);var state=r.IsDBNull(7)?"":r.GetString(7);
+            var flow=state switch { "RICEVUTO"=>"Da confermare", "ACQUISITO"=>"Confermato", "ERRORE"=>"Errore", _ when dispatched=>"Sul mobile", _=>"Da scaricare" };
+            result.Add(new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3),flow,inboxId,received,r.GetString(8)));
+        }
+        return result;
+    }
+
+    public async Task<string> WorkSheetFlowAsync(int workId,CancellationToken ct)
+    {
+        const string sql="""SELECT COALESCE(l.ScaricatoLavorazione,0),(SELECT m.Stato FROM MobileConsuntivi m WHERE m.Lavoro_ID=l.ID ORDER BY m.RicevutoIl DESC,m.ID DESC LIMIT 1) FROM Lavori l WHERE l.ID=@id""";
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@id",workId);await using var r=await cmd.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))throw new InvalidOperationException("Scheda non disponibile.");
+        var dispatched=r.GetBoolean(0);var state=r.IsDBNull(1)?"":r.GetString(1);
+        return state switch { "RICEVUTO"=>"Da confermare", "ACQUISITO"=>"Confermato", "ERRORE"=>"Errore", _ when dispatched=>"Sul mobile", _=>"Da scaricare" };
+    }
+
 
 
     public async Task<IReadOnlyList<WorkListItem>> SearchAsync(
@@ -108,7 +142,7 @@ public sealed class WorkService(IConfiguration configuration)
                    l.DataInterventoEffettiva,l.OraInterventoEffettiva,l.OperatoreEsecutore,
                    l.OreUomoConsuntive,COALESCE(l.AttivitaEseguita,''),
                    l.ImportoManodoperaConsuntivo,l.ImportoMaterialiConsuntivo,
-                   l.ImportoRichiesto,l.ImportoIncassato,l.Fattura_ID,COALESCE(l.NoteConsuntive,'')
+                   l.ImportoRichiesto,l.ImportoIncassato,l.Fattura_ID,COALESCE(l.NoteConsuntive,''),COALESCE(l.ScaricatoLavorazione,0)
             FROM Lavori l LEFT JOIN Clienti c ON c.Codice=l.Cliente WHERE l.ID=@id
             """;
         await using var cn=new MySqlConnection(ConnectionString); await cn.OpenAsync(ct);
@@ -121,7 +155,7 @@ public sealed class WorkService(IConfiguration configuration)
             PlannedLabour=r.GetDecimal(15),PlannedMaterials=r.GetDecimal(16),PlannedNet=r.GetDecimal(17),CompletedOn=D(r,18),CompletedAt=T(r,19),
             ExecutingOperator=r.IsDBNull(20)?null:r.GetInt16(20),ManHours=r.IsDBNull(21)?null:r.GetDecimal(21),WorkPerformed=r.GetString(22),
             ActualLabour=r.GetDecimal(23),ActualMaterials=r.GetDecimal(24),RequestedAmount=r.GetDecimal(25),CollectedAmount=r.GetDecimal(26),
-            InvoiceId=r.IsDBNull(27)?null:r.GetInt32(27),Notes=r.GetString(28)
+            InvoiceId=r.IsDBNull(27)?null:r.GetInt32(27),Notes=r.GetString(28),DispatchedToWork=r.GetBoolean(29)
         };
     }
 
@@ -177,10 +211,10 @@ public sealed class WorkService(IConfiguration configuration)
     {
         const string sql="""
           SELECT l.ID,CONCAT(l.Codice,'/',l.Anno),l.DataRedazione,l.DataInterventoPianificata,l.OraInterventoPianificata,
-                 l.DataUltimoIntervento,COALESCE(c.Nome,''),
+                  l.DataUltimoIntervento,COALESCE(c.Nome,''),
                  COALESCE(NULLIF(CONCAT_WS(' · ',NULLIF(TRIM(d.Nome),''),NULLIF(CONCAT_WS(' ',NULLIF(TRIM(d.Via),''),NULLIF(TRIM(d.Civico),''),NULLIF(TRIM(d.Citta),'')),'')),''),
                           CONCAT_WS(' · ','Sede principale',NULLIF(CONCAT_WS(' ',NULLIF(TRIM(c.Via),''),NULLIF(TRIM(c.Civico),''),NULLIF(TRIM(c.Citta),'')),''))),
-                 COALESCE(NULLIF(TRIM(u.Username),''),CONCAT('Operatore ',u.Codice)),
+                  COALESCE(c.Listino,0),COALESCE(NULLIF(TRIM(u.Username),''),CONCAT('Operatore ',u.Codice)),
                  COALESCE(s.Descrizione,''),COALESCE(e.Descrizione,''),COALESCE(l.DescrizioneSintetica,''),COALESCE(l.IstruzioniOperative,''),
                  COALESCE(l.ImportoManodoperaPreventivato,0),COALESCE(l.ImportoMaterialiPreventivato,0),COALESCE(l.ImportoPreventivoNetto,0)
           FROM Lavori l
@@ -191,19 +225,19 @@ public sealed class WorkService(IConfiguration configuration)
           LEFT JOIN EsitiLavoro e ON e.ID=l.EsitoLavoro_ID
           WHERE l.ID=@id AND u.Username=@username AND COALESCE(l.ScaricatoLavorazione,0)<>0 AND l.StatoLavoro_ID IN (1,2)
           """;
-        int workId;string number,customer,site,assignedOperator,status,outcome,summary,instructions;
+        int workId;byte priceList;string number,customer,site,assignedOperator,status,outcome,summary,instructions;
         DateTime? draftedOn,plannedOn,lastServiceOn;TimeSpan? plannedAt;decimal plannedLabour,plannedMaterials,plannedNet;
         await using(var cn=new MySqlConnection(ConnectionString))
         {
             await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@id",id);cmd.Parameters.AddWithValue("@username",username);
             await using var r=await cmd.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))return null;
             workId=r.GetInt32(0);number=r.GetString(1);draftedOn=D(r,2);plannedOn=D(r,3);plannedAt=T(r,4);lastServiceOn=D(r,5);
-            customer=r.GetString(6);site=r.GetString(7);assignedOperator=r.GetString(8);status=r.GetString(9);outcome=r.GetString(10);summary=r.GetString(11);instructions=r.GetString(12);
-            plannedLabour=r.GetDecimal(13);plannedMaterials=r.GetDecimal(14);plannedNet=r.GetDecimal(15);
+            customer=r.GetString(6);site=r.GetString(7);priceList=r.GetByte(8);assignedOperator=r.GetString(9);status=r.GetString(10);outcome=r.GetString(11);summary=r.GetString(12);instructions=r.GetString(13);
+            plannedLabour=r.GetDecimal(14);plannedMaterials=r.GetDecimal(15);plannedNet=r.GetDecimal(16);
         }
         var rows=await PlannedDetailsAsync(workId,ct);
         static MobileWorkDetailRow Map(WorkDetailItem row)=>new(row.Reference,row.Description,row.Quantity,row.UnitPrice,row.Amount);
-        return new(workId,number,draftedOn,plannedOn,plannedAt,lastServiceOn,customer,site,assignedOperator,status,outcome,summary,instructions,
+        return new(workId,number,draftedOn,plannedOn,plannedAt,lastServiceOn,customer,site,priceList,assignedOperator,status,outcome,summary,instructions,
             plannedLabour,plannedMaterials,plannedNet,rows.Where(x=>x.Type=="P").Select(Map).ToArray(),rows.Where(x=>x.Type=="A").Select(Map).ToArray());
     }
 
@@ -286,16 +320,101 @@ public sealed class WorkService(IConfiguration configuration)
     public async Task<IReadOnlyList<WorkReferenceLookup>> WorkReferencesAsync(CancellationToken ct)
     {
         const string sql="""
-            SELECT 'A',a.Codice,COALESCE(a.Descrizione,''),COALESCE(c.Descrizione,''),COALESCE(a.PrezzoStd,0)
+            SELECT 'A',a.Codice,COALESCE(a.Descrizione,''),COALESCE(c.Descrizione,''),COALESCE(NULLIF(a.Umv,''),NULLIF(a.Uml,''),NULLIF(a.Uma,''),''),COALESCE(a.PrezzoStd,0),
+                   MAX(CASE WHEN al.Listino=1 THEN NULLIF(al.Prezzo,0) END),MAX(CASE WHEN al.Listino=2 THEN NULLIF(al.Prezzo,0) END),
+                   MAX(CASE WHEN al.Listino=3 THEN NULLIF(al.Prezzo,0) END),MAX(CASE WHEN al.Listino=4 THEN NULLIF(al.Prezzo,0) END),
+                   MAX(CASE WHEN al.Listino=5 THEN NULLIF(al.Prezzo,0) END),MAX(CASE WHEN al.Listino=6 THEN NULLIF(al.Prezzo,0) END),
+                   COALESCE(GROUP_CONCAT(DISTINCT b.Barcode ORDER BY b.Barcode SEPARATOR '|'),'')
             FROM Articoli a LEFT JOIN Categorie c ON c.Codice=a.Categoria
+            LEFT JOIN ArtListini al ON al.Articolo=a.Codice AND al.Listino BETWEEN 1 AND 6
+            LEFT JOIN Barcodes b ON b.Articolo=a.Codice
+            GROUP BY a.Codice,a.Descrizione,c.Descrizione,a.Umv,a.Uml,a.Uma,a.PrezzoStd
             UNION ALL
-            SELECT 'P',CAST(p.Codice AS CHAR),p.Descrizione,'Prestazione',COALESCE(p.Prezzo,0)
+            SELECT 'P',CAST(p.Codice AS CHAR),p.Descrizione,'Prestazione','',COALESCE(p.Prezzo,0),NULL,NULL,NULL,NULL,NULL,NULL,''
             FROM Prestazioni p ORDER BY 1,3
             """;
         var x=new List<WorkReferenceLookup>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
         await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);
-        while(await r.ReadAsync(ct))x.Add(new(r.GetString(0),r.GetString(1),r.GetString(2),r.GetString(3),r.GetDecimal(4)));
+        while(await r.ReadAsync(ct))x.Add(new(r.GetString(0),r.GetString(1),r.GetString(2),r.GetString(3),r.GetString(4),r.GetDecimal(5),
+            r.IsDBNull(6)?null:r.GetDecimal(6),r.IsDBNull(7)?null:r.GetDecimal(7),r.IsDBNull(8)?null:r.GetDecimal(8),
+            r.IsDBNull(9)?null:r.GetDecimal(9),r.IsDBNull(10)?null:r.GetDecimal(10),r.IsDBNull(11)?null:r.GetDecimal(11),r.GetString(12)));
         return x;
+    }
+
+    public async Task<object> SubmitMobileReportAsync(int workId,string username,MobileReportRequest report,CancellationToken ct)
+    {
+        if(!Guid.TryParse(report.SubmissionId,out _))throw new InvalidOperationException("Identificativo di invio non valido.");
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var tx=await cn.BeginTransactionAsync(ct);
+        await using(var allowed=new MySqlCommand("SELECT l.StatoLavoro_ID FROM Lavori l INNER JOIN Utenti u ON u.Codice=l.OperatoreAssegnato WHERE l.ID=@id AND u.Username=@username AND COALESCE(l.ScaricatoLavorazione,0)<>0",cn,tx)){allowed.Parameters.AddWithValue("@id",workId);allowed.Parameters.AddWithValue("@username",username);var value=await allowed.ExecuteScalarAsync(ct);if(value is null)throw new InvalidOperationException("Scheda non disponibile per l'operatore.");if(Convert.ToByte(value)>=5)throw new InvalidOperationException("Il consuntivo è già stato confermato e non può ricevere altri invii.");}
+        await using(var existing=new MySqlCommand("SELECT Stato FROM MobileConsuntivi WHERE SubmissionId=@submission LIMIT 1",cn,tx)){existing.Parameters.AddWithValue("@submission",report.SubmissionId);var state=await existing.ExecuteScalarAsync(ct);if(state is not null){await tx.CommitAsync(ct);return new{received=true,status=Convert.ToString(state),duplicate=true,submissionId=report.SubmissionId};}}
+        var payload=System.Text.Json.JsonSerializer.Serialize(report);
+        await using(var save=new MySqlCommand("INSERT INTO MobileConsuntivi(SubmissionId,Lavoro_ID,Username,Payload,Stato) VALUES(@submission,@work,@username,@payload,'RICEVUTO')",cn,tx)){save.Parameters.AddWithValue("@submission",report.SubmissionId);save.Parameters.AddWithValue("@work",workId);save.Parameters.AddWithValue("@username",username);save.Parameters.AddWithValue("@payload",payload);await save.ExecuteNonQueryAsync(ct);}
+        await tx.CommitAsync(ct);return new{received=true,status="RICEVUTO",duplicate=false,submissionId=report.SubmissionId};
+    }
+
+    public async Task<IReadOnlyList<MobileReportInboxItem>> MobileReportsInboxAsync(CancellationToken ct)
+    {
+        const string sql="""SELECT m.ID,m.SubmissionId,m.Lavoro_ID,CONCAT(l.Codice,'/',l.Anno),COALESCE(c.Nome,''),m.Username,m.RicevutoIl,m.Stato,COALESCE(m.Errore,'') FROM MobileConsuntivi m INNER JOIN Lavori l ON l.ID=m.Lavoro_ID LEFT JOIN Clienti c ON c.Codice=l.Cliente ORDER BY CASE m.Stato WHEN 'RICEVUTO' THEN 0 WHEN 'ERRORE' THEN 1 ELSE 2 END,m.RicevutoIl DESC""";
+        var result=new List<MobileReportInboxItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(r.GetInt64(0),Convert.ToString(r.GetValue(1),System.Globalization.CultureInfo.InvariantCulture)??"",r.GetInt32(2),r.GetString(3),r.GetString(4),r.GetString(5),r.GetDateTime(6),r.GetString(7),r.GetString(8)));return result;
+    }
+
+    public async Task<MobileReportPreview?> PendingMobileReportAsync(int workId,CancellationToken ct)
+    {
+        const string sql="""SELECT m.ID,m.SubmissionId,m.Lavoro_ID,CONCAT(l.Codice,'/',l.Anno),COALESCE(c.Nome,''),m.Username,m.RicevutoIl,m.Stato,COALESCE(m.Errore,''),CAST(m.Payload AS CHAR) FROM MobileConsuntivi m INNER JOIN Lavori l ON l.ID=m.Lavoro_ID LEFT JOIN Clienti c ON c.Codice=l.Cliente WHERE m.Lavoro_ID=@work AND m.Stato IN ('RICEVUTO','ERRORE') ORDER BY m.RicevutoIl DESC,m.ID DESC LIMIT 1""";
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@work",workId);await using var r=await cmd.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))return null;
+        var inbox=new MobileReportInboxItem(r.GetInt64(0),Convert.ToString(r.GetValue(1),System.Globalization.CultureInfo.InvariantCulture)??"",r.GetInt32(2),r.GetString(3),r.GetString(4),r.GetString(5),r.GetDateTime(6),r.GetString(7),r.GetString(8));
+        var report=System.Text.Json.JsonSerializer.Deserialize<MobileReportRequest>(r.GetString(9),new System.Text.Json.JsonSerializerOptions{PropertyNameCaseInsensitive=true})??throw new InvalidOperationException("Dati del consuntivo non validi.");
+        return new(inbox,report);
+    }
+
+    public async Task AcquireMobileReportAsync(long inboxId,CancellationToken ct)
+    {
+        string payload,username;int workId;
+        await using(var cn=new MySqlConnection(ConnectionString)){await cn.OpenAsync(ct);await using var cmd=new MySqlCommand("SELECT Lavoro_ID,Username,CAST(Payload AS CHAR) FROM MobileConsuntivi WHERE ID=@id AND Stato IN ('RICEVUTO','ERRORE')",cn);cmd.Parameters.AddWithValue("@id",inboxId);await using var r=await cmd.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))throw new InvalidOperationException("Consuntivo non disponibile per l'acquisizione.");workId=r.GetInt32(0);username=r.GetString(1);payload=r.GetString(2);}
+        var report=System.Text.Json.JsonSerializer.Deserialize<MobileReportRequest>(payload,new System.Text.Json.JsonSerializerOptions{PropertyNameCaseInsensitive=true})??throw new InvalidOperationException("Dati del consuntivo non validi.");
+        try{await ApplyMobileReportDirectAsync(workId,username,report,ct);await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var done=new MySqlCommand("UPDATE MobileConsuntivi SET Stato='ACQUISITO',AcquisitoIl=NOW(),Errore=NULL WHERE ID=@id",cn);done.Parameters.AddWithValue("@id",inboxId);await done.ExecuteNonQueryAsync(ct);}
+        catch(Exception ex){await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var error=new MySqlCommand("UPDATE MobileConsuntivi SET Stato='ERRORE',Errore=@error WHERE ID=@id",cn);error.Parameters.AddWithValue("@id",inboxId);error.Parameters.AddWithValue("@error",ex.Message);await error.ExecuteNonQueryAsync(ct);throw;}
+    }
+
+    public async Task UpdateConfirmedAdministrativeDataAsync(int workId,short? executingOperator,decimal requestedAmount,decimal collectedAmount,CancellationToken ct)
+    {
+        const string sql="UPDATE Lavori SET OperatoreEsecutore=@operator,ImportoRichiesto=@requested,ImportoIncassato=@collected WHERE ID=@id";
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);
+        cmd.Parameters.AddWithValue("@id",workId);cmd.Parameters.AddWithValue("@operator",(object?)executingOperator??DBNull.Value);cmd.Parameters.AddWithValue("@requested",requestedAmount);cmd.Parameters.AddWithValue("@collected",collectedAmount);
+        if(await cmd.ExecuteNonQueryAsync(ct)!=1)throw new InvalidOperationException("Scheda lavoro non trovata.");
+    }
+
+    private async Task<object> ApplyMobileReportDirectAsync(int workId,string username,MobileReportRequest report,CancellationToken ct)
+    {
+        if(!Guid.TryParse(report.SubmissionId,out _))throw new InvalidOperationException("Identificativo di invio non valido.");
+        if(!DateTime.TryParseExact(report.CompletedOn,"yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None,out var completedOn))throw new InvalidOperationException("Data lavoro non valida.");
+        if(!TimeSpan.TryParse(report.CompletedAt,System.Globalization.CultureInfo.InvariantCulture,out var completedAt))throw new InvalidOperationException("Ora lavoro non valida.");
+        var hoursText=(report.ManHours??"").Trim().Replace(',','.');decimal? manHours=null;
+        if(hoursText.Length>0){if(!decimal.TryParse(hoursText,System.Globalization.NumberStyles.Number,System.Globalization.CultureInfo.InvariantCulture,out var parsedHours)||parsedHours<0)throw new InvalidOperationException("Ore uomo non valide.");manHours=parsedHours;}
+        if(string.IsNullOrWhiteSpace(report.Outcome))throw new InvalidOperationException("Selezionare l'esito.");
+        var rows=(report.Rows??[]).Where(x=>x.Quantity>0).ToArray();
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var tx=await cn.BeginTransactionAsync(ct);
+        await using(var duplicate=new MySqlCommand("SELECT COUNT(*) FROM LavoriStorico WHERE Lavoro_ID=@id AND JSON_UNQUOTE(JSON_EXTRACT(DatiNuovi,'$.submissionId'))=@submission",cn,tx))
+        {duplicate.Parameters.AddWithValue("@id",workId);duplicate.Parameters.AddWithValue("@submission",report.SubmissionId);if(Convert.ToInt32(await duplicate.ExecuteScalarAsync(ct))>0){await tx.CommitAsync(ct);return new{received=true,duplicate=true,submissionId=report.SubmissionId};}}
+        int year,code;short operatorId;byte status;
+        await using(var work=new MySqlCommand("SELECT l.Anno,l.Codice,l.OperatoreAssegnato,l.StatoLavoro_ID FROM Lavori l INNER JOIN Utenti u ON u.Codice=l.OperatoreAssegnato WHERE l.ID=@id AND u.Username=@username AND COALESCE(l.ScaricatoLavorazione,0)<>0 FOR UPDATE",cn,tx))
+        {work.Parameters.AddWithValue("@id",workId);work.Parameters.AddWithValue("@username",username);await using var r=await work.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))throw new InvalidOperationException("Scheda non disponibile per l'operatore.");year=r.GetInt16(0);code=r.GetInt32(1);operatorId=r.GetInt16(2);status=r.GetByte(3);}
+        if(status>=5)throw new InvalidOperationException("Il consuntivo risulta già chiuso.");
+        byte outcomeId;await using(var outcome=new MySqlCommand("SELECT ID FROM EsitiLavoro WHERE Descrizione=@outcome LIMIT 1",cn,tx)){outcome.Parameters.AddWithValue("@outcome",report.Outcome.Trim());var value=await outcome.ExecuteScalarAsync(ct);if(value is null)throw new InvalidOperationException("Esito non riconosciuto.");outcomeId=Convert.ToByte(value);}
+        await using(var clear=new MySqlCommand("DELETE FROM LavoriChiusiRg WHERE ID=@id",cn,tx)){clear.Parameters.AddWithValue("@id",workId);await clear.ExecuteNonQueryAsync(ct);}
+        short rowNumber=0;
+        foreach(var row in rows)
+        {
+            var type=(row.Type??"").Trim().ToUpperInvariant();var reference=(row.Reference??"").Trim();if(type is not ("A" or "P")||reference.Length==0||row.Price<0)throw new InvalidOperationException("Riga consuntiva non valida.");
+            var validation=type=="A"?"SELECT COUNT(*) FROM Articoli WHERE Codice=@reference":"SELECT COUNT(*) FROM Prestazioni WHERE CAST(Codice AS CHAR)=@reference OR LPAD(CAST(Codice AS CHAR),3,'0')=@reference";
+            await using(var check=new MySqlCommand(validation,cn,tx)){check.Parameters.AddWithValue("@reference",reference);if(Convert.ToInt32(await check.ExecuteScalarAsync(ct))==0)throw new InvalidOperationException($"Riferimento {reference} non trovato.");}
+            await using var insert=new MySqlCommand("INSERT INTO LavoriChiusiRg(ID,Anno,Codice,Riga,Articolo,TipoRiga,Quantita,Prezzo) VALUES(@id,@year,@code,@row,@reference,@type,@quantity,@price)",cn,tx);
+            insert.Parameters.AddWithValue("@id",workId);insert.Parameters.AddWithValue("@year",year);insert.Parameters.AddWithValue("@code",code);insert.Parameters.AddWithValue("@row",++rowNumber);insert.Parameters.AddWithValue("@reference",reference);insert.Parameters.AddWithValue("@type",type);insert.Parameters.AddWithValue("@quantity",row.Quantity);insert.Parameters.AddWithValue("@price",row.Price);await insert.ExecuteNonQueryAsync(ct);
+        }
+        const string update="""UPDATE Lavori SET DataInterventoEffettiva=@date,OraInterventoEffettiva=@time,OperatoreEsecutore=@operator,OreUomoConsuntive=@hours,EsitoLavoro_ID=@outcome,AttivitaEseguita=@performed,ImportoManodoperaConsuntivo=COALESCE((SELECT SUM(Quantita*Prezzo) FROM LavoriChiusiRg WHERE ID=@id AND TipoRiga='P'),0),ImportoMaterialiConsuntivo=COALESCE((SELECT SUM(Quantita*Prezzo) FROM LavoriChiusiRg WHERE ID=@id AND TipoRiga='A'),0),ImportoRichiesto=COALESCE((SELECT SUM(Quantita*Prezzo) FROM LavoriChiusiRg WHERE ID=@id),0),ImportoIncassato=@collected,NoteConsuntive=@notes,StatoLavoro_ID=5 WHERE ID=@id""";
+        await using(var save=new MySqlCommand(update,cn,tx)){save.Parameters.AddWithValue("@id",workId);save.Parameters.AddWithValue("@date",completedOn.Date);save.Parameters.AddWithValue("@time",completedAt);save.Parameters.AddWithValue("@operator",operatorId);save.Parameters.AddWithValue("@hours",(object?)manHours??DBNull.Value);save.Parameters.AddWithValue("@outcome",outcomeId);save.Parameters.AddWithValue("@performed",(report.WorkPerformed??"").Trim());save.Parameters.AddWithValue("@collected",report.CollectedAmount);save.Parameters.AddWithValue("@notes",(report.Notes??"").Trim());await save.ExecuteNonQueryAsync(ct);}
+        await using(var history=new MySqlCommand("INSERT INTO LavoriStorico(Lavoro_ID,TipoEvento,DataEvento,StatoPrecedente_ID,StatoNuovo_ID,EsitoNuovo_ID,DataInterventoEffettiva,Note,DatiNuovi) VALUES(@id,'CONSUNTIVO_MOBILE',NOW(),@oldStatus,5,@outcome,@date,'Consuntivo confermato e inviato dal mobile',JSON_OBJECT('submissionId',@submission,'username',@username))",cn,tx)){history.Parameters.AddWithValue("@id",workId);history.Parameters.AddWithValue("@oldStatus",status);history.Parameters.AddWithValue("@outcome",outcomeId);history.Parameters.AddWithValue("@date",completedOn.Date);history.Parameters.AddWithValue("@submission",report.SubmissionId);history.Parameters.AddWithValue("@username",username);await history.ExecuteNonQueryAsync(ct);}
+        await tx.CommitAsync(ct);return new{received=true,duplicate=false,submissionId=report.SubmissionId};
     }
 
     public async Task<IReadOnlyList<WorkPhotoItem>> PhotosAsync(int workId,CancellationToken ct)

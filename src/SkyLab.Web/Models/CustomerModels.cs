@@ -5,6 +5,7 @@ namespace SkyLab.Web.Models;
 public sealed record CustomerListItem(int Code, string Name, string City, string Province, string Phone, string Email, bool Active, int Sites, int Machines);
 public sealed record LookupItem(int Id, string Label);
 public sealed record CodeLookupItem(string Code, string Label);
+public sealed record CityLookupItem(string Name, string PostalCode, string Province);
 public sealed record SupplierLookupItem(int Code, string Name, string City, string Province);
 public sealed record PartyLookupItem(int Code, string Name, string City, string Province);
 public sealed record PartyLookupModel(string Kind, IReadOnlyList<PartyLookupItem> Items);
@@ -26,6 +27,7 @@ public sealed class CustomerEditModel
     [EmailAddress, StringLength(60)] public string? Email { get; set; }
     [EmailAddress, StringLength(60)] public string? CertifiedEmail { get; set; }
     [StringLength(10)] public string? SdiCode { get; set; }
+    [Range(0, 6, ErrorMessage = "Selezionare un listino valido.")] public byte PriceList { get; set; }
     [StringLength(255)] public string? Notes { get; set; }
     public bool Active { get; set; } = true;
 }
@@ -37,15 +39,15 @@ public sealed class SiteEditModel
     public int CustomerId { get; set; }
     public int Code { get; set; }
     [Required, StringLength(100)] public string Name { get; set; } = "";
-    [StringLength(100)] public string City { get; set; } = "";
-    [StringLength(5)] public string PostalCode { get; set; } = "";
-    [StringLength(2)] public string Province { get; set; } = "";
-    [StringLength(100)] public string Street { get; set; } = "";
-    [StringLength(20)] public string StreetNumber { get; set; } = "";
-    [StringLength(100)] public string Contact { get; set; } = "";
-    [StringLength(25)] public string ContactPhone { get; set; } = "";
-    [EmailAddress, StringLength(100)] public string ContactEmail { get; set; } = "";
-    [StringLength(255)] public string Notes { get; set; } = "";
+    [StringLength(100)] public string? City { get; set; }
+    [StringLength(5)] public string? PostalCode { get; set; }
+    [StringLength(2)] public string? Province { get; set; }
+    [StringLength(100)] public string? Street { get; set; }
+    [StringLength(20)] public string? StreetNumber { get; set; }
+    [StringLength(100)] public string? Contact { get; set; }
+    [StringLength(25)] public string? ContactPhone { get; set; }
+    [EmailAddress, StringLength(100)] public string? ContactEmail { get; set; }
+    [StringLength(255)] public string? Notes { get; set; }
     public bool Active { get; set; } = true;
 }
 
@@ -108,8 +110,8 @@ public sealed class ArticleEditModel
     [StringLength(4)] public string PurchaseUnit { get; set; } = "";
     [StringLength(4)] public string WorkUnit { get; set; } = "";
     [StringLength(4)] public string SalesUnit { get; set; } = "";
-    public int SupplierCode { get; set; }
-    [StringLength(30)] public string SupplierArticleCode { get; set; } = "";
+    public int? SupplierCode { get; set; }
+    [StringLength(30)] public string? SupplierArticleCode { get; set; }
     public decimal Weight { get; set; }
     public short Pieces { get; set; }
     public short DurationDays { get; set; }
@@ -119,7 +121,7 @@ public sealed class ArticleEditModel
     public decimal Stock { get; set; }
     public decimal MinimumStock { get; set; }
     public decimal MaximumStock { get; set; }
-    [StringLength(50)] public string Location { get; set; } = "";
+    [StringLength(50)] public string? Location { get; set; }
     [StringLength(12)] public string VatCode { get; set; } = "";
-    [StringLength(255)] public string Notes { get; set; } = "";
+    [StringLength(255)] public string? Notes { get; set; }
 }

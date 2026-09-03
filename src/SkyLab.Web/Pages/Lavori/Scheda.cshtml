@@ -28,7 +28,7 @@
 <section class="module-page customer-form-page data-form-skin work-edit-page">
  <header class="module-header customer-form-header">
   <div class="module-title-identity"><a class="skylab-header-brand" asp-page="Schede"><img src="~/images/skylab-logo.png" alt="SkyLab" /></a><div><p class="eyebrow">Lavorazione · Scheda</p><h1>Scheda @Model.Lavoro.Code.ToString("000000")/@Model.Lavoro.Year</h1><p>@Model.Lavoro.Customer</p></div></div>
-  <div class="customer-form-toolbar"><button class="btn btn-primary" type="submit" form="work-form">Salva</button>@if(Model.Azione==103){<a class="btn customer-menu-button" asp-page="/Interventi/Index">Esci</a>}else{<a class="btn customer-menu-button" asp-page="Schede">Esci</a>}</div>
+  <div class="customer-form-toolbar">@if(Model.ConsuntivoMobile is not null){<span class="mobile-report-label" title="Ricevuto il @Model.ConsuntivoMobile.Inbox.ReceivedOn.ToString("dd/MM/yyyy HH:mm") da @Model.ConsuntivoMobile.Inbox.Username">Consuntivo da confermare</span><button class="btn btn-primary" type="submit" form="work-form" formaction="?handler=ConfirmMobileReport&amp;id=@Model.Lavoro.Id&amp;inboxId=@Model.ConsuntivoMobile.Inbox.Id">Conferma consuntivo</button>}else if(!Model.SchedaImmutabile){<button class="btn btn-primary" type="submit" form="work-form">Salva</button>}@if(Model.Azione==103){<a class="btn customer-menu-button" asp-page="/Interventi/Index">Esci</a>}else{<a class="btn customer-menu-button" asp-page="Schede">Esci</a>}</div>
  </header>
  <nav class="work-section-tabs" aria-label="Sezioni scheda lavoro" data-work-tabs>
   <button class="work-section-tab is-active" type="button" data-work-tab="pianificazione">Pianificazione</button>
@@ -54,7 +54,7 @@
    <div class="field amount"><label>Manodopera prevista</label><input class="planned-derived-amount" value="@Model.Lavoro.PlannedLabour.ToString("N2")" readonly tabindex="-1"/></div>
    <div class="field amount"><label>Materiali previsti</label><input class="planned-derived-amount" value="@Model.Lavoro.PlannedMaterials.ToString("N2")" readonly tabindex="-1"/></div>
    <div class="field amount"><label>Totale preventivo</label><input class="planned-derived-amount" value="@((Model.Lavoro.PlannedLabour+Model.Lavoro.PlannedMaterials).ToString("N2"))" readonly tabindex="-1"/></div>
-   <div class="field amount"><label>Preventivo netto</label><input value="@Model.Lavoro.PlannedNet.ToString("N2")" inputmode="decimal" data-decimal-field data-decimal-digits="2" data-decimal-integer-digits="10" data-decimal-zero="fixed" data-planned-net-mirror/></div>
+   <div class="field amount"><label>Preventivo netto</label><input value="@Model.Lavoro.PlannedNet.ToString("N2")" inputmode="decimal" readonly="@Model.PreventivoBloccato" data-decimal-field data-decimal-digits="2" data-decimal-integer-digits="10" data-decimal-zero="fixed" data-planned-net-mirror/></div>
    </div></fieldset>
    <fieldset class="form-frame compact-frame work-tab-panel" data-work-tab-panel="previsto" hidden>
     @{ var prestazioni=Model.RighePreventivo.Where(x=>x.Type=="P").ToList(); var materiali=Model.RighePreventivo.Where(x=>x.Type=="A").ToList(); var incerti=Model.RighePreventivo.Where(x=>x.Type=="?").ToList(); }
@@ -62,7 +62,7 @@
      <div class="field amount"><label>Manodopera prevista</label><input class="planned-derived-amount" asp-for="Lavoro.PlannedLabour" readonly tabindex="-1"/></div>
      <div class="field amount"><label>Materiali previsti</label><input class="planned-derived-amount" asp-for="Lavoro.PlannedMaterials" readonly tabindex="-1"/></div>
      <div class="field amount"><label>Totale preventivo</label><input class="planned-derived-amount" value="@((Model.Lavoro.PlannedLabour+Model.Lavoro.PlannedMaterials).ToString("N2"))" readonly tabindex="-1"/></div>
-     <div class="field amount"><label>Preventivo netto</label><input asp-for="Lavoro.PlannedNet" data-decimal-field data-decimal-digits="2" data-decimal-integer-digits="10" data-decimal-zero="fixed" data-planned-net-source/></div>
+     <div class="field amount"><label>Preventivo netto</label><input asp-for="Lavoro.PlannedNet" readonly="@Model.PreventivoBloccato" data-decimal-field data-decimal-digits="2" data-decimal-integer-digits="10" data-decimal-zero="fixed" data-planned-net-source/></div>
     </div></section>
     <div class="work-budget-sections">
     <section class="work-detail-box"><header class="work-detail-head"><h2>Interventi richiesti</h2><div class="work-detail-head-actions"><span>@prestazioni.Count righe</span>@if(!Model.PreventivoBloccato){<button class="work-detail-add" type="button" data-work-lookup-open="P">Aggiungi prestazione</button>}</div></header>
@@ -74,20 +74,22 @@
    </div>
    @if(incerti.Count>0){<p class="work-detail-warning">@incerti.Count righe legacy richiedono ancora la classificazione tra articolo e prestazione.</p>}
   </fieldset>
-  <fieldset class="form-frame compact-frame work-tab-panel" data-work-tab-panel="consuntivo" hidden><div class="work-consuntivo-data-frame"><div class="work-form-grid">
-   <div class="field"><label>Data lavoro</label><span class="micronote-date-control" data-date-control><input name="Lavoro.CompletedOn" type="hidden" value="@(Model.Lavoro.CompletedOn?.ToString("yyyy-MM-dd") ?? "")" data-filter-date-hidden/><input id="Lavoro_CompletedOn" class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" value="@(Model.Lavoro.CompletedOn?.ToString("dd/MM/yyyy") ?? "")" placeholder="gg/mm/aaaa" data-filter-date-display/><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data lavoro" data-date-picker-button></button></span></div>
-   <div class="field"><label>Ora inizio</label><input asp-for="Lavoro.CompletedAt" type="time"/></div>
+  <fieldset class="form-frame compact-frame work-tab-panel @(Model.ConsuntivoDaConfermare?"mobile-report-pending":"")" data-work-tab-panel="consuntivo" hidden>
+   <fieldset class="mobile-report-values" disabled="@Model.SchedaImmutabile">
+   <div class="work-consuntivo-data-frame"><div class="work-form-grid">
+   <div class="field"><label>Data lavoro</label><span class="micronote-date-control" data-date-control><input name="Lavoro.CompletedOn" type="hidden" value="@(Model.Lavoro.CompletedOn?.ToString("yyyy-MM-dd") ?? "")" data-filter-date-hidden/><input id="Lavoro_CompletedOn" class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" value="@(Model.Lavoro.CompletedOn?.ToString("dd/MM/yyyy") ?? "")" placeholder="gg/mm/aaaa" data-filter-date-display disabled="@Model.ConsuntivoDaConfermare"/><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data lavoro" data-date-picker-button disabled="@Model.ConsuntivoDaConfermare"></button></span></div>
+   <div class="field"><label>Ora inizio</label><input asp-for="Lavoro.CompletedAt" type="time" disabled="@Model.ConsuntivoDaConfermare"/></div>
    <div class="field"><label>Operatore esecutore</label><select asp-for="Lavoro.ExecutingOperator"><option value="">Da definire</option>@foreach(var x in Model.Operatori){<option value="@x.Id">@x.Description</option>}</select></div>
-   <div class="field work-man-hours"><label>Ore uomo</label><input asp-for="Lavoro.ManHours" data-decimal-field data-decimal-digits="2" data-decimal-integer-digits="6"/></div>
-   <div class="field work-outcome"><label>Esito</label><select asp-for="Lavoro.OutcomeId"><option value=""></option>@foreach(var x in Model.Esiti){<option value="@x.Id">@x.Description</option>}</select></div>
-   <div class="field span-all work-text"><label>Attività svolte</label><textarea asp-for="Lavoro.WorkPerformed" rows="3"></textarea></div>
+   <div class="field work-man-hours"><label>Ore uomo</label><input asp-for="Lavoro.ManHours" data-decimal-field data-decimal-digits="2" data-decimal-integer-digits="6" disabled="@Model.ConsuntivoDaConfermare"/></div>
+   <div class="field work-outcome"><label>Esito</label><select asp-for="Lavoro.OutcomeId" disabled="@Model.ConsuntivoDaConfermare"><option value=""></option>@foreach(var x in Model.Esiti){<option value="@x.Id">@x.Description</option>}</select></div>
+   <div class="field span-all work-text"><label>Attività svolte</label><textarea asp-for="Lavoro.WorkPerformed" rows="3" disabled="@Model.ConsuntivoDaConfermare"></textarea></div>
    <div class="field amount"><label>Manodopera</label><input asp-for="Lavoro.ActualLabour" readonly tabindex="-1" data-work-actual-labour/></div>
    <div class="field amount"><label>Materiali</label><input asp-for="Lavoro.ActualMaterials" readonly tabindex="-1" data-work-actual-materials/></div>
    <div class="field amount"><label>Totale lavoro</label><input value="@((Model.Lavoro.ActualLabour+Model.Lavoro.ActualMaterials).ToString("N2"))" readonly tabindex="-1" data-work-actual-total/></div>
    <div class="field amount work-requested-amount"><label>Importo richiesto</label><input asp-for="Lavoro.RequestedAmount" data-decimal-field data-decimal-digits="2" data-decimal-integer-digits="10" data-decimal-zero="fixed"/></div>
    <div class="field amount work-collected-amount"><label>Importo incassato</label><input asp-for="Lavoro.CollectedAmount" data-decimal-field data-decimal-digits="2" data-decimal-integer-digits="10" data-decimal-zero="fixed"/></div>
    <div class="field"><label>Fattura</label><input value="@(Model.Lavoro.InvoiceId is null ? "Da emettere" : $"N. {Model.Lavoro.InvoiceId}")" readonly tabindex="-1"/></div>
-   <div class="field span-all"><label>Note consuntive</label><input asp-for="Lavoro.Notes"/></div>
+   <div class="field span-all"><label>Note consuntive</label><input asp-for="Lavoro.Notes" disabled="@Model.ConsuntivoDaConfermare"/></div>
    </div></div>
    @{ var prestazioniEffettive=Model.RigheConsuntivo.Where(x=>x.Type=="P").ToList(); var materialiEffettivi=Model.RigheConsuntivo.Where(x=>x.Type=="A").ToList(); var incertiEffettivi=Model.RigheConsuntivo.Where(x=>x.Type=="?").ToList(); }
    <div class="work-actual-lines-frame">
@@ -100,7 +102,7 @@
     </section>
    </div>
    @if(incertiEffettivi.Count>0){<p class="work-detail-warning">@incertiEffettivi.Count righe consuntive legacy richiedono ancora la classificazione.</p>}
-   </div>
+   </div></fieldset>
   </fieldset>
   <fieldset class="form-frame compact-frame work-tab-panel" data-work-tab-panel="documentazione" hidden><div class="work-doc-layout">
    <section class="work-photo-frame"><header class="work-photo-head"><h2>Fotografie del lavoro (@Model.Fotografie.Count)</h2><button class="work-detail-add" type="button" data-photo-add-open>Aggiungi foto</button></header><div class="work-photo-body">
