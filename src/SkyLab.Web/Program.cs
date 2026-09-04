@@ -22,6 +22,7 @@ public class Program
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();
         builder.Services.AddScoped<SkyLab.Web.Services.CustomerService>();
+        builder.Services.AddScoped<SkyLab.Web.Services.SupplierService>();
         builder.Services.AddScoped<SkyLab.Web.Services.WorkService>();
         builder.Services.AddScoped<SkyLab.Web.Services.UserService>();
         builder.Services.AddSingleton<SkyLab.Web.Services.MobileAuthService>();

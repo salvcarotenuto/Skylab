@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(!pendingDispatchRow||!operatorSelect?.value){if(operatorError)operatorError.hidden=false;return;}
     if(operatorError)operatorError.hidden=true;
     const confirm=operatorDialog.querySelector("[data-agenda-operator-confirm]");if(confirm)confirm.disabled=true;
+    window.SkyProg?.Show();
     try{
       const body=new URLSearchParams({workId:pendingDispatchRow.dataset.workId,operatorId:operatorSelect.value,__RequestVerificationToken:requestToken});
       const response=await fetch("/Interventi/Index?handler=AssignOperator",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body});
@@ -100,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const cell=pendingDispatchRow.querySelector("[data-agenda-operator-name]");if(cell)cell.textContent=label;
       operatorDialog.close();pendingDispatchRow=null;updateDispatch();
     }catch(error){if(operatorError){operatorError.textContent=error.message;operatorError.hidden=false;}}
-    finally{if(confirm)confirm.disabled=false;}
+    finally{window.SkyProg?.Close();if(confirm)confirm.disabled=false;}
   };
   const setQuick = value => {
     const from = today(); let to = from;

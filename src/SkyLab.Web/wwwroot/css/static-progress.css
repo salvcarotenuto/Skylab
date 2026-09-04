@@ -1,0 +1,48 @@
+.skylab-static-progress {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #9aa8b8;
+    box-shadow: 0 5px 18px rgba(27, 49, 74, .18);
+    box-sizing: border-box;
+    display: flex;
+    height: 42px;
+    justify-content: center;
+    left: 50%;
+    padding: 13px 24px;
+    position: fixed;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    z-index: 5000;
+}
+
+.skylab-static-progress-base {
+    background: #cfe5f7;
+    border: 1px solid #78a5ca;
+    border-radius: 6px;
+    box-sizing: border-box;
+    height: 14px;
+    overflow: hidden;
+    padding: 1px;
+    position: relative;
+    width: 450px;
+}
+
+.skylab-static-progress-bar {
+    background: var(--BlueButton, #4d6dae);
+    border-radius: 4px;
+    height: 10px;
+    left: 1px;
+    position: absolute;
+    top: 1px;
+    width: 15px;
+}
+
+@media (max-width: 440px) {
+    .skylab-static-progress { width: calc(100vw - 32px); }
+    .skylab-static-progress-base { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skylab-static-progress-bar { transition-duration: 1ms !important; }
+}

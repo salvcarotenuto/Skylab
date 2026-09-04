@@ -8,12 +8,9 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/skylab-brand.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/static-progress.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SkyLab.Web.styles.css" asp-append-version="true" />
 </head>
-@{
-    var currentPath = Context.Request.Path.Value?.TrimEnd('/').ToLowerInvariant() ?? "";
-    var mobileReportWatch = currentPath is "" or "/index" or "/interventi/index" or "/lavori/pianificazione" or "/lavori/schede" or "/lavori/scheda";
-}
 <body class="@ViewData["BodyClass"]">
     <div class="page-container">
         <main role="main" class="pb-3">
@@ -30,11 +27,6 @@
         </footer>
     }
 
-    @if (mobileReportWatch)
-    {
-        <aside class="agenda-report-toast" data-mobile-report-toast hidden><button type="button" class="agenda-toast-close" aria-label="Chiudi" data-mobile-report-close>×</button><strong>Nuovo consuntivo ricevuto</strong><span data-mobile-report-work></span><span data-mobile-report-customer></span><span data-mobile-report-operator></span><div class="agenda-toast-actions"><button type="button" class="agenda-toast-open" data-mobile-report-open>Apri scheda</button><button type="button" class="agenda-toast-dismiss" data-mobile-report-close>Chiudi</button></div></aside>
-    }
-
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
@@ -43,10 +35,7 @@
     <script src="~/js/decimal-fields.js" asp-append-version="true"></script>
     <script src="~/js/filter-date-picker.js" asp-append-version="true"></script>
     <script src="~/js/updown.js" asp-append-version="true"></script>
-    @if (mobileReportWatch)
-    {
-        <script src="~/js/mobile-report-watch.js" asp-append-version="true"></script>
-    }
+    <script src="~/js/static-progress.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

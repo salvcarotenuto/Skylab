@@ -17,7 +17,7 @@ public static class MainMenuCatalog
     [
         new("soggetti", "Soggetti", "SG", "accent-tables",
         [
-            Group("Anagrafiche", Link("Clienti", "/Clienti/Index"), Pending("Fornitori"), Pending("Agenti"), Pending("Vettori"), Pending("Banche"), Link("Utenti", "/Utenti/Index")),
+            Group("Anagrafiche", Link("Clienti", "/Clienti/Index"), Link("Fornitori", "/Fornitori/Index"), Pending("Agenti"), Pending("Vettori"), Pending("Banche"), Link("Utenti", "/Utenti/Index")),
             Group("Aggiornamenti", "Aggiornamento piano dei conti", "Aggiornamento tabella ditte")
         ]),
         new("tabelle", "Tabelle", "TB", "accent-tables",
