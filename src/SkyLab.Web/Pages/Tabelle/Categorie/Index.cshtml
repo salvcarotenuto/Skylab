@@ -1,0 +1,9 @@
+@page
+@model SkyLab.Web.Pages.Tabelle.Categorie.IndexModel
+@{ViewData["Title"]="Categorie di magazzino";ViewData["HideFooter"]=true;}
+<section class="category-list-page" data-category-page>
+ <header class="planning-heading category-heading customer-form-header"><div class="module-title-identity"><div class="skylab-header-brand"><img src="~/images/skylab-logo.png" alt="" /></div><div><p class="eyebrow">Tabelle · Magazzino</p><h1>Categorie di magazzino</h1><p>Consultazione della tabella categorie.</p></div></div><div class="category-title-actions"><span class="category-count-box"><strong data-category-count>@Model.Items.Count</strong> record</span><a class="btn customer-menu-button" asp-page="/Index">Esci</a></div></header>
+ <div class="category-toolbar"><label for="category-search">Cerca</label><div class="category-search-wrap"><input id="category-search" value="" placeholder="Codice o descrizione" autocomplete="off" autofocus data-category-search/><button type="button" aria-label="Pulisci filtro" data-category-clear hidden>×</button></div></div>
+ <div class="category-grid-frame"><table class="category-grid"><thead><tr><th data-category-sort="code">Codice</th><th data-category-sort="description">Descrizione</th></tr></thead><tbody>@foreach(var item in Model.Items){<tr tabindex="0" data-category-row data-code="@item.Id" data-description="@item.Label"><td>@item.Id.ToString("000")</td><td>@item.Label</td></tr>}</tbody></table><div class="category-empty" data-category-empty hidden>Nessuna categoria corrisponde al filtro impostato.</div></div>
+</section>
+@section Scripts{<script src="~/js/categories-list.js" asp-append-version="true"></script>}

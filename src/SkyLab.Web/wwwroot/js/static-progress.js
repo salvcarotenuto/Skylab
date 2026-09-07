@@ -9,7 +9,7 @@
     static #timers = [];
     static #afterClose = null;
 
-    static Show() {
+    static Show(host) {
       this.#run += 1;
       this.#timers.forEach(timer => window.clearTimeout(timer));
       this.#timers = [];
@@ -33,7 +33,8 @@
 
       baseBar.appendChild(bar);
       panel.appendChild(baseBar);
-      document.body.appendChild(panel);
+      const container = host instanceof HTMLElement ? host : document.body;
+      container.appendChild(panel);
 
       this.#panel = panel;
       this.#bar = bar;

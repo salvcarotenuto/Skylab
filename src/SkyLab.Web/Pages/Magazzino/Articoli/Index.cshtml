@@ -11,7 +11,7 @@
 <section class="list-page article-list-page" data-article-list-page data-menu-url="/">
  <header class="list-titlebar">
   <a class="list-title-identity" asp-page="/Index"><span class="list-title-layout"><span class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></span><span><strong>Articoli</strong><small>SkyLab · Anagrafica articoli di magazzino</small></span></span></a>
-  <div class="list-title-actions"><span class="list-records-box article-records-box"><strong data-article-count>@Model.Items.Count</strong><span>record</span></span><a class="list-title-button" asp-page="/Magazzino/Articolo" asp-route-azione="2">Nuovo articolo</a><button class="list-title-button" type="button" data-article-edit>Modifica</button><button class="list-title-button list-title-delete" type="button" data-article-delete>Elimina</button><a class="btn customer-menu-button" asp-page="/Index">Esci</a></div>
+  <div class="list-title-actions"><span class="list-records-box article-records-box"><strong data-article-count>@Model.Items.Count</strong><span>record</span></span><a class="btn btn-primary" asp-page="/Magazzino/Articolo" asp-route-azione="2">Nuovo articolo</a><button class="btn customer-menu-button" type="button" data-article-edit>Modifica</button><button class="btn customer-menu-button" type="button" data-article-delete>Elimina</button><a class="btn customer-menu-button" asp-page="/Index">Esci</a></div>
  </header>
  <section class="list-panel">
   <div class="list-toolbar article-list-toolbar">

@@ -1,0 +1,201 @@
+@page "{code:int?}"
+@model SkyLab.Web.Pages.Tabelle.CausaliContabili.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "Nuova causale" : "Scheda causale";
+    ViewData["HideFooter"] = true;
+    var accounts = Model.Accounts.ToDictionary(x => x.Code, x => x);
+    var masterOptions = Model.Accounts
+        .Where(x => x.Master > 0)
+        .GroupBy(x => new { x.Master, x.MasterDescription })
+        .OrderBy(x => x.Key.Master)
+        .Select(x => x.Key)
+        .ToArray();
+    var debitRows = new[] { Model.Causale.Debit1, Model.Causale.Debit2, Model.Causale.Debit3, Model.Causale.Debit4, Model.Causale.Debit5, Model.Causale.Debit6 };
+    var creditRows = new[] { Model.Causale.Credit1, Model.Causale.Credit2, Model.Causale.Credit3, Model.Causale.Credit4, Model.Causale.Credit5, Model.Causale.Credit6 };
+}
+<link rel="stylesheet" href="~/css/accounting-causes.css" asp-append-version="true" />
+<section class="cause-edit-page accounting-cause-form-page data-form-skin" data-cause-edit-page>
+    <header class="module-header cause-edit-header">
+        <div class="module-title-identity">
+            <a class="module-title-logo" asp-page="./Index" aria-label="Torna alla lista">
+                <img src="~/images/skylab-logo.png" alt="" />
+            </a>
+            <div>
+                <h1>@(Model.IsNew ? "Nuova causale" : "Scheda causale")</h1>
+                <p>Codice @Model.Causale.Code.ToString("000")</p>
+            </div>
+        </div>
+        <div class="top-actions">
+            <button class="btn btn-primary" type="submit" form="cause-edit-form" data-cause-edit-save>Salva</button>
+            <a class="btn customer-menu-button" asp-page="./Index">Annulla</a>
+        </div>
+    </header>
+    <form id="cause-edit-form" method="post" class="cause-edit-form" data-cause-edit-form>
+        <input asp-for="IsNew" type="hidden" />
+        <input asp-for="Causale.Code" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+        <fieldset class="form-frame compact-frame cause-edit-main-frame">
+            <legend>Causale contabile</legend>
+            <div class="accounting-cause-fields">
+                <div class="field accounting-cause-code-field">
+                    <label>Codice</label>
+                    <input value="@Model.Causale.Code.ToString("000")" readonly tabindex="-1" />
+                </div>
+                <div class="field accounting-cause-description-field">
+                    <label asp-for="Causale.Description">Descrizione</label>
+                    <input asp-for="Causale.Description" autocomplete="off" autofocus />
+                    <span asp-validation-for="Causale.Description"></span>
+                </div>
+                <div class="field accounting-cause-movement-field">
+                    <label asp-for="Causale.MovementType">Tipo movimento</label>
+                    <select asp-for="Causale.MovementType" required>
+                        <option value=""></option>
+                        <option value="C">C - Movimento contabile</option>
+                        <option value="B">B - Movimento bancario</option>
+                        <option value="V">V - Movimento IVA</option>
+                    </select>
+                </div>
+                <div class="field accounting-cause-subject-field">
+                    <label asp-for="Causale.PartyKind">Soggetto</label>
+                    <select asp-for="Causale.PartyKind">
+                        <option value=""></option>
+                        <option value="C">C - Cliente</option>
+                        <option value="F">F - Fornitore</option>
+                        <option value="B">B - Banca</option>
+                        <option value="D">D - Dipendente</option>
+                    </select>
+                </div>
+                <div class="field accounting-cause-sign-field">
+                    <label asp-for="Causale.Sign">Segno</label>
+                    <select asp-for="Causale.Sign"><option value=""></option><option value="D">D - Dare</option><option value="A">A - Avere</option></select>
+                </div>
+                <div class="field accounting-cause-cashflow-field">
+                    <label asp-for="Causale.InOut">Entrata/Uscita</label>
+                    <select asp-for="Causale.InOut"><option value=""></option><option value="E">E - Entrata</option><option value="U">U - Uscita</option></select>
+                </div>
+                <input asp-for="Causale.CauseType" type="hidden" />
+                <input asp-for="Causale.PaymentType" type="hidden" />
+                <div class="accounting-cause-checks">
+                    @foreach (var flag in new[] { ("Causale.Cash", "Cassa", Model.Causale.Cash), ("Causale.Invoice", "Fattura", Model.Causale.Invoice), ("Causale.DueDate", "Scadenza", Model.Causale.DueDate), ("Causale.Title", "Titolo", Model.Causale.Title), ("Causale.Salary", "Stipendio", Model.Causale.Salary), ("Causale.Print", "Stampa", Model.Causale.Print), ("Causale.Locked", "Bloccato", Model.Causale.Locked) })
+                    {
+                        <div class="field-check">
+                            <label class="check-button-field">
+                                <span class="check-text">@flag.Item2</span>
+                                <input type="checkbox" name="@flag.Item1" value="true" checked="@flag.Item3" />
+                                <input type="hidden" name="@flag.Item1" value="false" />
+                                <span class="check-button-wrap" aria-hidden="true"></span>
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="accounting-cause-accounts">
+                <section class="accounting-cause-account-column">
+                    <h2>DARE</h2>
+                    <div class="accounting-cause-account-subhead"><span></span><span></span><span class="accounting-cause-subhead-master">Mastro</span><span class="accounting-cause-subhead-account">Conto</span></div>
+                    @for (var i = 1; i <= 6; i++)
+                    {
+                        var selected = debitRows[i - 1];
+                        var account = selected > 0 && accounts.TryGetValue(selected, out var a) ? a : null;
+                        <div class="accounting-cause-account-row" data-account-row>
+                            <button class="accounting-cause-row-button" type="button" data-account-add aria-label="Aggiungi conto Dare @i">+</button><button class="accounting-cause-row-button accounting-cause-row-button-clear" type="button" data-account-clear aria-label="Elimina conto Dare @i">x</button>
+                            <input class="accounting-cause-code-box" readonly tabindex="-1" value="@(account?.Master.ToString("000") ?? "")" data-master-code />
+                            <input class="accounting-cause-master-description" readonly tabindex="-1" value="@(account?.MasterDescription ?? "")" data-master-description />
+                            <input class="accounting-cause-code-box" readonly tabindex="-1" value="@(selected > 0 ? selected.ToString("000") : "")" data-account-code />
+                            <input type="hidden" name="Causale.Debit@(i)" value="@selected" data-account-select />
+                            <input class="accounting-cause-account-description" readonly tabindex="-1" value="@(account?.Description ?? "")" data-account-description />
+                        </div>
+                    }
+                </section>
+                <section class="accounting-cause-account-column">
+                    <h2>AVERE</h2>
+                    <div class="accounting-cause-account-subhead"><span></span><span></span><span class="accounting-cause-subhead-master">Mastro</span><span class="accounting-cause-subhead-account">Conto</span></div>
+                    @for (var i = 1; i <= 6; i++)
+                    {
+                        var selected = creditRows[i - 1];
+                        var account = selected > 0 && accounts.TryGetValue(selected, out var a) ? a : null;
+                        <div class="accounting-cause-account-row" data-account-row>
+                            <button class="accounting-cause-row-button" type="button" data-account-add aria-label="Aggiungi conto Avere @i">+</button><button class="accounting-cause-row-button accounting-cause-row-button-clear" type="button" data-account-clear aria-label="Elimina conto Avere @i">x</button>
+                            <input class="accounting-cause-code-box" readonly tabindex="-1" value="@(account?.Master.ToString("000") ?? "")" data-master-code />
+                            <input class="accounting-cause-master-description" readonly tabindex="-1" value="@(account?.MasterDescription ?? "")" data-master-description />
+                            <input class="accounting-cause-code-box" readonly tabindex="-1" value="@(selected > 0 ? selected.ToString("000") : "")" data-account-code />
+                            <input type="hidden" name="Causale.Credit@(i)" value="@selected" data-account-select />
+                            <input class="accounting-cause-account-description" readonly tabindex="-1" value="@(account?.Description ?? "")" data-account-description />
+                        </div>
+                    }
+                </section>
+            </div>
+        </fieldset>
+    </form>
+    <div class="account-zoom-overlay" data-account-zoom hidden>
+        <div class="account-zoom-dialog" role="dialog" aria-modal="true" aria-labelledby="account-zoom-title">
+            <div class="account-zoom-title" id="account-zoom-title">Piano dei conti</div>
+            <div class="account-zoom-body">
+                <div class="account-zoom-grid-frame" data-account-zoom-grid>
+                    <table class="account-zoom-grid">
+                        <thead>
+                            <tr>
+                                <th class="account-zoom-selector"></th>
+                                <th data-account-zoom-sort="masterCode" tabindex="0" aria-sort="ascending">Mastro</th>
+                                <th data-account-zoom-sort="masterDescription" tabindex="0" aria-sort="none">Descrizione</th>
+                                <th data-account-zoom-sort="accountCode" tabindex="0" aria-sort="none">Conto</th>
+                                <th data-account-zoom-sort="accountDescription" tabindex="0" aria-sort="none">Descrizione</th>
+                                <th data-account-zoom-sort="accountType" tabindex="0" aria-sort="none">Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var option in Model.Accounts)
+                            {
+                                <tr tabindex="0"
+                                    data-zoom-row
+                                    data-master-code="@option.Master"
+                                    data-master-description="@option.MasterDescription"
+                                    data-account-code="@option.Code"
+                                    data-account-description="@option.Description"
+                                    data-account-type="@option.Type"
+                                    data-filter-text="@($"{option.MasterDescription} {option.Description}")">
+                                    <td class="account-zoom-selector-cell"></td>
+                                    <td class="code-cell">@option.Master.ToString("000")</td>
+                                    <td>@option.MasterDescription</td>
+                                    <td class="code-cell">@option.Code.ToString("000")</td>
+                                    <td>@option.Description</td>
+                                    <td>@option.Type</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="account-zoom-empty" data-account-zoom-empty hidden>Nessun conto trovato.</div>
+                </div>
+                <div class="account-zoom-type-panel" role="group" aria-label="Tipo conto">
+                    <button type="button" data-account-type-filter="equity">Patrimoniali</button>
+                    <button type="button" data-account-type-filter="costs">Costi</button>
+                    <button type="button" data-account-type-filter="revenues">Ricavi</button>
+                    <button type="button" data-account-type-filter="all" class="is-active">Tutti</button>
+                </div>
+            </div>
+            <div class="account-zoom-footer">
+                <label for="account-zoom-master">Mastro</label>
+                <select id="account-zoom-master" data-account-zoom-master>
+                    <option value=""></option>
+                    @foreach (var master in masterOptions)
+                    {
+                        <option value="@master.Master">@master.Master.ToString("000") - @master.MasterDescription</option>
+                    }
+                </select>
+                <label for="account-zoom-search">Cerca</label>
+                <input id="account-zoom-search" type="text" autocomplete="off" data-account-zoom-search />
+                <span class="account-zoom-records">
+                    <span>Records</span>
+                    <strong data-account-zoom-count>@Model.Accounts.Count</strong>
+                </span>
+                <button class="account-zoom-command primary" type="button" data-account-zoom-ok>OK</button>
+                <button class="account-zoom-command" type="button" data-account-zoom-cancel>Annulla</button>
+            </div>
+        </div>
+    </div>
+</section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/account-zoom.js" asp-append-version="true"></script>
+    <script src="~/js/accounting-cause-save-progress.js" asp-append-version="true"></script>
+}

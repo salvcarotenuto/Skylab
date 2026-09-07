@@ -1,12 +1,14 @@
 body {
-    background: linear-gradient(135deg, #eef6fd 0%, #e4f1fb 48%, #d7ebf8 100%);
+    background:
+        linear-gradient(180deg, rgba(151, 201, 233, .50) 0%, rgba(188, 221, 241, .20) 24%, rgba(199, 227, 244, 0) 52%),
+        linear-gradient(135deg, #d7ebf8 0%, #c7e3f4 48%, #b6d9ee 100%);
 }
 
 body::before {
     background: url("../images/skylab-watermark.png") right 1vw bottom 1vh / min(50vw, 700px) auto no-repeat;
     content: "";
     inset: 0;
-    opacity: .14;
+    opacity: .22;
     pointer-events: none;
     position: fixed;
     z-index: 0;

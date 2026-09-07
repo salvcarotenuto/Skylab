@@ -17,20 +17,18 @@ public static class MainMenuCatalog
     [
         new("soggetti", "Soggetti", "SG", "accent-tables",
         [
-            Group("Anagrafiche", Link("Clienti", "/Clienti/Index"), Link("Fornitori", "/Fornitori/Index"), Pending("Agenti"), Pending("Vettori"), Pending("Banche"), Link("Utenti", "/Utenti/Index")),
-            Group("Aggiornamenti", "Aggiornamento piano dei conti", "Aggiornamento tabella ditte")
+            Group("Anagrafiche", Link("Clienti", "/Clienti/Index"), Link("Fornitori", "/Fornitori/Index"), Pending("Agenti"), Pending("Vettori"), Pending("Banche"), Link("Utenti", "/Utenti/Index"))
         ]),
         new("tabelle", "Tabelle", "TB", "accent-tables",
         [
-            Group("Magazzino", "Categorie", "Gruppi", "Marchi", "Unità di misura", "Aspetto beni", "Causali di movimento"),
-            Group("Contabili", "Aliquote IVA", "Codici di pagamento", "Tipi di pagamento", "Piano dei conti", "Causali contabili"),
+            Group("Magazzino", Link("Categorie", "/Tabelle/Categorie/Index"), Link("Gruppi", "/Tabelle/Gruppi/Index"), Link("Marchi", "/Tabelle/Marchi/Index"), Link("Unità di misura", "/Tabelle/Unita/Index"), Link("Aspetto beni", "/Tabelle/Aspetto/Index")),
+            Group("Contabili", Link("Aliquote IVA", "/Tabelle/AliquoteIva/Index"), Link("Causali contabili", "/Tabelle/CausaliContabili/Index"), Link("Mastri di conto", "/Tabelle/Mastri/Index"), Link("Piano dei conti", "/Tabelle/PianoConti/Index"), Pending("Tipi di pagamento"), Pending("Codici di pagamento")),
             Group("Altre", "Attività", "Comuni", "Distretti territoriali", "Nazioni")
         ]),
         new("magazzino", "Magazzino", "MG", "accent-stock",
         [
-            Group("Articoli", Link("Lista articoli", "/Magazzino/Articoli/Index"), Pending("Carico da inventario"), Pending("Generazione automatica listini"), Pending("Importazione listino fornitore"), Pending("Stampa listino"), Pending("Stampa etichette")),
-            Group("Movimenti", "Registrazione movimenti di carico", "Estratto conto articolo", "Lista movimenti di magazzino", "Lista movimenti per raggruppamento", "Ordini a fornitori"),
-            Group("Statistiche", "Inventario di magazzino", "Articoli sotto scorta", "Statistiche di vendita")
+            Group("Articoli", Link("Lista articoli", "/Magazzino/Articoli/Index"), Pending("Carico da inventario"), Pending("Stampa listino"), Pending("Stampa etichette"), Pending("Inventario di magazzino"), Pending("Articoli sotto scorta")),
+            Group("Movimenti", "Carico per acquisti", "Estratto conto articolo", "Lista movimenti di magazzino", "Lista movimenti per raggruppamento", "Ordini a fornitori")
         ]),
         new("lavorazione", "Lavorazione", "LV", "accent-employees",
         [
@@ -38,31 +36,36 @@ public static class MainMenuCatalog
                 Link("Interventi in scadenza", "/Lavori/Pianificazione"),
                 Link("Intervento straordinario", "/Lavori/InterventoStraordinario"),
                 Link("Nuovo lavoro", "/Lavori/NuovoLavoro"),
-                Link("Agenda lavori", "/Interventi/Index"),
+                Pending("Distinta base"),
                 Link("Macchine installate", "/Lavori/MacchineInstallate")),
             Group("Esecuzione",
                 Link("Schede lavori", "/Lavori/Schede"),
+                Link("Agenda lavori", "/Interventi/Index"),
+                Pending("Produzione interna"),
                 Link("Lavori su dispositivo mobile", "/Interventi/Index"),
                 Pending("Scheda di revisione"),
                 Pending("Lavoro di revisione"))
         ]),
-        new("vendita", "Vendita", "VN", "accent-sales",
+        new("acquisti", "Acquisti", "AQ", "accent-stock",
         [
-            Group("Documenti di vendita", "Documento di trasporto", "Fattura di vendita", "Fattura differita", "Visualizza fattura elettronica", "Ricevuta fiscale", "Preventivo di vendita"),
-            Group("Vendita al dettaglio", "Vendita al banco", "Rendiconto vendite", "Buono acquisto")
+            Group("Documenti di acquisto", "Fatture di acquisto", "Caricamento fatture elettroniche", "Visualizza fattura elettronica")
+        ]),
+        new("vendita", "Vendite", "VN", "accent-sales",
+        [
+            Group("Documenti di vendita", "Documento di trasporto", "Fattura di vendita", "Ricevuta fiscale", "Preventivo di vendita"),
+            Group("Statistiche di vendita", "Rendiconto vendite", "Statistiche di vendita")
         ]),
         new("contabilita", "Contabilità", "CN", "accent-accounting",
         [
-            Group("Movimenti IVA", "Fatture di acquisto", "Fatture di vendita", "Vendite per corrispettivi", "Visualizza fattura elettronica"),
-            Group("Movimenti contabili", "Movimenti di prima nota", "Incasso da clienti", "Pagamento fornitori", "Visualizza conto", "Stampa lista movimenti"),
-            Group("Clienti e fornitori", "Scadenze attive", "Scadenze passive", "Estratto conto clienti", "Estratto conto fornitori", "Estratto conto clienti per partite", "Estratto conto fornitori per partite", "Saldi clienti", "Saldi fornitori"),
+            Group("Prima nota contabile", "Movimenti di prima nota", "Scadenze passive", "Saldi iniziali clienti e fornitori", "Apertura conti patrimoniali"),
+            Group("Situazione economica", "Estratto conto fornitori", "Estratto conto clienti", "Scheda contabile", "Saldi clienti e fornitori", "Liquidazione periodica IVA", "Bilancio di verifica"),
             Group("Banche e titoli", "Titoli di credito", "Estratto conto banca")
         ]),
         new("strumenti", "Strumenti", "ST", "accent-tools",
         [
-            Group("Applicazione", "Opzioni azienda", "Cambia utente", "Opzioni utenti", "Parametri applicazione", "Note di aggiornamento", "Info applicazione"),
-            Group("Archivio", "Cambia azienda", "Cambia esercizio", "Copie di sicurezza", "Ripristino copie di sicurezza", "Configurazione server", "Recupero archivio", "Aggiornamento database"),
-            Group("Lavori di servizio", "Assistenza remota", "Attività utenti", "Importazione dati SQL Server", "Importazione dati OleDb", "Importazione dati CSV", "Esportazione dati CSV", "Azzeramento tabelle")
+            Group("Applicazione", "Opzioni azienda", "Cambia azienda", "Cambia esercizio", "Cambia utente"),
+            Group("Archivio", "Copie di sicurezza", "Ripristino copie di sicurezza", "Elimina movimenti per anno"),
+            Group("Lavori di servizio", "Attività utenti")
         ])
     ];
 

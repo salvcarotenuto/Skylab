@@ -1,0 +1,113 @@
+@page
+@model SkyLab.Web.Pages.Tabelle.CausaliContabili.IndexModel
+@{
+    ViewData["Title"] = "Causali contabili";
+    ViewData["HideFooter"] = true;
+    static string MovLabel(string v) => v switch { "C" => "Contabile", "B" => "Banca", "V" => "IVA", _ => v };
+    static string PartyLabel(string v) => v switch { "C" => "Cliente", "F" => "Fornitore", "B" => "Banca", "D" => "Dipendente", _ => "" };
+    static string SignLabel(string v) => v switch { "A" => "Avere", "D" => "Dare", _ => "" };
+    static string InOutLabel(string v) => v switch { "E" => "Entrata", "U" => "Uscita", _ => "" };
+    var accountNames = Model.Accounts.ToDictionary(x => x.Code, x => x.Description);
+}
+<link rel="stylesheet" href="~/css/accounting-causes.css" asp-append-version="true" />
+<section class="cause-list-page" data-cause-page data-next-code="@Model.NextCode" data-open-editor="@(!ViewData.ModelState.IsValid ? "true" : "false")">
+    <header class="planning-heading cause-heading customer-form-header">
+        <div class="module-title-identity">
+            <div class="skylab-header-brand"><img src="~/images/skylab-logo.png" alt="" /></div>
+            <div><p class="eyebrow">Tabelle · Contabili</p><h1>Causali contabili</h1><p>Gestione delle causali e delle contropartite contabili.</p></div>
+        </div>
+        <div class="cause-title-actions">
+            <span class="cause-count-box"><strong data-cause-count>@Model.Items.Count</strong> record</span>
+            <button class="btn btn-primary" type="button" data-cause-new>Nuovo</button>
+            <button class="btn customer-menu-button" type="button" data-cause-edit disabled>Modifica</button>
+            <button class="btn customer-menu-button" type="button" data-cause-delete disabled>Elimina</button>
+            <a class="btn customer-menu-button" asp-page="/Index">Esci</a>
+        </div>
+    </header>
+    <div class="cause-toolbar"><label for="cause-search">Cerca</label><div class="cause-search-wrap"><input id="cause-search" placeholder="Descrizione causale" autocomplete="off" autofocus data-cause-search /><button type="button" aria-label="Pulisci filtro" data-cause-clear hidden>×</button></div><label for="cause-movement-filter">Tipo movimento</label><select id="cause-movement-filter" data-cause-movement-filter><option value="">Tutti</option><option value="C">C - Movimento contabile</option><option value="B">B - Movimento bancario</option><option value="V">V - Movimento IVA</option></select></div>
+    <div class="cause-grid-frame">
+        <table class="cause-grid">
+            <thead><tr><th data-cause-sort="code">Codice</th><th data-cause-sort="description">Descrizione</th><th data-cause-sort="movement">Tipo</th><th data-cause-sort="party">Soggetto</th><th data-cause-sort="sign">Segno</th><th data-cause-sort="inout">E/U</th><th data-cause-sort="debit">Dare</th><th data-cause-sort="debitDescription">Conto Dare</th><th data-cause-sort="credit">Avere</th><th data-cause-sort="creditDescription">Conto Avere</th><th data-cause-sort="cash">Cassa</th><th data-cause-sort="invoice">Fattura</th><th data-cause-sort="due">Scadenza</th><th data-cause-sort="title">Titolo</th><th data-cause-sort="salary">Stipendio</th><th data-cause-sort="print">Stampa</th><th data-cause-sort="locked">Bloccato</th></tr></thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    var debitName = item.Debit1 > 0 && accountNames.TryGetValue(item.Debit1, out var dn) ? dn : "";
+                    var creditName = item.Credit1 > 0 && accountNames.TryGetValue(item.Credit1, out var cn) ? cn : "";
+                    <tr tabindex="0" data-cause-row data-code="@item.Code" data-description="@item.Description" data-movement="@item.MovementType" data-movement-label="@MovLabel(item.MovementType)" data-party="@item.PartyKind" data-party-label="@PartyLabel(item.PartyKind)" data-sign="@item.Sign" data-sign-label="@SignLabel(item.Sign)" data-inout="@item.InOut" data-inout-label="@InOutLabel(item.InOut)" data-cause-type="@item.CauseType" data-payment-type="@item.PaymentType" data-debit="@item.Debit1" data-debit-description="@debitName" data-credit="@item.Credit1" data-credit-description="@creditName" data-cash="@(item.Cash ? "1" : "0")" data-invoice="@(item.Invoice ? "1" : "0")" data-due="@(item.DueDate ? "1" : "0")" data-title="@(item.Title ? "1" : "0")" data-salary="@(item.Salary ? "1" : "0")" data-print="@(item.Print ? "1" : "0")" data-locked="@(item.Locked ? "1" : "0")" data-debit1="@item.Debit1" data-debit2="@item.Debit2" data-debit3="@item.Debit3" data-debit4="@item.Debit4" data-debit5="@item.Debit5" data-debit6="@item.Debit6" data-credit1="@item.Credit1" data-credit2="@item.Credit2" data-credit3="@item.Credit3" data-credit4="@item.Credit4" data-credit5="@item.Credit5" data-credit6="@item.Credit6">
+                        <td>@item.Code.ToString("000")</td><td>@item.Description</td><td>@item.MovementType</td><td>@item.PartyKind</td><td>@item.Sign</td><td>@item.InOut</td><td>@(item.Debit1 > 0 ? item.Debit1.ToString("000") : "")</td><td>@debitName</td><td>@(item.Credit1 > 0 ? item.Credit1.ToString("000") : "")</td><td>@creditName</td><td>@(item.Cash ? "Sì" : "")</td><td>@(item.Invoice ? "Sì" : "")</td><td>@(item.DueDate ? "Sì" : "")</td><td>@(item.Title ? "Sì" : "")</td><td>@(item.Salary ? "Sì" : "")</td><td>@(item.Print ? "Sì" : "")</td><td>@(item.Locked ? "Sì" : "")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="cause-empty" data-cause-empty hidden>Nessuna causale corrisponde al filtro impostato.</div>
+    </div>
+    <dialog class="cause-editor" data-cause-dialog>
+        <form method="post" asp-page-handler="Save" data-cause-form>
+            <div class="cause-editor-title"><h2>Scheda causale</h2></div>
+            <div class="cause-editor-body">
+                <div class="cause-main-grid">
+                    <div class="field"><label for="cause-code-view">Codice</label><input id="cause-code-view" readonly tabindex="-1" data-cause-code /><input asp-for="Causale.Code" type="hidden" data-cause-code-value /><span asp-validation-for="Causale.Code"></span></div>
+                    <div class="field wide"><label asp-for="Causale.Description">Descrizione</label><input asp-for="Causale.Description" autocomplete="off" data-cause-description /><span asp-validation-for="Causale.Description"></span></div>
+                    <div class="field"><label asp-for="Causale.MovementType">Tipo movimento</label><select asp-for="Causale.MovementType" required data-cause-movement><option value="">Seleziona...</option><option value="C">C - Movimento contabile</option><option value="B">B - Movimento bancario</option><option value="V">V - Movimento IVA</option></select><span asp-validation-for="Causale.MovementType"></span></div>
+                    <div class="field"><label asp-for="Causale.PartyKind">Soggetto</label><select asp-for="Causale.PartyKind" data-cause-party><option value=""></option><option value="C">C - Cliente</option><option value="F">F - Fornitore</option><option value="B">B - Banca</option><option value="D">D - Dipendente</option></select><span asp-validation-for="Causale.PartyKind"></span></div>
+                    <div class="field"><label asp-for="Causale.Sign">Segno</label><select asp-for="Causale.Sign" data-cause-sign><option value=""></option><option value="D">Dare</option><option value="A">Avere</option></select><span asp-validation-for="Causale.Sign"></span></div>
+                    <div class="field"><label asp-for="Causale.InOut">Entrata/Uscita</label><select asp-for="Causale.InOut" data-cause-inout><option value=""></option><option value="E">Entrata</option><option value="U">Uscita</option></select><span asp-validation-for="Causale.InOut"></span></div>
+                    <div class="field"><label asp-for="Causale.CauseType">Tipo causale</label><select asp-for="Causale.CauseType" data-cause-type><option value=""></option><option value="C">Cassa</option><option value="P">Pagamento</option><option value="N">Nota</option></select><span asp-validation-for="Causale.CauseType"></span></div>
+                    <div class="field"><label asp-for="Causale.PaymentType">Tipo pagamento</label><select asp-for="Causale.PaymentType" data-cause-payment><option value=""></option><option value="C">Contanti</option><option value="D">Differito</option><option value="E">Effetti</option><option value="N">Nessuno</option></select><span asp-validation-for="Causale.PaymentType"></span></div>
+                </div>
+                <div class="cause-flag-grid">
+                    @{ var flags = new[] { ("Causale.Cash", "Cassa", "cash"), ("Causale.Invoice", "Fattura", "invoice"), ("Causale.DueDate", "Scadenza", "due"), ("Causale.Title", "Titolo", "title"), ("Causale.Salary", "Stipendio", "salary"), ("Causale.Print", "Stampa", "print") }; }
+                    @foreach (var flag in flags)
+                    {
+                        var flagId = $"cause-flag-{flag.Item3}";
+                        <div class="cause-check-field"><label for="@flagId">@flag.Item2</label><div class="cause-check-button-field"><input id="@flagId" type="checkbox" name="@flag.Item1" value="true" data-cause-flag="@flag.Item3" /><input type="hidden" name="@flag.Item1" value="false" /><label class="cause-check-button-wrap" for="@flagId" aria-label="@flag.Item2"></label></div></div>
+                    }
+                </div>
+                <div class="cause-accounts">
+                    <section>
+                        <h3>DARE</h3><div class="cause-account-head"><span></span><span>Mastro</span><span>Conto</span></div>
+                        @for (var i = 1; i <= 6; i++)
+                        {
+                            var name = $"Causale.Debit{i}";
+                            <div class="cause-account-row"><button type="button" data-cause-zoom-debit="@i">+</button><button type="button" data-cause-clear-debit="@i">×</button><input readonly tabindex="-1" data-cause-debit-master="@i" /><select name="@name" data-cause-debit="@i"><option value="0"></option>@foreach (var conto in Model.Accounts) { <option value="@conto.Code" data-master="@conto.Master.ToString("000")" data-master-description="@conto.MasterDescription">@conto.Code.ToString("000") · @conto.Description</option> }</select></div>
+                        }
+                    </section>
+                    <section>
+                        <h3>AVERE</h3><div class="cause-account-head"><span></span><span>Mastro</span><span>Conto</span></div>
+                        @for (var i = 1; i <= 6; i++)
+                        {
+                            var name = $"Causale.Credit{i}";
+                            <div class="cause-account-row"><button type="button" data-cause-zoom-credit="@i">+</button><button type="button" data-cause-clear-credit="@i">×</button><input readonly tabindex="-1" data-cause-credit-master="@i" /><select name="@name" data-cause-credit="@i"><option value="0"></option>@foreach (var conto in Model.Accounts) { <option value="@conto.Code" data-master="@conto.Master.ToString("000")" data-master-description="@conto.MasterDescription">@conto.Code.ToString("000") · @conto.Description</option> }</select></div>
+                        }
+                    </section>
+                </div>
+                <input asp-for="IsNew" type="hidden" data-cause-is-new />
+            </div>
+            <footer><button class="btn btn-primary" type="submit" data-cause-save>Salva</button><button class="btn customer-menu-button" type="button" data-cause-cancel>Annulla</button></footer>
+        </form>
+    </dialog>
+    <dialog class="account-zoom" data-account-zoom>
+        <div class="account-zoom-title">Piano dei conti</div>
+        <div class="account-zoom-body">
+            <div class="account-zoom-grid-frame">
+                <table class="account-zoom-grid">
+                    <thead><tr><th></th><th>Mastro</th><th>Descrizione</th><th>Conto</th><th>Descrizione</th><th>Tipo</th></tr></thead>
+                    <tbody>
+                        @foreach (var conto in Model.Accounts)
+                        {
+                            <tr tabindex="0" data-account-zoom-row data-account-code="@conto.Code" data-account-description="@conto.Description" data-master-code="@conto.Master" data-master-description="@conto.MasterDescription" data-account-type="@conto.Type">
+                                <td></td><td>@conto.Master.ToString("000")</td><td>@conto.MasterDescription</td><td>@conto.Code.ToString("000")</td><td>@conto.Description</td><td>@conto.Type</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <aside class="account-zoom-types"><button type="button" data-account-type-filter="P">Patrimoniali</button><button type="button" data-account-type-filter="C">Costi</button><button type="button" data-account-type-filter="R">Ricavi</button><button class="active" type="button" data-account-type-filter="">Tutti</button></aside>
+            <div class="account-zoom-filters"><label>Mastro</label><select data-account-zoom-master><option value=""></option>@foreach (var mastro in Model.Accounts.Select(x => new { x.Master, x.MasterDescription }).DistinctBy(x => x.Master).OrderBy(x => x.Master)) { <option value="@mastro.Master">@mastro.Master.ToString("000") · @mastro.MasterDescription</option> }</select><label>Cerca</label><input data-account-zoom-search autocomplete="off" /><label>Records</label><input readonly data-account-zoom-count /></div>
+            <footer><button type="button" data-account-zoom-ok>OK</button><button type="button" data-account-zoom-cancel>Annulla</button></footer>
+        </div>
+    </dialog>
+    <form method="post" asp-page-handler="Delete" data-cause-delete-form hidden><input name="code" data-cause-delete-code /></form>
+    @if (!string.IsNullOrWhiteSpace(Model.Message)) { <span hidden data-page-message data-message-text="@Model.Message"></span> }
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /><script src="~/js/accounting-causes-list.js" asp-append-version="true"></script> }

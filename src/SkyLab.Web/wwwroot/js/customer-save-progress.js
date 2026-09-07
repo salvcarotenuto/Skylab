@@ -1,17 +1,8 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.querySelector("#user-form");
-  const save = document.querySelector("[data-user-save]");
-  const view = document.querySelector("[data-password-view]");
-  const password = document.querySelector("[data-password-input]");
-  if (!form || !save) return;
+(() => {
+  const form = document.getElementById("customer-form");
+  const button = document.querySelector("[data-customer-save]");
+  if (!form || !button) return;
 
-  view?.addEventListener("click", () => {
-    const visible = password.type === "text";
-    password.type = visible ? "password" : "text";
-    view.textContent = visible ? "Vedi" : "Nascondi";
-  });
-
-  save.addEventListener("click", () => form.requestSubmit());
   form.addEventListener("submit", async event => {
     if (event.defaultPrevented) return;
     event.preventDefault();
@@ -20,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const progress = window.parent !== window && window.parent.SkyProg
       ? window.parent.SkyProg
       : window.SkyProg;
-    save.disabled = true;
+    button.disabled = true;
     progress?.Show();
 
     let response;
@@ -39,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
       error = "Impossibile completare il salvataggio.";
     } finally {
       progress?.Close(() => {
-        save.disabled = false;
+        button.disabled = false;
         if (error) {
           window.SkyLabMessageBox?.show({ title: "SkyLab - attenzione", message: error, variant: "error" });
           return;
@@ -54,4 +45,4 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   });
-});
+})();

@@ -24,7 +24,7 @@
             </div>
         </div>
         <div class="customer-form-toolbar">
-            <button class="btn btn-primary" type="submit" form="customer-form">Salva</button>
+            <button class="btn btn-primary" type="submit" form="customer-form" data-customer-save>Salva</button>
             @if(Model.Modal){<button class="btn customer-menu-button" type="button" onclick="parent.postMessage({type:'skylab-customer-cancel'},location.origin)">Esci</button>}else{<a class="btn customer-menu-button" asp-page="Index">Esci</a>}
         </div>
     </header>
@@ -129,4 +129,5 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/customer-edit.js" asp-append-version="true"></script>
+    <script src="~/js/customer-save-progress.js" asp-append-version="true"></script>
 }

@@ -2,7 +2,7 @@
 @model SkyLab.Web.Pages.Utenti.EditModel
 @{ ViewData["Title"]=Model.IsNew?"Nuovo utente":"Scheda utente"; ViewData["HideFooter"]=true; }
 <section class="customer-form-page user-form-page">
- <header class="customer-form-header"><div class="module-title-identity"><div class="skylab-header-brand"><img src="~/images/skylab-logo.png" alt=""/></div><div><h1>@(Model.IsNew?"Nuovo utente":"Scheda utente")</h1><p>@(Model.IsNew?"Inserimento di una nuova anagrafica.":$"Codice {Model.AppUser.Code:000}")</p></div></div><div class="customer-form-toolbar"><button class="btn btn-primary" type="button" data-user-save>Salva</button><a class="btn btn-outline-primary" asp-page="./Index">Annulla</a></div></header>
+ <header class="customer-form-header"><div class="module-title-identity"><div class="skylab-header-brand"><img src="~/images/skylab-logo.png" alt=""/></div><div><h1>@(Model.IsNew?"Nuovo utente":"Scheda utente")</h1><p>@(Model.IsNew?"Inserimento di una nuova anagrafica.":$"Codice {Model.AppUser.Code:000}")</p></div></div><div class="customer-form-toolbar"><button class="btn btn-primary" type="button" data-user-save>Salva</button><a class="btn customer-menu-button" asp-page="./Index">Annulla</a></div></header>
  <form id="user-form" method="post" class="customer-entity-form user-form-panel" data-enter-navigation><input asp-for="AppUser.Code" type="hidden"/><input asp-for="Azione" type="hidden"/><div asp-validation-summary="ModelOnly" class="validation-summary"></div>
   <fieldset class="form-frame"><legend>Anagrafica</legend><div class="form-grid form-grid-4">
    <div class="field field-code"><label>Codice</label><input class="code-display" readonly value="@(Model.IsNew?Model.DisplayCode.ToString("000"):Model.AppUser.Code.ToString("000"))"/></div>
