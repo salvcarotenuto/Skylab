@@ -48,7 +48,7 @@ public static class MainMenuCatalog
         ]),
         new("acquisti", "Acquisti", "AQ", "accent-stock",
         [
-            Group("Documenti di acquisto", "Fatture di acquisto", "Caricamento fatture elettroniche", "Visualizza fattura elettronica")
+            Group("Documenti di acquisto", Link("Fatture di acquisto", "/FattureAcquisto/Index"), Link("Caricamento fatture elettroniche", "/CaricamentoFeAcquisti/Index"), Pending("Visualizza fattura elettronica"))
         ]),
         new("vendita", "Vendite", "VN", "accent-sales",
         [

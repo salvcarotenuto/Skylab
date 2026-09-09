@@ -1,0 +1,171 @@
+.purchase-invoices-page {
+    height: calc(100vh - 18px);
+    padding-top: 8px;
+}
+
+.purchase-invoices-page .list-titlebar {
+    box-sizing: border-box;
+    height: 96px;
+    margin-bottom: 8px;
+    min-height: 96px;
+    padding: 10px 18px;
+}
+
+.purchase-invoices-page .list-title-layout {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    height: 72px;
+}
+
+.purchase-invoices-page .list-title-identity strong {
+    font-size: 26px;
+    line-height: 1.05;
+}
+
+.purchase-invoices-page .list-title-identity small {
+    margin-top: 3px;
+}
+
+.purchase-invoices-page .list-title-actions .customer-menu-button,
+.purchase-invoices-page .list-title-actions .btn-primary {
+    align-items: center;
+    display: inline-flex;
+    height: 40px;
+    justify-content: center;
+    min-width: 88px;
+}
+
+.purchase-invoices-filter-panel {
+    align-items: center;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    flex: 0 0 auto;
+    height: 54px;
+    justify-content: center;
+    margin-bottom: 8px;
+    min-height: 54px;
+    padding: 0 14px;
+}
+
+.purchase-invoices-list-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 14px 14px;
+}
+
+.purchase-invoices-filters {
+    align-items: center;
+    display: flex;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.purchase-invoices-filter-row {
+    align-items: center;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 123px 150px 190px 500px 180px minmax(240px, 1fr);
+    transform: translateY(4px);
+}
+
+.purchase-invoices-page .list-filter-field {
+    gap: 3px;
+    min-width: 0;
+}
+
+.purchase-invoices-page .list-filter-field > div {
+    min-width: 0;
+}
+
+.purchase-invoices-page .list-filter-field label {
+    border-radius: 6px;
+    font-weight: 400;
+    height: 30px;
+    min-height: 30px;
+}
+
+.purchase-invoices-page .list-filter-field input,
+.purchase-invoices-page .list-filter-field select {
+    font-size: 13px;
+    font-weight: 420;
+    height: 30px;
+    min-height: 30px;
+    width: 100%;
+}
+
+.purchase-invoices-page .list-filter-field input:focus,
+.purchase-invoices-page .list-filter-field select:focus {
+    border-color: #7f91a5;
+    box-shadow: 0 0 0 2px rgba(127, 145, 165, .18);
+    outline: none;
+}
+
+.purchase-invoices-supplier-controls {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: 82px minmax(0, 1fr) 34px;
+}
+
+.purchase-invoices-supplier-controls #supplierCodeDisplay {
+    text-align: center;
+    width: 82px;
+}
+
+.purchase-invoices-supplier-controls #supplierNameDisplay {
+    background-color: #edf2f8;
+    cursor: default;
+    pointer-events: none;
+    user-select: none;
+}
+
+.purchase-invoices-supplier-controls .lookup-button {
+    background-color: #fff;
+    background-image: url("/images/skylab-search.svg");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 19px 19px;
+    border: 1px solid #4b64a5;
+    border-radius: 5px;
+    height: 30px;
+    min-height: 30px;
+    width: 34px;
+}
+
+.purchase-invoices-supplier-controls .lookup-button::before,
+.purchase-invoices-supplier-controls .lookup-button::after {
+    content: none;
+}
+
+.purchase-invoices-grid-frame {
+    flex: 1 1 auto;
+    height: 100%;
+    margin-top: 0;
+}
+
+.purchase-invoices-grid {
+    min-width: 1240px;
+}
+
+.purchase-invoices-grid th:nth-child(1) { width: 90px; }
+.purchase-invoices-grid th:nth-child(2) { width: 120px; }
+.purchase-invoices-grid th:nth-child(3) { width: 95px; }
+.purchase-invoices-grid th:nth-child(4) { width: 120px; }
+.purchase-invoices-grid th:nth-child(5) { width: 95px; }
+.purchase-invoices-grid th:nth-child(8),
+.purchase-invoices-grid th:nth-child(9),
+.purchase-invoices-grid th:nth-child(10) { width: 105px; }
+.purchase-invoices-grid td:nth-child(8),
+.purchase-invoices-grid td:nth-child(9),
+.purchase-invoices-grid td:nth-child(10) { text-align: right; }
+
+.purchase-invoices-page .sales-history-empty {
+    color: #647084;
+    padding: 34px;
+    position: absolute;
+    right: 0;
+    left: 0;
+    text-align: center;
+    top: 31px;
+}

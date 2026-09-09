@@ -1,0 +1,686 @@
+/* Scheda Fattura di acquisto - struttura pulita SkyLab */
+
+.purchase-invoice-form-page.module-page {
+    --invoice-page-width: 1270px;
+    --invoice-content-width: 1270px;
+    --invoice-gap: 8px;
+    --invoice-label: #b8cbe0;
+    --invoice-border: #8a8f98;
+    --invoice-blue: #506ac0;
+    box-sizing: border-box;
+    max-width: none;
+    min-height: calc(100vh - 32px);
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding: 8px 40px 8px;
+    width: 100vw;
+}
+
+/* Pannelli principali */
+
+.purchase-invoice-form-page .module-header,
+.purchase-invoice-form-page .entity-form {
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+    width: min(100%, var(--invoice-page-width));
+}
+
+.purchase-invoice-form-page .module-header {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #b8c5d6;
+    border-radius: 8px;
+    box-shadow: 0 8px 18px rgba(23, 34, 54, .07);
+    display: flex;
+    height: 88px;
+    justify-content: space-between;
+    margin-bottom: var(--invoice-gap);
+    min-height: 88px;
+    padding: 12px 16px;
+}
+
+.purchase-invoice-form-page form#purchase-invoice-form.entity-form {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    display: block !important;
+    margin-top: 0 !important;
+    padding: 0 !important;
+}
+
+.purchase-invoice-form-page .purchase-invoice-body-panel {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 1px solid var(--invoice-border) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 6px 16px rgba(23, 34, 54, .10) !important;
+    box-sizing: border-box !important;
+    align-content: start !important;
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-rows: max-content max-content !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: 0 !important;
+    padding: 15px 14px 14px !important;
+    height: 614px !important;
+    width: min(100%, var(--invoice-content-width)) !important;
+}
+
+/* Titolo */
+
+.purchase-invoice-form-page .module-title-identity {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    min-width: 0;
+}
+
+.purchase-invoice-form-page .module-title-logo {
+    display: flex;
+    flex: 0 0 56px;
+    height: 56px;
+    overflow: hidden;
+    width: 56px;
+}
+
+.purchase-invoice-form-page .module-title-logo img {
+    display: block;
+    height: 56px !important;
+    max-height: 56px !important;
+    max-width: 56px !important;
+    object-fit: contain;
+    width: 56px !important;
+}
+
+.purchase-invoice-form-page .module-title-identity h1 {
+    color: #172236;
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 1.2;
+    margin: 0 0 3px;
+}
+
+.purchase-invoice-form-page .module-title-identity p {
+    color: #5a667a;
+    font-size: 13px;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.purchase-invoice-form-page .top-actions {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.purchase-invoice-form-page .top-actions .button,
+.purchase-invoice-form-page .top-actions button,
+.purchase-invoice-form-page .top-actions a {
+    align-items: center;
+    box-sizing: border-box;
+    display: inline-flex;
+    font-weight: 600;
+    height: 44px;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 140px;
+    padding: 0 15px;
+    text-decoration: none;
+    width: 140px;
+}
+
+.purchase-invoice-form-page .button.button-primary,
+.purchase-invoice-form-page button.button-primary {
+    background: var(--invoice-blue) !important;
+    border: 1px solid var(--invoice-blue) !important;
+    border-radius: 6px !important;
+    color: #ffffff !important;
+}
+
+.purchase-invoice-form-page .button.button-secondary,
+.purchase-invoice-form-page a.button-secondary {
+    background: #f7f9ff !important;
+    border: 1px solid var(--invoice-blue) !important;
+    border-radius: 6px !important;
+    color: #1f3f94 !important;
+}
+
+/* Riquadri interni */
+
+.purchase-invoice-form-page form#purchase-invoice-form.entity-form fieldset.form-frame {
+    background: #ffffff !important;
+    border: 1px solid var(--invoice-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+}
+
+.purchase-invoice-form-page form#purchase-invoice-form.entity-form fieldset.form-frame > legend {
+    background: #ffffff !important;
+    border: 1px solid var(--invoice-border) !important;
+    box-sizing: border-box !important;
+    color: #22384e !important;
+    display: inline-block !important;
+    float: none !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    line-height: 1.2 !important;
+    margin: 0 0 0 10px !important;
+    padding: 4px 10px !important;
+    text-transform: uppercase !important;
+    width: auto !important;
+}
+
+.purchase-invoice-form-page form#purchase-invoice-form.entity-form .purchase-invoice-general-frame {
+    height: 249px !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    width: 100% !important;
+}
+
+.purchase-invoice-detail-grid {
+    align-items: stretch;
+    display: grid;
+    gap: var(--invoice-gap);
+    grid-template-columns: 460px minmax(0, 740px);
+    justify-content: space-between;
+    width: 100%;
+}
+
+.purchase-invoice-form-page form#purchase-invoice-form.entity-form .purchase-invoice-vat-frame,
+.purchase-invoice-form-page form#purchase-invoice-form.entity-form .purchase-invoice-payment-frame {
+    height: 326px !important;
+    min-height: 230px !important;
+    min-width: 0 !important;
+    padding: 16px 12px 4px !important;
+}
+
+.purchase-invoice-form-page form#purchase-invoice-form.entity-form .purchase-invoice-vat-frame {
+    width: 460px !important;
+}
+
+.purchase-invoice-form-page form#purchase-invoice-form.entity-form .purchase-invoice-payment-frame {
+    width: 740px !important;
+}
+
+/* Controlli base */
+
+.purchase-invoice-electronic-row label,
+.purchase-invoice-general-grid label,
+.purchase-invoice-vat-frame label,
+.purchase-invoice-payment-frame label {
+    align-items: center;
+    background: var(--invoice-label);
+    border: 1px solid var(--invoice-border);
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #22384e;
+    display: inline-flex;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    height: 30px;
+    padding: 0 8px;
+    user-select: none;
+}
+
+.purchase-invoice-form-page input,
+.purchase-invoice-form-page select {
+    border: 1px solid var(--invoice-border);
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #111827;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 420;
+    height: 30px;
+    min-width: 0;
+    padding: 3px 8px;
+}
+
+.purchase-invoice-form-page input:focus,
+.purchase-invoice-form-page select:focus {
+    border-color: #3f7fbd;
+    box-shadow: 0 0 0 2px rgba(70, 139, 204, .16);
+    outline: none;
+}
+
+.purchase-invoice-form-page input[readonly] {
+    background: rgb(230, 230, 240);
+    color: #111111;
+}
+
+/* Dati fattura */
+
+.purchase-invoice-electronic-row {
+    align-items: center;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 64px 150px 1fr 140px 140px;
+    margin: 9px 12px 10px;
+}
+
+.purchase-invoice-electronic-icon {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    display: inline-flex;
+    height: 44px;
+    justify-content: center;
+    width: 54px;
+}
+
+.purchase-invoice-electronic-icon img {
+    display: block;
+    height: 42px;
+    object-fit: contain;
+    width: 54px;
+}
+
+.purchase-invoice-electronic-button {
+    box-sizing: border-box;
+    font-weight: 500;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 12px;
+    width: 140px;
+}
+
+.purchase-invoice-general-grid {
+    display: grid;
+    gap: 8px 24px;
+    grid-template-columns: 430px minmax(0, 1fr);
+    margin: 0 12px 0;
+}
+
+.purchase-invoice-general-grid .field {
+    align-items: center;
+    display: grid;
+    min-width: 0;
+}
+
+.purchase-invoice-code-field {
+    column-gap: 6px;
+    grid-column: 1;
+    grid-template-columns: 150px 130px 12px 86px;
+    width: max-content;
+}
+
+.purchase-invoice-code-field > label,
+.purchase-invoice-number-field > label,
+.purchase-invoice-date-field > label,
+.purchase-invoice-type-field > label {
+    width: 150px;
+}
+
+.purchase-invoice-code-field input:first-of-type {
+    text-align: center;
+    width: 130px;
+}
+
+.purchase-invoice-code-field input:last-of-type {
+    text-align: center;
+    width: 86px;
+}
+
+.purchase-invoice-code-field span {
+    color: #22384e;
+    display: inline-flex;
+    font-weight: 700;
+    justify-content: center;
+    text-align: center;
+    width: 18px;
+}
+
+.purchase-invoice-number-field,
+.purchase-invoice-date-field,
+.purchase-invoice-type-field {
+    column-gap: 6px;
+    grid-column: 1;
+    grid-template-columns: 150px 240px;
+}
+
+.purchase-invoice-number-field input,
+.purchase-invoice-date-field input,
+.purchase-invoice-date-field .micronote-date-control,
+.purchase-invoice-type-field select {
+    width: 240px;
+}
+
+.purchase-invoice-supplier-field {
+    column-gap: 6px;
+    grid-column: 2;
+    grid-row: 1;
+    grid-template-columns: 120px 80px 477px 30px 30px;
+}
+
+.purchase-invoice-supplier-code {
+    text-align: center;
+    width: 80px;
+}
+
+.purchase-invoice-supplier-name {
+    cursor: default;
+    pointer-events: none;
+    user-select: none;
+}
+
+.purchase-invoice-contra-field,
+.purchase-invoice-store-field,
+.purchase-invoice-notes-field {
+    column-gap: 6px;
+    grid-column: 2;
+    grid-template-columns: 120px 635px;
+}
+
+.purchase-invoice-supplier-field > label,
+.purchase-invoice-contra-field > label,
+.purchase-invoice-store-field > label,
+.purchase-invoice-notes-field > label {
+    width: 120px;
+}
+
+.purchase-invoice-contra-field select,
+.purchase-invoice-store-field select,
+.purchase-invoice-notes-field input {
+    width: 635px;
+}
+
+.purchase-invoice-supplier-name {
+    width: 477px;
+}
+
+.purchase-invoice-contra-field {
+    grid-row: 2;
+}
+
+.purchase-invoice-store-field {
+    grid-row: 3;
+}
+
+.purchase-invoice-notes-field {
+    grid-row: 4;
+}
+
+.purchase-invoice-lookup-button,
+.purchase-invoice-add-button {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--invoice-border);
+    border-radius: 5px;
+    color: var(--invoice-blue);
+    display: inline-flex;
+    font-size: 19px;
+    font-weight: 400;
+    height: 30px;
+    justify-content: center;
+    line-height: 1;
+    min-height: 30px;
+    padding: 0;
+    width: 30px;
+}
+
+.purchase-invoice-form-page .lookup-button {
+    background-color: #ffffff;
+    background-image: url("/images/skylab-search.svg");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 19px 19px;
+}
+
+.purchase-invoice-form-page .lookup-button::before,
+.purchase-invoice-form-page .lookup-button::after {
+    content: none;
+}
+
+/* Imponibili e IVA */
+
+.purchase-invoice-total-field,
+.purchase-invoice-inserted-field,
+.purchase-invoice-difference-field {
+    align-items: center;
+    column-gap: 6px;
+    display: grid;
+    grid-template-columns: 150px 160px;
+    justify-content: start;
+    margin-bottom: 8px;
+}
+
+.purchase-invoice-inserted-field,
+.purchase-invoice-difference-field {
+    margin: 6px 0 0;
+}
+
+.purchase-invoice-total-field input,
+.purchase-invoice-inserted-field input,
+.purchase-invoice-difference-field input {
+    text-align: right;
+    width: 160px;
+}
+
+.purchase-invoice-vat-table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: fixed;
+    width: 390px;
+}
+
+.purchase-invoice-vat-table th:nth-child(1),
+.purchase-invoice-vat-table td:nth-child(1) {
+    text-align: center;
+    width: 120px;
+}
+
+.purchase-invoice-vat-table th:nth-child(2),
+.purchase-invoice-vat-table td:nth-child(2) {
+    width: 150px;
+}
+
+.purchase-invoice-vat-table th:nth-child(3),
+.purchase-invoice-vat-table td:nth-child(3) {
+    width: 120px;
+}
+
+/* Pagamento */
+
+.purchase-invoice-payment-layout {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) 158px;
+}
+
+.purchase-invoice-payment-field,
+.purchase-invoice-bank-field {
+    align-items: center;
+    display: grid;
+    grid-template-columns: 90px 395px;
+    margin-bottom: 8px;
+}
+
+.purchase-invoice-payment-field select,
+.purchase-invoice-bank-field select {
+    width: 395px;
+}
+
+.purchase-invoice-payment-actions {
+    align-content: start;
+    display: grid;
+    gap: 8px;
+}
+
+.purchase-invoice-payment-actions .button {
+    font-size: 11px;
+    font-weight: 500;
+    height: 30px;
+    min-height: 30px;
+    min-width: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.purchase-invoice-due-grid-wrap {
+    border: 1px solid #9da8b5;
+    max-height: 216px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    width: 520px;
+}
+
+.purchase-invoice-due-table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: fixed;
+    width: 520px;
+}
+
+.purchase-invoice-due-table th:nth-child(1),
+.purchase-invoice-due-table td:nth-child(1) {
+    text-align: center;
+    width: 100px;
+}
+
+.purchase-invoice-due-table th:nth-child(2),
+.purchase-invoice-due-table td:nth-child(2) {
+    width: 160px;
+}
+
+.purchase-invoice-due-table th:nth-child(3),
+.purchase-invoice-due-table td:nth-child(3) {
+    text-align: center;
+    width: 160px;
+}
+
+.purchase-invoice-due-table th:nth-child(4),
+.purchase-invoice-due-table td:nth-child(4) {
+    width: 100px;
+}
+
+/* Tabelle */
+
+.purchase-invoice-vat-table th,
+.purchase-invoice-vat-table td,
+.purchase-invoice-due-table th,
+.purchase-invoice-due-table td {
+    border: 1px solid #c8ced8;
+    height: 24px;
+    padding: 0;
+}
+
+.purchase-invoice-vat-table th,
+.purchase-invoice-due-table th {
+    background: var(--invoice-label);
+    color: #0f2236;
+    font-size: 12px;
+    font-weight: 400;
+    text-align: center;
+}
+
+.purchase-invoice-vat-table input,
+.purchase-invoice-due-table input {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    box-sizing: border-box;
+    height: 24px;
+    line-height: 24px;
+    min-height: 0;
+    outline: none;
+    padding: 0 6px;
+    width: 100%;
+}
+
+.purchase-invoice-vat-table td:nth-child(1) input,
+.purchase-invoice-due-table td:nth-child(1) input,
+.purchase-invoice-due-table td:nth-child(3) input {
+    text-align: center;
+}
+
+.purchase-invoice-vat-table tfoot input {
+    text-align: right;
+}
+
+.purchase-invoice-vat-table tfoot th {
+    text-align: center;
+}
+
+.purchase-invoice-due-table td,
+.purchase-invoice-due-table input {
+    height: 20px;
+    line-height: 20px;
+}
+
+/* Date e check */
+
+.micronote-date-control {
+    display: block;
+    position: relative;
+}
+
+.micronote-date-input {
+    padding-right: 30px !important;
+    text-align: center;
+}
+
+.micronote-date-button {
+    align-items: center;
+    background-color: transparent;
+    background-image: url("/images/calendario_icon_1.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 72% 72%;
+    border: 0;
+    border-left: 1px solid rgba(93, 112, 143, .24);
+    border-radius: 0 5px 5px 0;
+    bottom: 1px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    position: absolute;
+    right: 1px;
+    top: 1px;
+    width: 28px;
+}
+
+.micronote-date-button::before,
+.micronote-date-button::after {
+    display: none;
+}
+
+.purchase-invoice-paid-check {
+    align-items: center;
+    background: transparent !important;
+    border: 0 !important;
+    display: inline-flex;
+    height: 24px !important;
+    justify-content: center;
+    padding: 0 !important;
+    width: 100%;
+}
+
+.purchase-invoice-paid-check input[type="checkbox"] {
+    height: 22px !important;
+    min-height: 22px !important;
+    width: 22px !important;
+}
+
+.purchase-invoice-paid-check .check-button-wrap {
+    height: 10px;
+    width: 10px;
+}
+
+.purchase-invoice-paid-check .check-button-wrap::before {
+    border-radius: 2px;
+    height: 10px !important;
+    width: 10px !important;
+}
+
+.purchase-invoice-paid-check .check-button-wrap::after {
+    display: none !important;
+}

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 using SkyLab.Web.Models;
+using SkyLab.Web.Data;
 
 namespace SkyLab.Web;
 
@@ -19,6 +20,10 @@ public class Program
                 options.ModelBinderProviders.Insert(0, new SkyLab.Web.Infrastructure.FlexibleDecimalModelBinderProvider()));
         builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys")));
+        builder.Services.AddSingleton<SkyLab.Web.Services.ApplicationState>();
+        builder.Services.AddScoped<SkyLab.Web.Services.MicronoteServicePaths>();
+        builder.Services.AddScoped<MicronoteDb>();
+        builder.Services.AddScoped<PurchaseInvoiceRepository>();
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();
         builder.Services.AddScoped<SkyLab.Web.Services.CustomerService>();
