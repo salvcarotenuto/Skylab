@@ -10,7 +10,7 @@ Il primo verticale deve coprire l'intero percorso: intervento assegnato → mate
 
 ## Riferimento applicativo
 
-Micronote Fish e Micronote Food sono il riferimento vincolante per struttura ASP.NET Core, Razor Pages, repository, controlli di input, griglie, finestre di messaggio e linguaggio grafico. SkyLab mantiene un proprio dominio ma riusa le medesime convenzioni operative. Login, selezione azienda e selezione utente sono esplicitamente rinviati: la prima milestone è il menu generale con tutte le aree del legacy.
+I moduli gestionali esistenti sono stati usati come riferimento iniziale per struttura ASP.NET Core, Razor Pages, repository, controlli di input, griglie, finestre di messaggio e linguaggio grafico. SkyLab mantiene un proprio dominio e convenzioni operative autonome. Login, selezione azienda e selezione utente sono esplicitamente rinviati: la prima milestone è il menu generale con tutte le aree del legacy.
 
 ## Decisioni ancora da validare
 

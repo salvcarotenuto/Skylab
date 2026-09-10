@@ -1,4 +1,4 @@
-using MySqlConnector;
+﻿using MySqlConnector;
 using SkyLab.Web.Models;
 
 namespace SkyLab.Web.Services;
@@ -9,7 +9,7 @@ public sealed class CustomerService(IConfiguration configuration)
     {
         get
         {
-            var configured = configuration.GetConnectionString("SkyLabDb") ?? configuration.GetConnectionString("MicronoteDb")
+            var configured = configuration.GetConnectionString("SkyLab")
                 ?? throw new InvalidOperationException("Connessione MySQL SkyLab non configurata.");
             var builder = new MySqlConnectionStringBuilder(configured) { Database = "skylab_0001", SslMode = MySqlSslMode.None };
             return builder.ConnectionString;

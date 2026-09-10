@@ -21,8 +21,8 @@ public class Program
         builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys")));
         builder.Services.AddSingleton<SkyLab.Web.Services.ApplicationState>();
-        builder.Services.AddScoped<SkyLab.Web.Services.MicronoteServicePaths>();
-        builder.Services.AddScoped<MicronoteDb>();
+        builder.Services.AddScoped<SkyLab.Web.Services.SkyLabServicePaths>();
+        builder.Services.AddScoped<SkyLabDatabase>();
         builder.Services.AddScoped<PurchaseInvoiceRepository>();
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();

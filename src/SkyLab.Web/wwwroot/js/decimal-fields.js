@@ -1,4 +1,4 @@
-window.MicronoteDecimal = (() => {
+﻿window.SkyLabDecimal = (() => {
   const defaultIntegerDigits = 7;
   const defaultDecimalDigits = 3;
 
@@ -105,3 +105,4 @@ window.MicronoteDecimal = (() => {
 
   return { clean, format, formatForEdit, normalizeForSubmit, parse, wire };
 })();
+

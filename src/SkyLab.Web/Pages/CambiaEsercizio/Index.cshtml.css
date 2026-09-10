@@ -1,0 +1,73 @@
+.exercise-change-page.module-page {
+    max-width: 860px;
+}
+
+.exercise-change-page .module-header {
+    margin-bottom: 8px;
+}
+
+.exercise-change-shell {
+    background: #ffffff;
+    border: 1px solid #aab3bf;
+    border-radius: 7px;
+    min-height: 220px;
+    padding: 18px 20px;
+}
+
+.exercise-change-frame {
+    margin: 0;
+    padding: 14px 16px 18px;
+    width: 520px;
+}
+
+.exercise-change-fields {
+    display: grid;
+    gap: 8px;
+    width: 430px;
+}
+
+.exercise-change-fields .field {
+    align-items: center;
+    column-gap: 8px;
+    display: grid;
+    grid-template-columns: 150px 190px;
+}
+
+.exercise-change-fields label,
+.exercise-change-fields input {
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 520;
+}
+
+.exercise-change-fields label {
+    align-items: center;
+    background: #b8cbe0;
+    border: 1px solid #8a8f98;
+    border-radius: 5px;
+    color: #22384e;
+    display: inline-flex;
+    height: 30px;
+    margin: 0;
+    padding: 0 8px;
+}
+
+.exercise-change-fields input {
+    background: #ffffff;
+    border: 1px solid #8a8f98;
+    border-radius: 0;
+    color: #0f1724;
+    height: 30px;
+    min-height: 30px;
+    padding: 0 8px;
+}
+
+.exercise-change-fields input[readonly] {
+    background: #e6e7ee;
+}
+
+.exercise-change-fields span {
+    color: #b42318;
+    font-size: 12px;
+    grid-column: 2;
+}

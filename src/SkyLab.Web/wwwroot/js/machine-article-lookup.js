@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   const code = document.querySelector("[data-machine-article-code]");
   const description = document.querySelector("[data-machine-article-description]");
   const category = document.querySelector("[name='Macchina.CategoryId']");
@@ -31,8 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const base = parseIsoDate(installedDate?.value);
     if (!base || !nextDate || !nextDateDisplay) return;
     const isConsumable = Number(category?.value || 0) === 3;
-    const quantity = window.MicronoteDecimal?.parse(suppliedQuantity?.value) || 0;
-    const consumption = window.MicronoteDecimal?.parse(dailyConsumption?.value) || 0;
+    const quantity = window.SkyLabDecimal?.parse(suppliedQuantity?.value) || 0;
+    const consumption = window.SkyLabDecimal?.parse(dailyConsumption?.value) || 0;
     const cycleDays = Number.parseInt(duration?.value || "0", 10) || 0;
     const days = isConsumable && quantity > 0 && consumption > 0 ? Math.ceil(quantity / consumption) : cycleDays;
     if (days <= 0) return;
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
     description.value = row.dataset.description || "";
     if (category) category.value = row.dataset.categoryCode || "";
     if (duration) duration.value = row.dataset.duration || "0";
-    if (dailyConsumption) dailyConsumption.value = window.MicronoteDecimal?.format(row.dataset.consumption, 3) || "";
+    if (dailyConsumption) dailyConsumption.value = window.SkyLabDecimal?.format(row.dataset.consumption, 3) || "";
     nextDateWasEdited = false;
     proposeNextDate(true);
     code.dispatchEvent(new Event("change", { bubbles: true }));

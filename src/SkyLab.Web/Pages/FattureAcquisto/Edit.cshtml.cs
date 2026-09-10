@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -15,9 +14,9 @@ namespace SkyLab.Web.Pages.FattureAcquisto;
 
 public sealed class EditModel(
     PurchaseInvoiceRepository repository,
-    MicronoteDb db,
+    SkyLabDatabase db,
     ApplicationState applicationState,
-    MicronoteServicePaths servicePaths,
+    SkyLabServicePaths servicePaths,
     IWebHostEnvironment environment) : PageModel
 {
     public PurchaseInvoiceEditPageModel Invoice { get; private set; } = new();
@@ -272,6 +271,17 @@ public sealed class EditModel(
         });
     }
 
+    public async Task<IActionResult> OnGetCompanyFiscalCheckAsync(CancellationToken cancellationToken)
+    {
+        var companyFiscalData = await CompanyFiscalDataAsync(cancellationToken);
+        var companyFiscalError = ValidateCompanyFiscalData(companyFiscalData);
+        return new JsonResult(new
+        {
+            success = string.IsNullOrWhiteSpace(companyFiscalError),
+            message = companyFiscalError
+        });
+    }
+
     public async Task<IActionResult> OnPostSaveAsync(
         [FromBody] PurchaseInvoiceSaveCommand invoice,
         string? returnTo,
@@ -315,12 +325,12 @@ public sealed class EditModel(
                     : null
             });
         }
-        catch (MySqlException)
+        catch (MySqlException exception)
         {
             return new JsonResult(new
             {
                 success = false,
-                message = "Registrazione fattura non riuscita."
+                message = $"Registrazione fattura non riuscita. Dettaglio: {exception.Message}"
             });
         }
     }
@@ -502,116 +512,6 @@ public sealed class EditModel(
         }
     }
 
-    public async Task<IActionResult> OnGetElectronicInvoiceFolder(CancellationToken cancellationToken)
-    {
-        const string script = """
-            param([string]$OutputPath)
-
-            Add-Type -AssemblyName System.Windows.Forms
-            Add-Type -AssemblyName System.Drawing
-
-            $owner = New-Object System.Windows.Forms.Form
-            $owner.Text = 'Micronote'
-            $owner.StartPosition = 'CenterScreen'
-            $owner.Size = New-Object System.Drawing.Size(1, 1)
-            $owner.ShowInTaskbar = $false
-            $owner.TopMost = $true
-            $owner.Opacity = 0
-            $owner.Show()
-            $owner.Activate()
-
-            $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-            $dialog.Description = 'Seleziona cartella fatture elettroniche'
-            $dialog.ShowNewFolderButton = $false
-
-            if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {
-                [System.IO.File]::WriteAllText($OutputPath, $dialog.SelectedPath, [System.Text.Encoding]::UTF8)
-            }
-
-            $owner.Close()
-            $owner.Dispose()
-            """;
-
-        var scriptPath = Path.Combine(Path.GetTempPath(), $"micronote-fe-folder-{Guid.NewGuid():N}.ps1");
-        var outputPath = Path.Combine(Path.GetTempPath(), $"micronote-fe-folder-{Guid.NewGuid():N}.txt");
-        Process? process = null;
-
-        try
-        {
-            await System.IO.File.WriteAllTextAsync(scriptPath, script, cancellationToken);
-
-            process = new Process();
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -STA -ExecutionPolicy Bypass -File \"{scriptPath}\" \"{outputPath}\"",
-                CreateNoWindow = false,
-                UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Hidden
-            };
-
-            process.Start();
-            await process.WaitForExitAsync(cancellationToken);
-
-            var folderPath = System.IO.File.Exists(outputPath)
-                ? (await System.IO.File.ReadAllTextAsync(outputPath, cancellationToken)).Trim()
-                : string.Empty;
-
-            if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
-            {
-                return new JsonResult(new
-                {
-                    selected = false
-                });
-            }
-
-            return new JsonResult(new
-            {
-                selected = true,
-                path = folderPath
-            });
-        }
-        catch (Exception) when (!cancellationToken.IsCancellationRequested)
-        {
-            return new JsonResult(new
-            {
-                selected = false,
-                error = "Non e' stato possibile aprire la selezione cartella."
-            });
-        }
-        finally
-        {
-            try
-            {
-                if (process is not null)
-                {
-                    if (!process.HasExited)
-                    {
-                        process.Kill(entireProcessTree: true);
-                    }
-
-                    process.Dispose();
-                }
-
-                if (System.IO.File.Exists(scriptPath))
-                {
-                    System.IO.File.Delete(scriptPath);
-                }
-
-                if (System.IO.File.Exists(outputPath))
-                {
-                    System.IO.File.Delete(outputPath);
-                }
-            }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-        }
-    }
-
     public IActionResult OnPostDeleteElectronicInvoiceFile([FromForm] string? path)
     {
 
@@ -725,11 +625,6 @@ public sealed class EditModel(
 
         try
         {
-            var document = LoadElectronicInvoiceDocument(path);
-            var customer = FirstDescendant(document, "CessionarioCommittente");
-            var customerData = FirstDescendant(customer, "DatiAnagrafici");
-            var customerVat = NormalizeFiscalCode(ChildValue(FirstDescendant(customerData, "IdFiscaleIVA"), "IdCodice"));
-            var customerFiscalCode = NormalizeFiscalCode(ChildValue(customerData, "CodiceFiscale"));
             var companyFiscalData = await CompanyFiscalDataAsync(cancellationToken);
             var companyFiscalError = ValidateCompanyFiscalData(companyFiscalData);
             if (!string.IsNullOrWhiteSpace(companyFiscalError))
@@ -741,27 +636,21 @@ public sealed class EditModel(
                 });
             }
 
-            var companyMatches = false;
-            if (!string.IsNullOrWhiteSpace(companyFiscalData.VatNumber)
-                && !string.IsNullOrWhiteSpace(customerVat)
-                && string.Equals(companyFiscalData.VatNumber, customerVat, StringComparison.OrdinalIgnoreCase))
-            {
-                companyMatches = true;
-            }
-
-            if (!string.IsNullOrWhiteSpace(companyFiscalData.FiscalCode)
-                && !string.IsNullOrWhiteSpace(customerFiscalCode)
-                && string.Equals(companyFiscalData.FiscalCode, customerFiscalCode, StringComparison.OrdinalIgnoreCase))
-            {
-                companyMatches = true;
-            }
-
-            if (!companyMatches)
+            var document = LoadElectronicInvoiceDocument(path);
+            var customer = FirstDescendant(document, "CessionarioCommittente");
+            var customerData = FirstDescendant(customer, "DatiAnagrafici");
+            var customerVat = NormalizeFiscalCode(ChildValue(FirstDescendant(customerData, "IdFiscaleIVA"), "IdCodice"));
+            var customerFiscalCode = NormalizeFiscalCode(ChildValue(customerData, "CodiceFiscale"));
+            var customerFiscalError = ValidateElectronicInvoiceCustomer(
+                companyFiscalData,
+                customerFiscalCode,
+                customerVat);
+            if (!string.IsNullOrWhiteSpace(customerFiscalError))
             {
                 return new JsonResult(new
                 {
                     success = false,
-                    message = "La fattura elettronica non risulta intestata all'azienda corrente."
+                    message = customerFiscalError
                 });
             }
 
@@ -875,10 +764,14 @@ public sealed class EditModel(
                 .Select(element => ChildValue(element, "ModalitaPagamento"))
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
             var paymentCode = await FindPaymentCodeByElectronicModeAsync(electronicPaymentMode, cancellationToken);
+            var nextCode = await repository.GetNextCodeAsync(applicationState.Esercizio, cancellationToken);
 
             return new JsonResult(new
             {
                 success = true,
+                code = nextCode,
+                codeDisplay = nextCode.ToString("000000", CultureInfo.InvariantCulture),
+                year = applicationState.Esercizio,
                 fileName = Path.GetFileName(path),
                 fullPath = path,
                 documentType,
@@ -1092,8 +985,8 @@ public sealed class EditModel(
             """
             SELECT Codice,
                    COALESCE(Nome, '') AS Nome,
-                   Contropartita,
-                   PuntoV
+                   CtPartita,
+                   ULocale
             FROM fornitori
             WHERE (@vat <> '' AND UPPER(REPLACE(REPLACE(REPLACE(COALESCE(Piva, ''), ' ', ''), '-', ''), '.', '')) = @vat)
                OR (@fiscalCode <> '' AND UPPER(REPLACE(REPLACE(REPLACE(COALESCE(Codfi, ''), ' ', ''), '-', ''), '.', '')) = @fiscalCode)
@@ -1120,8 +1013,21 @@ public sealed class EditModel(
         return new SupplierMatch(
             Convert.ToInt32(reader["Codice"]),
             Convert.ToString(reader["Nome"]) ?? "",
-            reader["Contropartita"] == DBNull.Value ? null : Convert.ToInt32(reader["Contropartita"]),
-            reader["PuntoV"] == DBNull.Value ? null : Convert.ToInt32(reader["PuntoV"]));
+            ReadOptionalInt(reader["CtPartita"]),
+            ReadOptionalInt(reader["ULocale"]));
+    }
+
+    private static int? ReadOptionalInt(object value)
+    {
+        if (value is null || value == DBNull.Value)
+        {
+            return null;
+        }
+
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture)?.Trim();
+        return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            ? number
+            : null;
     }
 
     private async Task<int?> FindPaymentCodeByElectronicModeAsync(
@@ -1192,27 +1098,65 @@ public sealed class EditModel(
     {
         if (string.IsNullOrWhiteSpace(companyFiscalData.FiscalCode))
         {
-            return "Codice fiscale azienda mancante. Registrarlo in Impostazioni.";
+            return "Codice fiscale azienda assente nelle Opzioni.";
         }
 
         if (companyFiscalData.FiscalCode.Length is not (11 or 16))
         {
-            return "Codice fiscale azienda non valido. Verificare le Impostazioni.";
+            return "Codice fiscale azienda non valido nelle Opzioni.";
         }
 
         if (string.IsNullOrWhiteSpace(companyFiscalData.VatNumber))
         {
-            return "Partita IVA azienda mancante. Registrarla in Impostazioni.";
+            return "Partita IVA azienda assente nelle Opzioni.";
         }
 
         if (companyFiscalData.VatNumber.Length != 11
             || companyFiscalData.VatNumber.Any(character => !char.IsDigit(character)))
         {
-            return "Partita IVA azienda non valida. Verificare le Impostazioni.";
+            return "Partita IVA azienda non valida nelle Opzioni.";
         }
 
         return "";
     }
+
+    private static string ValidateElectronicInvoiceCustomer(
+        CompanyFiscalData companyFiscalData,
+        string customerFiscalCode,
+        string customerVat)
+    {
+        var fiscalCodeMatches = !string.IsNullOrWhiteSpace(customerFiscalCode)
+            && string.Equals(companyFiscalData.FiscalCode, customerFiscalCode, StringComparison.OrdinalIgnoreCase);
+        var vatMatches = !string.IsNullOrWhiteSpace(customerVat)
+            && string.Equals(companyFiscalData.VatNumber, customerVat, StringComparison.OrdinalIgnoreCase);
+
+        if (fiscalCodeMatches || vatMatches)
+        {
+            return "";
+        }
+
+        if (string.IsNullOrWhiteSpace(customerFiscalCode) && string.IsNullOrWhiteSpace(customerVat))
+        {
+            return "Dati cessionario non presenti nell'XML: Codice fiscale e Partita IVA assenti.";
+        }
+
+        if (string.IsNullOrWhiteSpace(customerFiscalCode))
+        {
+            return $"Codice fiscale cessionario assente nell'XML. Partita IVA XML: {FormatFiscalDiagnosticValue(customerVat)}; Partita IVA Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.VatNumber)}.";
+        }
+
+        if (string.IsNullOrWhiteSpace(customerVat))
+        {
+            return $"Partita IVA cessionario assente nell'XML. Codice fiscale XML: {FormatFiscalDiagnosticValue(customerFiscalCode)}; Codice fiscale Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.FiscalCode)}.";
+        }
+
+        return "Dati cessionario non corrispondenti all'azienda corrente.\n"
+            + $"Codice fiscale XML: {FormatFiscalDiagnosticValue(customerFiscalCode)}; Codice fiscale Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.FiscalCode)}.\n"
+            + $"Partita IVA XML: {FormatFiscalDiagnosticValue(customerVat)}; Partita IVA Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.VatNumber)}.";
+    }
+
+    private static string FormatFiscalDiagnosticValue(string value) =>
+        string.IsNullOrWhiteSpace(value) ? "(assente)" : value;
 
     private static string NormalizeFiscalCode(string value) =>
         Regex.Replace(value ?? "", @"[\s\-.]", "").ToUpperInvariant();

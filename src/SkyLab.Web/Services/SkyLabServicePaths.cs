@@ -1,27 +1,26 @@
 namespace SkyLab.Web.Services;
 
-public sealed class MicronoteServicePaths
+public sealed class SkyLabServicePaths
 {
     private static readonly string[] ServiceFolderNames =
     [
-        "Documenti",
+        "FEAcquisti",
+        "FEVendite",
         "Excel",
         "Pdf",
         "Titoli"
     ];
 
-    public MicronoteServicePaths(IConfiguration configuration)
+    public SkyLabServicePaths(IConfiguration configuration)
     {
         CompanyKey = "0001";
         Root = configuration["SkyLab:DataRoot"]
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "SkyLab");
         CompanyRoot = Path.Combine(Root, "Aziende", CompanyKey);
-        Documenti = Path.Combine(CompanyRoot, "Documenti");
-        FattureElettroniche = Path.Combine(Documenti, "FattureElettroniche");
-        FEAcquisti = Path.Combine(FattureElettroniche, "Acquisti");
+        FEAcquisti = Path.Combine(CompanyRoot, "FEAcquisti");
         FEAcquistiTransito = Path.Combine(FEAcquisti, "Transito");
         FEAcquistiArchivio = Path.Combine(FEAcquisti, "Archivio");
-        FEVendite = Path.Combine(FattureElettroniche, "Vendite");
+        FEVendite = Path.Combine(CompanyRoot, "FEVendite");
         Excel = Path.Combine(CompanyRoot, "Excel");
         Pdf = Path.Combine(CompanyRoot, "Pdf");
         Titoli = Path.Combine(CompanyRoot, "Titoli");
@@ -30,8 +29,6 @@ public sealed class MicronoteServicePaths
     public string CompanyKey { get; }
     public string Root { get; }
     public string CompanyRoot { get; }
-    public string Documenti { get; }
-    public string FattureElettroniche { get; }
     public string FEAcquisti { get; }
     public string FEAcquistiTransito { get; }
     public string FEAcquistiArchivio { get; }
@@ -47,7 +44,6 @@ public sealed class MicronoteServicePaths
         {
             Directory.CreateDirectory(Path.Combine(CompanyRoot, folderName));
         }
-        Directory.CreateDirectory(FattureElettroniche);
         Directory.CreateDirectory(FEAcquisti);
         Directory.CreateDirectory(FEAcquistiTransito);
         Directory.CreateDirectory(FEAcquistiArchivio);

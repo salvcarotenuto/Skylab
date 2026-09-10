@@ -169,6 +169,8 @@ public sealed class PurchaseInvoiceSaveCommand
 
     public string ElectronicInvoiceFileName { get; set; } = "";
 
+    public bool ImportedFromXml { get; set; }
+
     public bool ConfirmOverwrite { get; set; }
 
     public bool ConfirmDueDateMismatch { get; set; }

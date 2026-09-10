@@ -1,4 +1,4 @@
-window.MicronoteMoney = (() => {
+﻿window.SkyLabMoney = (() => {
   const defaultIntegerDigits = 9;
 
   const parse = (value) => {
@@ -128,3 +128,4 @@ window.MicronoteMoney = (() => {
     wire
   };
 })();
+

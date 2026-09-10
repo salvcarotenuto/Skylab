@@ -1,0 +1,76 @@
+@page
+@model SkyLab.Web.Pages.CambiaEsercizio.IndexModel
+@{
+    ViewData["Title"] = "Cambia esercizio";
+}
+
+<section class="module-page exercise-change-page data-form-skin">
+    <header class="module-header customer-form-header">
+        <div class="module-title-identity">
+            <a class="skylab-header-brand" asp-page="/Index" aria-label="Torna al menu principale">
+                <img src="~/images/skylab-logo.png" alt="" />
+            </a>
+            <div>
+                <h1>Cambia esercizio</h1>
+                <p>Imposta l'esercizio contabile in linea.</p>
+            </div>
+        </div>
+        <div class="customer-form-toolbar">
+            <button class="btn btn-primary" type="submit" form="exercise-change-form">
+                Salva
+            </button>
+            <a class="btn customer-menu-button" asp-page="/Index">Annulla</a>
+        </div>
+    </header>
+
+    <form id="exercise-change-form"
+          method="post"
+          class="entity-form exercise-change-form"
+          data-enter-navigation>
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+        <section class="exercise-change-shell">
+            <fieldset class="form-frame compact-frame exercise-change-frame">
+                <legend>Esercizio contabile</legend>
+                <div class="exercise-change-fields">
+                <div class="field">
+                    <label>Esercizio attuale</label>
+                    <input type="text"
+                           value="@Model.CurrentExercise"
+                           readonly
+                           tabindex="-1" />
+                </div>
+                <div class="field">
+                    <label asp-for="NewExercise"></label>
+                    <input asp-for="NewExercise"
+                           type="text"
+                           min="1900"
+                           max="2200"
+                           step="1"
+                           autocomplete="off"
+                           data-updown
+                           autofocus />
+                    <span asp-validation-for="NewExercise"></span>
+                </div>
+                </div>
+            </fieldset>
+        </section>
+    </form>
+</section>
+
+@if (Model.SavedExercise.HasValue)
+{
+    <script>
+        window.addEventListener("DOMContentLoaded", () => {
+            window.SkyLabMessageBox?.show({
+                title: "Conferma nuovo esercizio",
+                message: "L'esercizio contabile in linea e' ora: @Model.SavedExercise.Value.",
+                detail: "Da questo momento i moduli contabili useranno questo esercizio per i controlli di coerenza.",
+                variant: "success",
+                onConfirm: () => {
+                    window.location.href = "/";
+                }
+            });
+        });
+    </script>
+}

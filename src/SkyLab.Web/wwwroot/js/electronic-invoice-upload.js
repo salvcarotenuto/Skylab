@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const root = document.querySelector("[data-electronic-invoice-upload]");
   if (!root) {
     return;
@@ -193,8 +193,8 @@
   const showCompletionMessage = () => {
     const message = "Caricamento completato.";
 
-    if (window.MicronoteMessageBox?.show) {
-      window.MicronoteMessageBox.show({
+    if (window.SkyLabMessageBox?.show) {
+      window.SkyLabMessageBox.show({
         title: "Caricamento FE acquisti",
         message
       });

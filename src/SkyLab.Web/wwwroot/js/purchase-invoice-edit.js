@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   const saveButton = document.querySelector("[data-purchase-invoice-save]");
   const page = document.querySelector(".purchase-invoice-form-page");
   const electronicInvoiceOpen = document.querySelector("[data-electronic-invoice-open]");
@@ -19,8 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
       electronicInvoicePath.dataset.mode = mode;
     }
   };
-  const electronicInvoiceRefresh = document.querySelector("[data-electronic-invoice-refresh]");
-  const electronicInvoiceFolderPicker = document.querySelector("[data-electronic-invoice-folder-picker]");
   const electronicInvoiceGrid = document.querySelector(".purchase-invoice-fe-grid-frame");
   const electronicInvoiceFiles = document.querySelector("[data-electronic-invoice-files]");
   const electronicInvoiceSearch = document.querySelector("[data-electronic-invoice-search]");
@@ -41,6 +39,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return baseAction === 2 ? "" : "archive";
   };
   const dueDateFields = Array.from(document.querySelectorAll(".purchase-invoice-due-date"));
+  const invoiceCode = document.querySelector("[data-purchase-invoice-code]");
+  const invoiceYear = document.querySelector("[data-purchase-invoice-year]");
   const invoiceType = document.querySelector("[data-purchase-invoice-type]");
   const invoiceNumber = document.querySelector("[data-purchase-invoice-number]");
   const invoiceDate = document.querySelector("[data-purchase-invoice-date]");
@@ -75,21 +75,46 @@ document.addEventListener("DOMContentLoaded", () => {
   let electronicInvoicePreviewAbort = null;
   let electronicInvoiceLastScrollTop = 0;
   let electronicInvoiceWheelFrame = 0;
-  let electronicInvoiceFolderPickerPending = false;
-  let electronicInvoiceFolderAbortController = null;
   let electronicInvoiceSuppressEscapeUntil = 0;
   let duplicateInvoiceConfirmedKey = "";
   let duplicateInvoicePromptedKey = "";
+  let duplicateInvoiceXmlCancelledKey = "";
   let duplicateInvoicePromptOpen = false;
   let originalInvoiceIdentityKey = "";
   let applyingInitialInvoiceData = false;
   let pendingInvoiceRedirectUrl = "";
+  let importedFromXml = (electronicInvoiceName?.value ?? "").trim() !== "";
 
-  const showMessage = (message, title = "Fattura elettronica", variant = "") => {
-    window.MicronoteMessageBox?.show({
+  const showMessage = (message, title = "Fattura elettronica", variant = "", options = {}) => {
+    const messageBox = window.SkyLabMessageBox;
+    if (!messageBox?.show) {
+      window.alert(message);
+      options.onConfirm?.();
+      return;
+    }
+
+    messageBox.show({
       title,
       message,
-      variant
+      variant,
+      okText: options.okText ?? "OK",
+      onConfirm: options.onConfirm
+    });
+  };
+
+  const focusElectronicInvoiceDialog = () => {
+    const selectedRow = electronicInvoiceFiles?.querySelector("tr.is-selected[data-full-path]");
+    if (selectedRow) {
+      selectedRow.focus?.({ preventScroll: true });
+      return;
+    }
+
+    electronicInvoiceGrid?.focus?.({ preventScroll: true });
+  };
+
+  const showElectronicInvoiceFileMessage = (message, variant = "error") => {
+    showMessage(message, "Fattura elettronica", variant, {
+      onConfirm: focusElectronicInvoiceDialog
     });
   };
 
@@ -111,9 +136,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (key !== duplicateInvoicePromptedKey) {
       duplicateInvoicePromptedKey = "";
     }
+
+    if (key !== duplicateInvoiceXmlCancelledKey) {
+      duplicateInvoiceXmlCancelledKey = "";
+    }
   };
 
-  const checkDuplicateInvoice = async ({ force = false } = {}) => {
+  const applyExistingInvoiceCode = (result) => {
+    const code = Number.parseInt(result?.code ?? "0", 10) || 0;
+    const year = Number.parseInt(result?.year ?? "0", 10) || 0;
+    if (code > 0) {
+      setFieldValue(invoiceCode, String(code).padStart(6, "0"));
+    }
+
+    if (year > 0) {
+      setFieldValue(invoiceYear, String(year));
+    }
+  };
+
+  const checkDuplicateInvoice = async ({ force = false, source = "manual" } = {}) => {
     if (applyingInitialInvoiceData) {
       return true;
     }
@@ -157,7 +198,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
       duplicateInvoicePromptedKey = key;
       duplicateInvoicePromptOpen = true;
-      window.MicronoteMessageBox?.show({
+      if (source !== "xml") {
+        window.SkyLabMessageBox?.show({
+          title: "Fattura gia' presente",
+          message: `La fattura e' gia' presente in archivio\nPartita: ${String(result.code ?? 0).padStart(6, "0")} / ${result.year ?? ""}\nInserimento non consentito.`,
+          variant: "error",
+          okText: "OK",
+          onConfirm: () => {
+            duplicateInvoicePromptOpen = false;
+            invoiceNumber?.focus();
+            invoiceNumber?.select?.();
+          }
+        });
+        window.setTimeout(() => {
+          duplicateInvoicePromptOpen = false;
+        }, 0);
+        return false;
+      }
+
+      window.SkyLabMessageBox?.show({
         title: "Fattura gia' presente",
         message: `La fattura e' gia' presente in archivio\nPartita: ${String(result.code ?? 0).padStart(6, "0")} / ${result.year ?? ""}\nVuoi registrare in sovrascrittura?`,
         mode: "confirm",
@@ -166,9 +225,14 @@ document.addEventListener("DOMContentLoaded", () => {
         cancelText: "Annulla",
         onConfirm: () => {
           duplicateInvoiceConfirmedKey = key;
+          duplicateInvoiceXmlCancelledKey = "";
+          applyExistingInvoiceCode(result);
           duplicateInvoicePromptOpen = false;
         },
         onCancel: () => {
+          if (source === "xml") {
+            duplicateInvoiceXmlCancelledKey = key;
+          }
           duplicateInvoicePromptOpen = false;
           invoiceNumber?.focus();
           invoiceNumber?.select?.();
@@ -229,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
       certifiedEmail: supplier.certifiedEmail
     };
 
-    window.MicronoteMessageBox?.show({
+    window.SkyLabMessageBox?.show({
       title: "Fornitore non trovato",
       message: `Il fornitore\n${name}\npartita iva: ${vat}\nnon e' presente in archivio\nvuoi inserirlo ora ?`,
       mode: "confirm",
@@ -339,9 +403,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const text = String(value ?? "").trim();
-    const parsed = window.MicronotePercent?.parse(text) ?? 0;
+    const parsed = window.SkyLabPercent?.parse(text) ?? 0;
     field.value = text && parsed !== 0
-      ? (window.MicronotePercent?.format(parsed) ?? text)
+      ? (window.SkyLabPercent?.format(parsed) ?? text)
       : "";
   };
 
@@ -350,9 +414,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (window.MicronoteMoney?.format && window.MicronoteMoney?.parse) {
-      const amount = typeof value === "number" ? value : window.MicronoteMoney.parse(value);
-      field.value = window.MicronoteMoney.format(amount);
+    if (window.SkyLabMoney?.format && window.SkyLabMoney?.parse) {
+      const amount = typeof value === "number" ? value : window.SkyLabMoney.parse(value);
+      field.value = window.SkyLabMoney.format(amount);
     } else {
       field.value = String(value ?? "");
     }
@@ -517,9 +581,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return true;
   };
 
-  const parseMoneyField = (field) => window.MicronoteMoney?.parse(field?.value) ?? 0;
+  const parseMoneyField = (field) => window.SkyLabMoney?.parse(field?.value) ?? 0;
 
-  const parsePercentField = (field) => window.MicronotePercent?.parse(field?.value) ?? 0;
+  const parsePercentField = (field) => window.SkyLabPercent?.parse(field?.value) ?? 0;
 
   const roundCurrency = (value) => Math.round(value * 100) / 100;
 
@@ -565,7 +629,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const setStoredVatTotals = (taxableTotal, vatTotal, invoiceAmount) => {
     const parseAmount = (value) => typeof value === "number"
       ? value
-      : (window.MicronoteMoney?.parse(value) ?? 0);
+      : (window.SkyLabMoney?.parse(value) ?? 0);
     const taxable = roundCurrency(parseAmount(taxableTotal));
     const vat = roundCurrency(parseAmount(vatTotal));
     const total = roundCurrency(parseAmount(invoiceAmount));
@@ -578,7 +642,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const initialAmountValue = (value) => typeof value === "number"
     ? value
-    : (window.MicronoteMoney?.parse(value) ?? 0);
+    : (window.SkyLabMoney?.parse(value) ?? 0);
 
   const vatRowsCheckTotals = (rows) => {
     const values = (rows ?? []).reduce((totals, row) => {
@@ -613,8 +677,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const formatAmount = (value) =>
-      window.MicronoteMoney?.format
-        ? window.MicronoteMoney.format(value)
+      window.SkyLabMoney?.format
+        ? window.SkyLabMoney.format(value)
         : String(value);
 
     showMessage(
@@ -705,9 +769,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const normalized = String(documentType).trim().toUpperCase();
     const internalCauseByFeType = {
-      TD01: "FA",
-      TD05: "DA",
-      TD04: "CA"
+      TD01: "10",
+      TD05: "11",
+      TD04: "12"
     };
     const internalCause = internalCauseByFeType[normalized] ?? "";
     if (internalCause && Array.from(invoiceType.options).some((option) => option.value === internalCause)) {
@@ -828,9 +892,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const applyElectronicInvoiceImport = (result) => {
-    setFieldValue(electronicInvoiceName, result.fileName ?? selectedElectronicInvoiceFile?.name ?? "");
-    setFieldValue(electronicInvoiceFullPath, result.fullPath ?? selectedElectronicInvoiceFile?.fullPath ?? "");
+  const applyElectronicInvoiceImport = (result, selectedFile = null) => {
+    importedFromXml = true;
+    setFieldValue(invoiceCode, result.codeDisplay ?? (result.code ? String(result.code).padStart(6, "0") : ""));
+    setFieldValue(invoiceYear, result.year ? String(result.year) : "");
+    setFieldValue(electronicInvoiceName, result.fileName ?? selectedFile?.name ?? "");
+    setFieldValue(electronicInvoiceFullPath, result.fullPath ?? selectedFile?.fullPath ?? "");
     setFieldValue(invoiceNumber, result.documentNumber ?? "");
     setDateFieldValue(invoiceDate, result.documentDate ?? "");
     setFieldValue(invoiceTotal, result.total ?? "");
@@ -850,7 +917,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fillVatRows(result.vatRows ?? []);
     fillDueRows(result.dueRows ?? []);
-    void checkDuplicateInvoice();
+    void checkDuplicateInvoice({ force: true, source: "xml" });
 
     if (electronicInvoiceFullPath && selectedElectronicInvoiceBrowserFile) {
       electronicInvoiceFullPath.dataset.browserFileName = selectedElectronicInvoiceBrowserFile.name;
@@ -949,6 +1016,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const selectedElectronicInvoiceRow = () =>
+    electronicInvoiceFiles?.querySelector("tr.is-selected[data-full-path]") ?? null;
+
+  const selectedElectronicInvoiceRowFile = () => {
+    const row = selectedElectronicInvoiceRow();
+    return row
+      ? {
+          name: row.dataset.fileName ?? "",
+          fullPath: row.dataset.fullPath ?? "",
+          browserFile: row._electronicInvoiceFile ?? null
+        }
+      : null;
+  };
+
+  const setElectronicInvoicePreviewRow = (row) => {
+    Array.from(electronicInvoiceFiles?.querySelectorAll("tr.is-previewed") ?? []).forEach((item) => {
+      item.classList.remove("is-previewed");
+    });
+
+    row?.classList.add("is-previewed");
+  };
+
   const visibleElectronicInvoiceRows = () => {
     if (!electronicInvoiceGrid) {
       return [];
@@ -1024,7 +1113,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       row.addEventListener("click", () => setElectronicInvoiceSelection(row));
       row.addEventListener("focus", () => setElectronicInvoiceSelection(row, { ensureVisible: false }));
-      row.addEventListener("mouseenter", () => showElectronicInvoiceFilePreview(row));
+      row.addEventListener("mouseenter", () => {
+        setElectronicInvoicePreviewRow(row);
+        showElectronicInvoiceFilePreview(row);
+      });
       row.addEventListener("mouseleave", hideElectronicInvoiceFilePreview);
       row.addEventListener("dblclick", () => acceptElectronicInvoiceFile());
       row.addEventListener("keydown", (event) => {
@@ -1083,11 +1175,13 @@ document.addEventListener("DOMContentLoaded", () => {
     rows.forEach(([label, value]) => {
       const line = document.createElement("div");
       const labelElement = document.createElement("span");
+      const separatorElement = document.createElement("span");
       const valueElement = document.createElement("strong");
 
       labelElement.textContent = label;
+      separatorElement.textContent = ":";
       valueElement.textContent = value || "";
-      line.append(labelElement, document.createTextNode(" : "), valueElement);
+      line.append(labelElement, separatorElement, valueElement);
       electronicInvoicePreviewBox.append(line);
     });
   };
@@ -1141,6 +1235,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const hideElectronicInvoiceFilePreview = () => {
     electronicInvoicePreviewAbort?.abort();
+    setElectronicInvoicePreviewRow(null);
     if (electronicInvoicePreviewBox) {
       electronicInvoicePreviewBox.hidden = true;
     }
@@ -1166,107 +1261,6 @@ document.addEventListener("DOMContentLoaded", () => {
       hour: "2-digit",
       minute: "2-digit"
     }).format(new Date(dateValue));
-  };
-
-  const renderBrowserFolderFiles = (fileList) => {
-    const files = Array.from(fileList ?? [])
-      .filter((file) => /\.(xml|p7m)$/i.test(file.name))
-      .sort((left, right) => left.name.localeCompare(right.name, "it-IT", { sensitivity: "base" }))
-      .map((file) => ({
-        name: file.name,
-        type: file.name.split(".").pop().toUpperCase(),
-        lastModified: formatBrowserFileDate(file.lastModified),
-        size: formatBrowserFileSize(file.size),
-        fullPath: file.webkitRelativePath || file.name,
-        browserFile: file
-      }));
-
-    if (electronicInvoiceCount) {
-      electronicInvoiceCount.value = `${files.length} file`;
-    }
-
-    renderElectronicInvoiceFiles(files);
-
-    if (electronicInvoicePath) {
-      const firstPath = files[0]?.fullPath ?? "";
-      setElectronicInvoicePathValue(firstPath.includes("/") ? firstPath.substring(0, firstPath.indexOf("/")) : "Cartella selezionata", "browser");
-    }
-  };
-
-  const renderDirectoryHandleFiles = async (directoryHandle) => {
-    const files = [];
-
-    for await (const entry of directoryHandle.values()) {
-      if (entry.kind !== "file" || !/\.(xml|p7m)$/i.test(entry.name)) {
-        continue;
-      }
-
-      const file = await entry.getFile();
-      files.push({
-        name: file.name,
-        type: file.name.split(".").pop().toUpperCase(),
-        lastModified: formatBrowserFileDate(file.lastModified),
-        size: formatBrowserFileSize(file.size),
-        fullPath: `${directoryHandle.name}\\${file.name}`,
-        browserFile: file
-      });
-    }
-
-    files.sort((left, right) => left.name.localeCompare(right.name, "it-IT", { sensitivity: "base" }));
-
-    if (electronicInvoiceCount) {
-      electronicInvoiceCount.value = `${files.length} file`;
-    }
-
-    if (electronicInvoicePath) {
-      setElectronicInvoicePathValue(directoryHandle.name, "browser");
-    }
-
-    renderElectronicInvoiceFiles(files);
-  };
-
-  const openSystemFolderPicker = async () => {
-    if (!electronicInvoicePath) {
-      return;
-    }
-
-    const url = new URL(window.location.href);
-    url.searchParams.set("handler", "ElectronicInvoiceFolder");
-    electronicInvoiceFolderPickerPending = true;
-    electronicInvoiceFolderAbortController = new AbortController();
-
-    try {
-      const response = await fetch(url, {
-        signal: electronicInvoiceFolderAbortController.signal,
-        headers: {
-          Accept: "application/json"
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error("HTTP " + response.status);
-      }
-
-      const result = await response.json();
-      if (!result.selected) {
-        if (result.error) {
-          showMessage(result.error);
-        }
-        return;
-      }
-      setElectronicInvoicePathValue(result.path, "server");
-      await loadElectronicInvoiceFiles();
-    } catch (error) {
-      if (error?.name === "AbortError") {
-        return;
-      }
-
-      showMessage("Non e' stato possibile aprire la selezione cartella.");
-    } finally {
-      electronicInvoiceFolderPickerPending = false;
-      electronicInvoiceFolderAbortController = null;
-      electronicInvoiceSuppressEscapeUntil = Date.now() + 500;
-    }
   };
 
   const loadElectronicInvoiceFiles = async () => {
@@ -1305,24 +1299,25 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   async function acceptElectronicInvoiceFile() {
-    if (!selectedElectronicInvoiceFile) {
-      showMessage("Selezionare una fattura elettronica.");
+    const selectedFile = selectedElectronicInvoiceRowFile();
+    if (!selectedFile) {
+      showElectronicInvoiceFileMessage("Fattura selezionata non disponibile.");
       return;
     }
 
-    if (selectedElectronicInvoiceBrowserFile) {
-      showMessage("La lettura automatica e' disponibile solo per file letti da percorso locale.");
+    if (selectedFile.browserFile) {
+      showElectronicInvoiceFileMessage("La lettura automatica e' disponibile solo per file letti da percorso locale.");
       return;
     }
 
-    if (!selectedElectronicInvoiceFile.fullPath) {
-      showMessage("Percorso file non disponibile.");
+    if (!selectedFile.fullPath) {
+      showElectronicInvoiceFileMessage("Percorso file non disponibile.");
       return;
     }
 
     const url = new URL(window.location.href);
     url.searchParams.set("handler", "ElectronicInvoiceImport");
-    url.searchParams.set("fileName", selectedElectronicInvoiceFile.name || selectedElectronicInvoiceFile.fullPath);
+    url.searchParams.set("fileName", selectedFile.name || selectedFile.fullPath);
 
     try {
       const response = await fetch(url, {
@@ -1342,28 +1337,29 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        showMessage(result.message || "Non e' stato possibile leggere la fattura elettronica.", "Fattura elettronica", "error");
+        showElectronicInvoiceFileMessage(result.message || "Fattura selezionata non importabile.");
         return;
       }
 
-      applyElectronicInvoiceImport(result);
+      applyElectronicInvoiceImport(result, selectedFile);
     } catch {
-      showMessage("Non e' stato possibile leggere la fattura elettronica.", "Fattura elettronica", "error");
+      showElectronicInvoiceFileMessage("Fattura selezionata non importabile.");
     }
   }
 
   function viewElectronicInvoiceFile() {
-    if (!selectedElectronicInvoiceFile) {
-      showMessage("Selezionare una fattura elettronica.");
+    const selectedFile = selectedElectronicInvoiceRowFile();
+    if (!selectedFile) {
+      showMessage("Fattura selezionata non disponibile.");
       return;
     }
 
-    if (selectedElectronicInvoiceBrowserFile) {
+    if (selectedFile.browserFile) {
       showMessage("La visualizzazione e' disponibile solo per file letti da percorso locale.");
       return;
     }
 
-    if (!selectedElectronicInvoiceFile.fullPath) {
+    if (!selectedFile.fullPath) {
       showMessage("Percorso file non disponibile.");
       return;
     }
@@ -1375,9 +1371,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const url = new URL(window.location.href);
     url.searchParams.set("handler", "ElectronicInvoiceRaw");
-    url.searchParams.set("fileName", selectedElectronicInvoiceFile.name || selectedElectronicInvoiceFile.fullPath);
+    url.searchParams.set("fileName", selectedFile.name || selectedFile.fullPath);
     if (electronicInvoiceViewerTitle) {
-      electronicInvoiceViewerTitle.textContent = selectedElectronicInvoiceFile.name || "Fattura elettronica";
+      electronicInvoiceViewerTitle.textContent = selectedFile.name || "Fattura elettronica";
     }
 
     electronicInvoiceViewerFrame.src = url.toString();
@@ -1391,7 +1387,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const fileName = (electronicInvoiceName?.value ?? "").trim();
     const fileToOpen = fileName || path.split(/[\\/]/).pop() || "";
     if (!fileToOpen) {
-      showMessage("Fattura elettronica non selezionata.");
+      showMessage("Fattura selezionata non disponibile.");
       return;
     }
 
@@ -1420,28 +1416,29 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function deleteElectronicInvoiceFile() {
-    if (!selectedElectronicInvoiceFile) {
-      showMessage("Selezionare una fattura elettronica.");
+    const selectedFile = selectedElectronicInvoiceRowFile();
+    if (!selectedFile) {
+      showMessage("Fattura selezionata non disponibile.");
       return;
     }
 
-    if (selectedElectronicInvoiceBrowserFile) {
+    if (selectedFile.browserFile) {
       showMessage("L'eliminazione e' disponibile solo per file letti da percorso locale.");
       return;
     }
 
-    if (!selectedElectronicInvoiceFile.fullPath) {
+    if (!selectedFile.fullPath) {
       showMessage("Percorso file non disponibile.");
       return;
     }
 
-    const fileName = selectedElectronicInvoiceFile.name || "file selezionato";
-    window.MicronoteMessageBox?.show({
+    const fileName = selectedFile.name || "file selezionato";
+    window.SkyLabMessageBox?.show({
       title: "Elimina fattura elettronica",
       message: `Confermi l'eliminazione del file ${fileName}?`,
       mode: "confirm",
       variant: "confirm",
-      confirmText: "Elimina",
+      okText: "Elimina",
       cancelText: "Annulla",
       onConfirm: async () => {
         const url = new URL(window.location.href);
@@ -1449,7 +1446,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
           const formData = new FormData();
-          formData.append("path", selectedElectronicInvoiceFile.fullPath);
+          formData.append("path", selectedFile.fullPath);
 
           const token = requestVerificationToken();
           if (token) {
@@ -1499,8 +1496,55 @@ document.addEventListener("DOMContentLoaded", () => {
     electronicInvoicePreview?.focus();
   };
 
-  const openElectronicInvoiceDialog = () => {
+  const checkCompanyFiscalData = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("handler", "CompanyFiscalCheck");
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json"
+        }
+      });
+      let result = null;
+      try {
+        result = await response.json();
+      } catch {
+        result = null;
+      }
+
+      if (!response.ok || !result?.success) {
+        showMessage(
+            result?.message || (
+              response.ok
+              ? "Codice fiscale / Partita IVA non configurati nelle Opzioni."
+              : "Non e' stato possibile verificare Codice fiscale / Partita IVA. Il caricamento della fattura elettronica e' stato interrotto."
+          ),
+          "Carica fattura elettronica",
+          "error",
+          { onConfirm: () => electronicInvoiceOpen?.focus() }
+        );
+        return false;
+      }
+
+      return true;
+    } catch {
+      showMessage(
+        "Non e' stato possibile verificare Codice fiscale / Partita IVA. Il caricamento della fattura elettronica e' stato interrotto.",
+        "Carica fattura elettronica",
+        "error",
+        { onConfirm: () => electronicInvoiceOpen?.focus() }
+      );
+      return false;
+    }
+  };
+
+  const openElectronicInvoiceDialog = async () => {
     if (!electronicInvoiceDialog) {
+      return;
+    }
+
+    if (!(await checkCompanyFiscalData())) {
       return;
     }
 
@@ -1705,12 +1749,12 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const warnAndContinueAfterSave = (message) => {
-    if (!window.MicronoteMessageBox?.show) {
+    if (!window.SkyLabMessageBox?.show) {
       void continueAfterStockLoadBridge(false);
       return;
     }
 
-    window.MicronoteMessageBox.show({
+    window.SkyLabMessageBox.show({
       title: "Fattura di acquisto",
       message,
       variant: "error",
@@ -1783,7 +1827,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const buildSavePayload = (confirmOverwrite = false, confirmDueDateMismatch = false) => ({
     id: Number.parseInt(page?.dataset.invoiceId || "0", 10) || null,
-    causeCode: (invoiceType?.value ?? "").trim().toUpperCase(),
+    causeCode: Number.parseInt(invoiceType?.value || "0", 10) || 0,
     documentNumber: (invoiceNumber?.value ?? "").trim(),
     documentDate: toIsoDate(invoiceDate?.value) || null,
     supplierCode: Number.parseInt(invoiceSupplierCode?.value || "0", 10) || 0,
@@ -1794,6 +1838,7 @@ document.addEventListener("DOMContentLoaded", () => {
     total: roundCurrency(parseMoneyField(invoiceTotal)),
     notes: (invoiceNotes?.value ?? "").trim(),
     electronicInvoiceFileName: (electronicInvoiceName?.value ?? "").trim(),
+    importedFromXml,
     confirmOverwrite,
     confirmDueDateMismatch,
     vatRows: vatRowsPayload(),
@@ -1808,6 +1853,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const validateBeforeSave = () => {
     updateVatTotals();
+
+    if (duplicateInvoiceXmlCancelledKey && duplicateInvoiceXmlCancelledKey === purchaseInvoiceIdentityKey()) {
+      showSaveError("Fattura gia' presente in archivio. Registrazione annullata dall'import XML.", invoiceNumber);
+      return false;
+    }
 
     if (!invoiceType?.value) {
       showSaveError("Campo Tipo documento obbligatorio.", invoiceType);
@@ -1886,7 +1936,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
 
-    window.MicronoteMessageBox?.show({
+    window.SkyLabMessageBox?.show({
       title: "Fattura di acquisto",
       message: "Il totale delle scadenze non coincide con il totale fattura.\nVuoi registrare ugualmente?",
       mode: "confirm",
@@ -1922,14 +1972,14 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const saveInvoice = async (confirmOverwrite = false, confirmDueDateMismatch = false) => {
-    const result = window.MicronoteProgress?.run
-      ? await window.MicronoteProgress.run(
+    const result = window.SkyProg?.run
+      ? await window.SkyProg.run(
         () => postInvoiceSave(confirmOverwrite, confirmDueDateMismatch),
         { message: "Salvataggio in corso..." })
       : await postInvoiceSave(confirmOverwrite, confirmDueDateMismatch);
 
     if (result?.requiresDueDateMismatchConfirmation) {
-      window.MicronoteMessageBox?.show({
+      window.SkyLabMessageBox?.show({
         title: "Fattura di acquisto",
         message: result.message || "Il totale delle scadenze non coincide con il totale fattura.\nVuoi registrare ugualmente?",
         mode: "confirm",
@@ -1944,7 +1994,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (result?.requiresOverwriteConfirmation) {
-      window.MicronoteMessageBox?.show({
+      if (!importedFromXml) {
+        showMessage(
+          result.message || `La fattura e' gia' presente in archivio\nPartita: ${String(result.code ?? 0).padStart(6, "0")} / ${result.year ?? ""}\nInserimento non consentito.`,
+          "Fattura gia' presente",
+          "error",
+          { onConfirm: () => invoiceNumber?.focus() }
+        );
+        return;
+      }
+
+      window.SkyLabMessageBox?.show({
         title: "Fattura gia' presente",
         message: `La fattura e' gia' presente in archivio\nPartita: ${String(result.code ?? 0).padStart(6, "0")} / ${result.year ?? ""}\nVuoi registrare in sovrascrittura?`,
         mode: "confirm",
@@ -1952,6 +2012,7 @@ document.addEventListener("DOMContentLoaded", () => {
         confirmText: "Sovrascrivi",
         cancelText: "Annulla",
         onConfirm: () => {
+          applyExistingInvoiceCode(result);
           void saveInvoice(true, confirmDueDateMismatch);
         }
       });
@@ -1998,7 +2059,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       await saveInvoice(confirmOverwrite);
     } catch {
-      window.MicronoteProgress?.hide?.();
+      window.SkyProg?.hide?.();
       showMessage("Registrazione fattura non riuscita.", "Fattura di acquisto", "error");
     }
   });
@@ -2194,12 +2255,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   });
-  electronicInvoiceRefresh?.addEventListener("click", () => {
-    openSystemFolderPicker();
-  });
-  electronicInvoiceFolderPicker?.addEventListener("change", () => {
-    renderBrowserFolderFiles(electronicInvoiceFolderPicker.files);
-  });
   electronicInvoiceSearch?.addEventListener("input", loadElectronicInvoiceFiles);
   electronicInvoiceSearchClear?.addEventListener("click", () => {
     if (!electronicInvoiceSearch) {
@@ -2313,6 +2368,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  electronicInvoiceDialog?.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") {
+      return;
+    }
+
+    if (electronicInvoiceViewer && !electronicInvoiceViewer.hidden) {
+      return;
+    }
+
+    if (Date.now() < electronicInvoiceSuppressEscapeUntil) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    closeElectronicInvoiceDialog();
+  });
+
   paymentCodeModal?.addEventListener("click", (event) => {
     if (event.target === paymentCodeModal) {
       closePaymentCodeModal();
@@ -2360,12 +2435,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (event.data?.type === "micronote:stock-load-cancel") {
       closeStockLoadModal();
-      if (!window.MicronoteMessageBox?.show) {
+      if (!window.SkyLabMessageBox?.show) {
         void continueAfterStockLoadBridge(false);
         return;
       }
 
-      window.MicronoteMessageBox.show({
+      window.SkyLabMessageBox.show({
         title: "Fattura di acquisto",
         message: "Carico di magazzino non completato.\nIl file XML non verra' archiviato.",
         variant: "error",
@@ -2394,10 +2469,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (electronicInvoiceFolderPickerPending || Date.now() < electronicInvoiceSuppressEscapeUntil) {
+    if (Date.now() < electronicInvoiceSuppressEscapeUntil) {
       event.preventDefault();
       event.stopPropagation();
-      electronicInvoiceFolderAbortController?.abort();
       return;
     }
 

@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   const filterForm = document.querySelector("[data-purchase-invoice-filters]");
   const grid = document.querySelector(".purchase-invoices-grid-frame");
   const table = grid?.querySelector("table");
@@ -86,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!preview || !previewDocument || !table) return;
     const printRows = visibleRows().map((row) => Array.from(row.cells).map((cell) => cell.textContent.trim()));
     if (!printRows.length) {
-      window.MicronoteMessageBox?.show({ title: "Stampa", message: "Nessuna fattura da stampare." });
+      window.SkyLabMessageBox?.show({ title: "Stampa", message: "Nessuna fattura da stampare." });
       return;
     }
     const headers = Array.from(table.querySelectorAll("thead th")).map((cell) => cell.textContent.trim());
@@ -181,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return row;
     }
 
-    window.MicronoteMessageBox?.show({
+    window.SkyLabMessageBox?.show({
       title: "Fatture di acquisto",
       message: "Selezionare una fattura dalla lista."
     });
@@ -326,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const label = selectedLabel(row);
       if (action === "delete") {
-        window.MicronoteMessageBox?.show({
+        window.SkyLabMessageBox?.show({
           mode: "confirm",
           variant: "confirm",
           title: "Cancella fattura",
@@ -348,7 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
         view: "Visualizza fattura"
       };
 
-      window.MicronoteMessageBox?.show({
+      window.SkyLabMessageBox?.show({
         title: titles[action] || "Fatture di acquisto",
         message: `${titles[action] || "Operazione"} per ${label}.`,
         detail: "Funzione in preparazione."

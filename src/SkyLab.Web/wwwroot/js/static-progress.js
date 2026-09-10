@@ -42,6 +42,10 @@
       this.#afterClose = null;
     }
 
+    static show(host) {
+      this.Show(host);
+    }
+
     static Close(afterClose) {
       if (typeof afterClose === "function") this.#afterClose = afterClose;
       if (!this.#panel || !this.#bar) {
@@ -80,7 +84,41 @@
         callback?.();
       }, 460));
     }
+
+    static close(afterClose) {
+      this.Close(afterClose);
+    }
+
+    static Hide(afterClose) {
+      this.Close(afterClose);
+    }
+
+    static hide(afterClose) {
+      this.Close(afterClose);
+    }
+
+    static async Run(action, options = {}) {
+      this.Show(options?.host);
+      try {
+        return await action();
+      } finally {
+        await new Promise(resolve => this.Close(resolve));
+      }
+    }
+
+    static run(action, options = {}) {
+      return this.Run(action, options);
+    }
   }
 
-  window.SkyProg = SkyLabStaticProgress;
+  window.SkyProg = {
+    Show: SkyLabStaticProgress.Show.bind(SkyLabStaticProgress),
+    Close: SkyLabStaticProgress.Close.bind(SkyLabStaticProgress),
+    Hide: SkyLabStaticProgress.Hide.bind(SkyLabStaticProgress),
+    Run: SkyLabStaticProgress.Run.bind(SkyLabStaticProgress),
+    show: SkyLabStaticProgress.Show.bind(SkyLabStaticProgress),
+    close: SkyLabStaticProgress.Close.bind(SkyLabStaticProgress),
+    hide: SkyLabStaticProgress.Hide.bind(SkyLabStaticProgress),
+    run: SkyLabStaticProgress.Run.bind(SkyLabStaticProgress)
+  };
 })();

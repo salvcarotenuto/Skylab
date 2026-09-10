@@ -1,0 +1,141 @@
+@page
+@model SkyLab.Web.Pages.Opzioni.IndexModel
+@{
+    ViewData["Title"] = "Opzioni";
+}
+
+<section class="module-page options-page data-form-skin">
+    <header class="module-header customer-form-header">
+        <div class="module-title-identity">
+            <a class="skylab-header-brand" asp-page="/Index" aria-label="Torna al menu principale">
+                <img src="~/images/skylab-logo.png" alt="" />
+            </a>
+            <div>
+                <h1>Opzioni</h1>
+                <p>SkyLab - Strumenti</p>
+            </div>
+        </div>
+        <div class="customer-form-toolbar">
+            <button class="btn btn-primary" type="submit" form="options-form">Salva</button>
+            <a class="btn customer-menu-button" asp-page="/Index">Annulla</a>
+        </div>
+    </header>
+
+    <form id="options-form" method="post" novalidate data-enter-navigation>
+    <section class="options-shell">
+        <aside class="options-navigation" aria-label="Sezioni opzioni">
+            <button class="options-nav-button active" type="button">Dati azienda</button>
+            <button class="options-nav-button" type="button" disabled>Dati titolare</button>
+            <button class="options-nav-button" type="button" disabled>Contabilità</button>
+            <button class="options-nav-button" type="button" disabled>Fatturazione</button>
+            <button class="options-nav-button" type="button" disabled>Fattura elettronica</button>
+            <button class="options-nav-button" type="button" disabled>Posta elettronica</button>
+            <button class="options-nav-button" type="button" disabled>Copie sicurezza</button>
+            <button class="options-nav-button" type="button" disabled>Parametri stampa</button>
+        </aside>
+
+        <div class="options-content">
+            <fieldset class="form-frame compact-frame options-frame">
+                <legend>Dati anagrafici</legend>
+                <div class="options-grid options-company-grid">
+                    <div class="field field-wide">
+                        <label asp-for="Options.RagioneSociale">Ragione sociale</label>
+                        <input asp-for="Options.RagioneSociale" maxlength="100" autocomplete="off" autofocus />
+                    </div>
+                    <div class="field field-wide">
+                        <label asp-for="Options.AttivitaEsercitata">Attività esercitata</label>
+                        <input asp-for="Options.AttivitaEsercitata" maxlength="250" autocomplete="off" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Options.CodiceFiscale">Codice fiscale</label>
+                        <input asp-for="Options.CodiceFiscale" maxlength="16" autocomplete="off" data-options-tax-code />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Options.PartitaIva">Partita IVA</label>
+                        <input asp-for="Options.PartitaIva" maxlength="11" inputmode="numeric" autocomplete="off" data-options-vat-number />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Options.NumeroRea">Numero REA</label>
+                        <input asp-for="Options.NumeroRea" maxlength="12" autocomplete="off" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Options.Telefono">Telefono</label>
+                        <input asp-for="Options.Telefono" maxlength="40" autocomplete="off" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Options.SitoWeb">Sito web</label>
+                        <input asp-for="Options.SitoWeb" maxlength="50" autocomplete="off" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Options.NaturaGiuridica">Natura giuridica</label>
+                        <input asp-for="Options.NaturaGiuridica" maxlength="50" autocomplete="off" />
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="form-frame compact-frame options-frame">
+                <legend>Sede legale</legend>
+                <div class="options-grid options-address-grid">
+                    <div class="field options-city-field">
+                        <label asp-for="Options.SedeLegaleCitta">Città</label>
+                        <input asp-for="Options.SedeLegaleCitta" maxlength="50" autocomplete="off" data-options-city="legal" aria-autocomplete="list" aria-controls="options-legal-city-suggestions" />
+                        <div id="options-legal-city-suggestions" class="options-city-suggestions" role="listbox" hidden></div>
+                    </div>
+                    <div class="field field-short">
+                        <label asp-for="Options.SedeLegaleProvincia">Prov.</label>
+                        <input asp-for="Options.SedeLegaleProvincia" maxlength="2" autocomplete="off" data-options-province="legal" />
+                    </div>
+                    <div class="field field-short">
+                        <label asp-for="Options.SedeLegaleCap">CAP</label>
+                        <input asp-for="Options.SedeLegaleCap" maxlength="5" inputmode="numeric" autocomplete="off" data-options-postal-code="legal" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Options.SedeLegaleIndirizzo">Indirizzo</label>
+                        <input asp-for="Options.SedeLegaleIndirizzo" maxlength="80" autocomplete="off" />
+                    </div>
+                    <div class="field options-pec-field">
+                        <label asp-for="Options.AzPec">PEC</label>
+                        <input asp-for="Options.AzPec" maxlength="100" autocomplete="off" />
+                    </div>
+                    <div class="field options-country-field">
+                        <label asp-for="Options.SiglaStato">Sigla stato</label>
+                        <input asp-for="Options.SiglaStato" maxlength="2" autocomplete="off" data-options-state-code />
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="form-frame compact-frame options-frame">
+                <legend>Sede operativa</legend>
+                <div class="options-grid options-address-grid">
+                    <div class="field options-city-field">
+                        <label asp-for="Options.SedeOperativaCitta">Città</label>
+                        <input asp-for="Options.SedeOperativaCitta" maxlength="50" autocomplete="off" data-options-city="operational" aria-autocomplete="list" aria-controls="options-operational-city-suggestions" />
+                        <div id="options-operational-city-suggestions" class="options-city-suggestions" role="listbox" hidden></div>
+                    </div>
+                    <div class="field field-short">
+                        <label asp-for="Options.SedeOperativaProvincia">Prov.</label>
+                        <input asp-for="Options.SedeOperativaProvincia" maxlength="2" autocomplete="off" data-options-province="operational" />
+                    </div>
+                    <div class="field field-short">
+                        <label asp-for="Options.SedeOperativaCap">CAP</label>
+                        <input asp-for="Options.SedeOperativaCap" maxlength="5" inputmode="numeric" autocomplete="off" data-options-postal-code="operational" />
+                    </div>
+                    <div class="field">
+                        <label asp-for="Options.SedeOperativaIndirizzo">Indirizzo</label>
+                        <input asp-for="Options.SedeOperativaIndirizzo" maxlength="80" autocomplete="off" />
+                    </div>
+                    <div class="field options-pec-field">
+                        <label asp-for="Options.AzEmail">E-mail</label>
+                        <input asp-for="Options.AzEmail" maxlength="100" autocomplete="off" />
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </section>
+    </form>
+</section>
+
+@section Scripts {
+    <script src="~/js/form-enter-navigation.js" asp-append-version="true"></script>
+    <script src="~/js/options.js" asp-append-version="true"></script>
+}

@@ -3,7 +3,7 @@ using MySqlConnector;
 
 namespace SkyLab.Web.Data;
 
-public sealed class PurchaseInvoiceRepository(MicronoteDb database)
+public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
 {
     private const int PurchaseInvoiceSector = 10;
     private const int SupplierAccountCode = 81;
@@ -106,9 +106,10 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
             """
             SELECT COALESCE(MAX(Anno), @fallbackYear)
             FROM moviva
-            WHERE TipoMovIva IN ('FA', 'DA', 'CA');
+            WHERE Settore = @sector;
             """,
             connection);
+        command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
         command.Parameters.AddWithValue("@fallbackYear", fallbackYear);
         return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
     }
@@ -131,7 +132,14 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
             var movement = await ExistingAccountingMovementAsync(connection, transaction, id, cancellationToken);
             if (movement is not null)
             {
-                await DeleteAccountingRowsAsync(connection, transaction, movement.Id, cancellationToken);
+                await DeleteAccountingRowsAsync(
+                    connection,
+                    transaction,
+                    movement.Id,
+                    movement.Year,
+                    PurchaseInvoiceSector,
+                    movement.Code,
+                    cancellationToken);
                 await using (var linkedCommand = new MySqlCommand(
                     "DELETE FROM movcontdc WHERE Mov_Id = @id;",
                     connection,
@@ -142,26 +150,43 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                 }
 
                 await using (var movementCommand = new MySqlCommand(
-                    "DELETE FROM movcont WHERE ID = @id AND Settore = @sector AND Documento = @document;",
+                    """
+                    DELETE FROM movcont
+                    WHERE ID = @id
+                      AND Anno = @year
+                      AND Settore = @sector
+                      AND Codice = @code
+                      AND Documento = @document;
+                    """,
                     connection,
                     transaction))
                 {
                     movementCommand.Parameters.AddWithValue("@id", movement.Id);
+                    movementCommand.Parameters.AddWithValue("@year", movement.Year);
                     movementCommand.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
+                    movementCommand.Parameters.AddWithValue("@code", movement.Code);
                     movementCommand.Parameters.AddWithValue("@document", id);
                     await movementCommand.ExecuteNonQueryAsync(cancellationToken);
                 }
             }
 
-            await DeleteVatRowsAsync(connection, transaction, id, cancellationToken);
-            await DeleteDueDatesAsync(connection, transaction, invoice.Year, invoice.Code, cancellationToken);
+            await DeleteVatRowsAsync(connection, transaction, id, invoice.Year, invoice.Code, cancellationToken);
+            await DeleteDueDatesAsync(connection, transaction, id, cancellationToken);
 
             await using var invoiceCommand = new MySqlCommand(
-                "DELETE FROM moviva WHERE ID = @id AND Settore = @sector;",
+                """
+                DELETE FROM moviva
+                WHERE ID = @id
+                  AND Anno = @year
+                  AND Settore = @sector
+                  AND Codice = @code;
+                """,
                 connection,
                 transaction);
             invoiceCommand.Parameters.AddWithValue("@id", id);
+            invoiceCommand.Parameters.AddWithValue("@year", invoice.Year);
             invoiceCommand.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
+            invoiceCommand.Parameters.AddWithValue("@code", invoice.Code);
             var affected = await invoiceCommand.ExecuteNonQueryAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -180,6 +205,14 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
 
         return await BuildEditModelAsync(connection, year, cancellationToken);
+    }
+
+    public async Task<int> GetNextCodeAsync(
+        int year,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken);
+        return await NextCodeAsync(connection, null, year, cancellationToken);
     }
 
     public async Task<PurchaseInvoiceEditPageModel> GetEditAsync(
@@ -201,14 +234,14 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                    COALESCE(mv.Ditta, 0) AS Ditta,
                    COALESCE(f.Nome, '') AS Fornitore,
                    COALESCE(mv.CtPartita, 0) AS CtPartita,
-                   COALESCE(mv.PuntoV, 0) AS PuntoV,
+                   COALESCE(mv.ULocale, 0) AS PuntoV,
                    COALESCE(vat.Imponibile, 0) AS Imponibile,
                    COALESCE(vat.Iva, 0) AS Iva,
                    COALESCE(vat.Imponibile, 0) + COALESCE(vat.Iva, 0) AS Totale,
                    COALESCE(mv.Pagamento, 0) AS Pagamento,
                    COALESCE(mv.Banca, 0) AS Banca,
                    COALESCE(mv.FeName, '') AS FeName,
-                   COALESCE(mv.Notes, '') AS Notes
+                   COALESCE(mv.Note, '') AS Notes
             FROM moviva mv
             LEFT JOIN (
                 SELECT ID,
@@ -330,7 +363,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
 
         if (existingInvoice is not null
             && existingInvoice.Id != editingInvoice?.Id
-            && !invoice.ConfirmOverwrite)
+            && (!invoice.ConfirmOverwrite || !invoice.ImportedFromXml))
         {
             return new PurchaseInvoiceSaveResult(
                 false,
@@ -372,7 +405,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                     cancellationToken);
             }
 
-            await DeleteVatRowsAsync(connection, transaction, id, cancellationToken);
+            await DeleteVatRowsAsync(connection, transaction, id, null, null, cancellationToken);
             await InsertVatRowsAsync(
                 connection,
                 transaction,
@@ -398,6 +431,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                 invoice,
                 id,
                 code,
+                targetInvoice?.Year,
                 invoiceTotal,
                 dueRows,
                 cancellationToken);
@@ -500,12 +534,10 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                    COALESCE(Iva, 0) AS Iva
             FROM movivarg
             WHERE ID = @id
-              AND Settore = @sector
             ORDER BY AliqIva, Imponibile, Iva;
             """,
             connection);
         command.Parameters.AddWithValue("@id", id);
-        command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
@@ -528,12 +560,6 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         int code,
         CancellationToken cancellationToken)
     {
-        var hasInvoiceIdColumn = await ColumnExistsAsync(
-            connection,
-            null,
-            "scadenze",
-            "Fattura",
-            cancellationToken);
         var hasPaidColumn = await ColumnExistsAsync(
             connection,
             null,
@@ -541,9 +567,6 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
             "Pagata",
             cancellationToken);
         var paidSelect = hasPaidColumn ? "COALESCE(Pagata, 0)" : "0";
-        var whereClause = hasInvoiceIdColumn
-            ? "Fattura = @id"
-            : "Anno = @year AND Settore = @sector AND Codice = @code";
         var rows = new List<PurchaseInvoiceDueDateSaveRow>();
 
         await using var command = new MySqlCommand(
@@ -553,20 +576,11 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                    DataScadenza,
                    {paidSelect} AS Pagata
             FROM scadenze
-            WHERE {whereClause}
+            WHERE MovIva_Id = @id
             ORDER BY Numero;
             """,
             connection);
-        if (hasInvoiceIdColumn)
-        {
-            command.Parameters.AddWithValue("@id", id);
-        }
-        else
-        {
-            command.Parameters.AddWithValue("@year", year);
-            command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
-            command.Parameters.AddWithValue("@code", code);
-        }
+        command.Parameters.AddWithValue("@id", id);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
@@ -587,7 +601,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
 
     private static async Task<int> NextCodeAsync(
         MySqlConnection connection,
-        MySqlTransaction transaction,
+        MySqlTransaction? transaction,
         int year,
         CancellationToken cancellationToken)
     {
@@ -618,8 +632,8 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         await using var command = new MySqlCommand(
             """
             INSERT INTO moviva
-                (Anno, Settore, Codice, Causale, NumDoc, DataDoc, Ditta, CtPartita, PuntoV,
-                 Pagamento, Banca, FeName, Notes)
+                (Anno, Settore, Codice, Causale, NumDoc, DataDoc, Ditta, CtPartita, ULocale,
+                 Pagamento, Banca, FeName, Note)
             VALUES
                 (@year, @sector, @code, @cause, @documentNumber, @documentDate, @supplierCode, @contraAccountCode,
                  @storeCode, @paymentCode, @bankCode, @fileName, @notes);
@@ -653,11 +667,11 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                 DataDoc = @documentDate,
                 Ditta = @supplierCode,
                 CtPartita = @contraAccountCode,
-                PuntoV = @storeCode,
+                ULocale = @storeCode,
                 Pagamento = @paymentCode,
                 Banca = @bankCode,
                 FeName = @fileName,
-                Notes = @notes
+                Note = @notes
             WHERE ID = @id;
             """,
             connection,
@@ -697,6 +711,8 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         MySqlConnection connection,
         MySqlTransaction transaction,
         int id,
+        int? year,
+        int? code,
         CancellationToken cancellationToken)
     {
         await using var command = new MySqlCommand(
@@ -721,16 +737,13 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
             await using var command = new MySqlCommand(
                 """
                 INSERT INTO movivarg
-                    (ID, Anno, Codice, Settore, PuntoV, AliqIva, Imponibile, Iva)
+                    (ID, ULocale, AliqIva, Imponibile, Iva)
                 VALUES
-                    (@id, @year, @code, @sector, @storeCode, @vatRate, @taxable, @tax);
+                    (@id, @storeCode, @vatRate, @taxable, @tax);
                 """,
                 connection,
                 transaction);
             command.Parameters.AddWithValue("@id", id);
-            command.Parameters.AddWithValue("@year", invoice.Year);
-            command.Parameters.AddWithValue("@code", code);
-            command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
             command.Parameters.AddWithValue("@storeCode", invoice.StoreCode);
             command.Parameters.AddWithValue("@vatRate", row.Rate);
             command.Parameters.AddWithValue("@taxable", row.Taxable);
@@ -739,7 +752,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         }
     }
 
-    private sealed record ExistingAccountingMovement(int Id, int Code);
+    private sealed record ExistingAccountingMovement(int Id, int Year, int Code);
 
     private static async Task<ExistingAccountingMovement?> ExistingAccountingMovementAsync(
         MySqlConnection connection,
@@ -749,7 +762,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
     {
         await using var command = new MySqlCommand(
             """
-            SELECT ID, Codice
+            SELECT ID, Anno, Codice
             FROM movcont
             WHERE Settore = @sector
               AND Documento = @document
@@ -764,6 +777,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         return await reader.ReadAsync(cancellationToken)
             ? new ExistingAccountingMovement(
                 Convert.ToInt32(reader["ID"]),
+                Convert.ToInt32(reader["Anno"]),
                 Convert.ToInt32(reader["Codice"]))
             : null;
     }
@@ -822,7 +836,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                 cancellationToken);
         }
 
-        await DeleteAccountingRowsAsync(connection, transaction, movementId, cancellationToken);
+        await DeleteAccountingRowsAsync(connection, transaction, movementId, null, null, null, cancellationToken);
         await InsertPurchaseAccountingRowsAsync(
             connection,
             transaction,
@@ -848,7 +862,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
             """
             INSERT INTO movcont
                 (Anno, Settore, Codice, Causale, DataMov, CliFor, Ditta, NumDoc,
-                 Documento, Importo, PuntoV, Note)
+                 Documento, Importo, ULocale, Note)
             VALUES
                 (@year, @sector, @code, @cause, @movementDate, @subjectType, @supplierCode, @documentNumber,
                  @document, @amount, @storeCode, @notes);
@@ -883,7 +897,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                 NumDoc = @documentNumber,
                 Documento = @document,
                 Importo = @amount,
-                PuntoV = @storeCode,
+                ULocale = @storeCode,
                 Note = @notes
             WHERE ID = @id;
             """,
@@ -919,6 +933,9 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         MySqlConnection connection,
         MySqlTransaction transaction,
         int movementId,
+        int? year,
+        int? sector,
+        int? code,
         CancellationToken cancellationToken)
     {
         await using var command = new MySqlCommand(
@@ -1001,16 +1018,13 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         await using var command = new MySqlCommand(
             """
             INSERT INTO movcontrg
-                (ID, Anno, Settore, Codice, Riga, Conto, Importo, Segno)
+                (ID, Riga, Conto, Importo, Segno)
             VALUES
-                (@id, @year, @sector, @code, @rowNumber, @accountCode, @amount, @sign);
+                (@id, @rowNumber, @accountCode, @amount, @sign);
             """,
             connection,
             transaction);
         command.Parameters.AddWithValue("@id", movementId);
-        command.Parameters.AddWithValue("@year", invoice.Year);
-        command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
-        command.Parameters.AddWithValue("@code", accountingCode);
         command.Parameters.AddWithValue("@rowNumber", rowNumber);
         command.Parameters.AddWithValue("@accountCode", accountCode);
         command.Parameters.AddWithValue("@amount", amount);
@@ -1027,11 +1041,13 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         PurchaseInvoiceSaveCommand invoice,
         int invoiceId,
         int code,
+        int? previousYear,
         decimal invoiceTotal,
         IReadOnlyList<PurchaseInvoiceDueDateSaveRow> dueRows,
         CancellationToken cancellationToken)
     {
-        await DeleteDueDatesAsync(connection, transaction, invoice.Year, code, cancellationToken);
+        await DeleteDueDatesAsync(connection, transaction, invoiceId, cancellationToken);
+
         if (invoice.PaymentCode <= 0 || dueRows.Count == 0)
         {
             return;
@@ -1048,19 +1064,6 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
             "scadenze",
             "Pagata",
             cancellationToken);
-        var hasInvoiceIdColumn = await ColumnExistsAsync(
-            connection,
-            transaction,
-            "scadenze",
-            "Fattura",
-            cancellationToken);
-        var hasInvoiceNumberColumn = await ColumnExistsAsync(
-            connection,
-            transaction,
-            "scadenze",
-            "NumeroFatt",
-            cancellationToken);
-
         var rowNumber = 1;
         foreach (var dueRow in dueRows.Where(row => row.Amount != 0))
         {
@@ -1079,8 +1082,6 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                 invoiceTotal,
                 paymentInfo.TitleType,
                 dueRow,
-                hasInvoiceIdColumn,
-                hasInvoiceNumberColumn,
                 hasPaidColumn,
                 cancellationToken);
         }
@@ -1089,22 +1090,17 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
     private static async Task DeleteDueDatesAsync(
         MySqlConnection connection,
         MySqlTransaction transaction,
-        int year,
-        int code,
+        int invoiceId,
         CancellationToken cancellationToken)
     {
         await using var command = new MySqlCommand(
             """
             DELETE FROM scadenze
-            WHERE Anno = @year
-              AND Settore = @sector
-              AND Codice = @code;
+            WHERE MovIva_Id = @invoiceId;
             """,
             connection,
             transaction);
-        command.Parameters.AddWithValue("@year", year);
-        command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
-        command.Parameters.AddWithValue("@code", code);
+        command.Parameters.AddWithValue("@invoiceId", invoiceId);
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
@@ -1139,52 +1135,28 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         decimal invoiceTotal,
         int titleType,
         PurchaseInvoiceDueDateSaveRow dueRow,
-        bool hasInvoiceIdColumn,
-        bool hasInvoiceNumberColumn,
         bool hasPaidColumn,
         CancellationToken cancellationToken)
     {
-        var invoiceIdField = hasInvoiceIdColumn ? ", Fattura" : "";
-        var invoiceIdValue = hasInvoiceIdColumn ? ", @invoiceId" : "";
-        var invoiceNumberField = hasInvoiceNumberColumn ? ", NumeroFatt" : "";
-        var invoiceNumberValue = hasInvoiceNumberColumn ? ", @documentNumber" : "";
         var paidField = hasPaidColumn ? ", Pagata" : "";
         var paidValue = hasPaidColumn ? ", @paid" : "";
         await using var command = new MySqlCommand(
             $"""
             INSERT INTO scadenze
-                (Anno, Settore, Codice, Numero, CodPagamento,
-                 TipoTitolo, DataScadenza, CliFor, Ditta,
-                 DataFatt, TotaleFatt, Banca, Importo{invoiceIdField}{invoiceNumberField}{paidField})
+                (MovIva_Id, Numero, CodPagamento,
+                 DataScadenza, Banca, Importo{paidField})
             VALUES
-                (@year, @sector, @code, @number, @paymentCode,
-                 @titleType, @dueDate, @subjectType, @supplierCode,
-                 @documentDate, @invoiceTotal, @bankCode, @amount{invoiceIdValue}{invoiceNumberValue}{paidValue});
+                (@invoiceId, @number, @paymentCode,
+                 @dueDate, @bankCode, @amount{paidValue});
             """,
             connection,
             transaction);
-        command.Parameters.AddWithValue("@year", invoice.Year);
-        command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
-        command.Parameters.AddWithValue("@code", code);
+        command.Parameters.AddWithValue("@invoiceId", invoiceId);
         command.Parameters.AddWithValue("@number", rowNumber);
         command.Parameters.AddWithValue("@paymentCode", invoice.PaymentCode);
-        command.Parameters.AddWithValue("@titleType", titleType);
         command.Parameters.Add("@dueDate", MySqlDbType.Date).Value = dueRow.Date!.Value.ToDateTime(TimeOnly.MinValue);
-        command.Parameters.AddWithValue("@subjectType", SupplierSubjectType);
-        command.Parameters.AddWithValue("@supplierCode", invoice.SupplierCode);
-        command.Parameters.Add("@documentDate", MySqlDbType.Date).Value = invoice.DocumentDate!.Value.ToDateTime(TimeOnly.MinValue);
-        command.Parameters.AddWithValue("@invoiceTotal", invoiceTotal);
         command.Parameters.AddWithValue("@bankCode", invoice.BankCode);
         command.Parameters.AddWithValue("@amount", dueRow.Amount);
-        if (hasInvoiceIdColumn)
-        {
-            command.Parameters.AddWithValue("@invoiceId", invoiceId);
-        }
-
-        if (hasInvoiceNumberColumn)
-        {
-            command.Parameters.AddWithValue("@documentNumber", invoice.DocumentNumber.Trim());
-        }
 
         if (hasPaidColumn)
         {
@@ -1232,17 +1204,12 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
                    mv.Codice,
                    COALESCE(mv.NumDoc, '') AS NumDoc,
                    mv.DataDoc,
-                   CASE mv.TipoMovIva
-                       WHEN 'FA' THEN 10
-                       WHEN 'DA' THEN 11
-                       WHEN 'CA' THEN 12
-                       ELSE 0
-                   END AS Causale,
-                   CASE mv.TipoMovIva
-                       WHEN 'FA' THEN 'Fattura acquisto'
-                       WHEN 'DA' THEN 'Nota debito acquisti'
-                       WHEN 'CA' THEN 'Nota credito acquisti'
-                       ELSE COALESCE(mv.TipoMovIva, '')
+                   COALESCE(mv.Causale, 0) AS Causale,
+                   CASE COALESCE(mv.Causale, 0)
+                       WHEN 10 THEN 'Fattura acquisto'
+                       WHEN 11 THEN 'Nota debito acquisti'
+                       WHEN 12 THEN 'Nota credito acquisti'
+                       ELSE ''
                    END AS CausaleDescrizione,
                    COALESCE(mv.Ditta, 0) AS Ditta,
                    COALESCE(f.Nome, '') AS Fornitore,
@@ -1262,15 +1229,10 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
             ) vat ON vat.ID = mv.ID
             LEFT JOIN fornitori f ON f.Codice = mv.Ditta
             LEFT JOIN conti cn ON cn.Codice = mv.CtPartita
-            WHERE mv.TipoMovIva IN ('FA', 'DA', 'CA')
+            WHERE mv.Settore = @sector
               AND mv.Anno = @year
               AND (@month IS NULL OR MONTH(mv.DataDoc) = @month)
-              AND (
-                  @causeCode IS NULL
-                  OR (@causeCode = 10 AND mv.TipoMovIva = 'FA')
-                  OR (@causeCode = 11 AND mv.TipoMovIva = 'DA')
-                  OR (@causeCode = 12 AND mv.TipoMovIva = 'CA')
-              )
+              AND (@causeCode IS NULL OR mv.Causale = @causeCode)
               AND (@supplierCode IS NULL OR mv.Ditta = @supplierCode)
               AND (
                   @storeCode IS NULL
@@ -1282,6 +1244,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
             """;
 
         await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
         command.Parameters.AddWithValue("@year", year);
         command.Parameters.AddWithValue("@month", month is null ? DBNull.Value : month.Value);
         command.Parameters.AddWithValue("@causeCode", causeCode is null ? DBNull.Value : causeCode.Value);
@@ -1338,11 +1301,12 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         const string sql = """
             SELECT DISTINCT Anno
             FROM moviva
-            WHERE TipoMovIva IN ('FA', 'DA', 'CA')
+            WHERE Settore = @sector
             ORDER BY Anno DESC;
             """;
 
         await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
 
         var years = new List<int>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -1411,26 +1375,7 @@ public sealed class PurchaseInvoiceRepository(MicronoteDb database)
         MySqlConnection connection,
         CancellationToken cancellationToken)
     {
-        const string sql = """
-            SELECT DISTINCT mv.CtPartita AS Codice,
-                   COALESCE(c.Descrizione, '') AS Descrizione
-            FROM moviva mv
-            LEFT JOIN conti c ON c.Codice = mv.CtPartita
-            WHERE mv.CtPartita > 0
-            ORDER BY Descrizione, Codice;
-            """;
-
-        await using var command = new MySqlCommand(sql, connection);
-        var rows = new List<PurchaseInvoiceAccountOption>();
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            var code = Convert.ToInt32(reader["Codice"]);
-            var description = Convert.ToString(reader["Descrizione"]) ?? "";
-            rows.Add(new PurchaseInvoiceAccountOption(code, $"{code:000} - {description}"));
-        }
-
-        return rows;
+        return await ListPurchaseAccountsAsync(connection, cancellationToken);
     }
 
     private static async Task<IReadOnlyList<PurchaseInvoiceAccountOption>> ListPurchaseAccountsAsync(

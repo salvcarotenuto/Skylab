@@ -1,12 +1,12 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("#work-form");
   const saveButton = document.querySelector("[data-work-save]");
   if (!form || !saveButton) return;
 
   let saving = false;
   const showError = message => {
-    if (window.MicronoteMessageBox?.show) {
-      window.MicronoteMessageBox.show({ title: "Scheda lavoro", message });
+    if (window.SkyLabMessageBox?.show) {
+      window.SkyLabMessageBox.show({ title: "Scheda lavoro", message });
     } else {
       window.alert(message);
     }

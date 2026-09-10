@@ -102,11 +102,13 @@
                     <label>Partita</label>
                     <input value="@(Model.Invoice.Code > 0 ? Model.Invoice.Code.ToString("000000") : "")"
                            readonly
-                           tabindex="-1" />
+                           tabindex="-1"
+                           data-purchase-invoice-code />
                     <span>/</span>
                     <input value="@Model.Invoice.Year"
                            readonly
-                           tabindex="-1" />
+                           tabindex="-1"
+                           data-purchase-invoice-year />
                 </div>
 
                 <div class="field purchase-invoice-type-field">

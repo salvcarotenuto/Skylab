@@ -1,11 +1,11 @@
-using MySqlConnector;
+﻿using MySqlConnector;
 using SkyLab.Web.Models;
 
 namespace SkyLab.Web.Services;
 
 public sealed class SupplierService(IConfiguration configuration)
 {
-    private string ConnectionString { get { var cs=configuration.GetConnectionString("SkyLabDb")??configuration.GetConnectionString("MicronoteDb")??throw new InvalidOperationException("Connessione MySQL non configurata.");return new MySqlConnectionStringBuilder(cs){Database="skylab_0001",SslMode=MySqlSslMode.None}.ConnectionString; } }
+    private string ConnectionString { get { var cs=configuration.GetConnectionString("SkyLab")??throw new InvalidOperationException("Connessione MySQL non configurata.");return new MySqlConnectionStringBuilder(cs){Database="skylab_0001",SslMode=MySqlSslMode.None}.ConnectionString; } }
 
     public async Task<IReadOnlyList<SupplierListItem>> SearchAsync(string? search,CancellationToken ct)
     {

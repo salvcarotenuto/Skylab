@@ -63,7 +63,7 @@ public static class MainMenuCatalog
         ]),
         new("strumenti", "Strumenti", "ST", "accent-tools",
         [
-            Group("Applicazione", "Opzioni azienda", "Cambia azienda", "Cambia esercizio", "Cambia utente"),
+            Group("Applicazione", Link("Opzioni azienda", "/Opzioni/Index"), Pending("Cambia azienda"), Link("Cambia esercizio", "/CambiaEsercizio/Index"), Pending("Cambia utente")),
             Group("Archivio", "Copie di sicurezza", "Ripristino copie di sicurezza", "Elimina movimenti per anno"),
             Group("Lavori di servizio", "Attività utenti")
         ])

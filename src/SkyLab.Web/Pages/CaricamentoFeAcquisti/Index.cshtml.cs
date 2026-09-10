@@ -6,7 +6,7 @@ using SkyLab.Web.Services;
 namespace SkyLab.Web.Pages.CaricamentoFeAcquisti;
 
 [RequestSizeLimit(31L * 1024L * 1024L)]
-public class IndexModel(MicronoteServicePaths servicePaths) : PageModel
+public class IndexModel(SkyLabServicePaths servicePaths) : PageModel
 {
     private const long MaxFileSize = 30L * 1024L * 1024L;
 
