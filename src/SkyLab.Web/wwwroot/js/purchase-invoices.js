@@ -64,6 +64,17 @@
     if (preview) preview.hidden = true;
   };
 
+  const invoiceIdFromRow = (row) => {
+    const rawValue = row?.dataset?.purchaseInvoicePk || row?.dataset?.invoiceId || "";
+    const parsedValue = Number.parseInt(rawValue, 10);
+    return Number.isNaN(parsedValue) ? 0 : parsedValue;
+  };
+
+  const invoiceIdTextFromRow = (row) => {
+    const id = invoiceIdFromRow(row);
+    return id > 0 ? id.toString() : "";
+  };
+
   const appendPrintPage = (headers, printRows, number, count) => {
     const sheet = document.createElement("article");
     sheet.className = "supplier-report-page purchase-invoices-report-page";
@@ -131,7 +142,7 @@
     }
 
     const selected = selectedRow();
-    const selectedId = selected?.dataset.invoiceId || "";
+    const selectedId = invoiceIdFromRow(selected);
     const multiplier = direction === "desc" ? -1 : 1;
     const sortedRows = [...rows].sort((left, right) => {
       const leftValue = sortValue(left, key, type);
@@ -157,7 +168,7 @@
       header.setAttribute("aria-sort", isActive ? (direction === "asc" ? "ascending" : "descending") : "none");
     });
 
-    const rowToSelect = rows.find((row) => row.dataset.invoiceId === selectedId) || visibleRows()[0];
+    const rowToSelect = rows.find((row) => invoiceIdFromRow(row) === selectedId) || visibleRows()[0];
     if (rowToSelect) {
       selectRow(rowToSelect, true, 0);
       grid.scrollTop = 0;
@@ -186,6 +197,19 @@
       message: "Selezionare una fattura dalla lista."
     });
     return null;
+  };
+
+  const resolveEditableRow = () => {
+    const row = selectedRow() || rows.find((candidate) => !candidate.hidden);
+    if (!row) {
+      window.SkyLabMessageBox?.show({
+        title: "Fatture di acquisto",
+        message: "Selezionare una fattura dalla lista."
+      });
+      return null;
+    }
+
+    return row;
   };
 
   const selectedLabel = (row) => {
@@ -275,7 +299,7 @@
   rows.forEach((row) => {
     row.addEventListener("click", () => selectRow(row, true, 0));
     row.addEventListener("dblclick", () => {
-      window.location.href = editUrl(row.dataset.invoiceId || "");
+      window.location.href = editUrl(invoiceIdTextFromRow(row));
     });
     row.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
@@ -320,7 +344,12 @@
       }
 
       if (action === "edit") {
-        window.location.href = editUrl(row.dataset.invoiceId || "");
+        const editableRow = resolveEditableRow();
+        if (!editableRow) {
+          return;
+        }
+
+        window.location.href = editUrl(invoiceIdTextFromRow(editableRow));
         return;
       }
 
@@ -335,7 +364,7 @@
           okText: "Cancella",
           onConfirm: () => {
             if (deleteForm && deleteId) {
-              deleteId.value = row.dataset.invoiceId || "";
+              deleteId.value = invoiceIdTextFromRow(row);
               deleteForm.submit();
             }
           }
