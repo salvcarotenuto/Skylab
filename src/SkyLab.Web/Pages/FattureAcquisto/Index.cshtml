@@ -179,10 +179,10 @@
                                 contraAccountCode = Model.List.ContraAccountCode,
                                 selectedId = invoice.Id
                             });
-                        <tr class="@(selectedId == invoice.Id ? "selected selected-row" : "")"
+                            <tr class="@(selectedId == invoice.Id ? "selected selected-row" : "")"
                             tabindex="0"
                             data-purchase-invoice-row
-                            data-invoice-id="@invoice.Id"
+                            data-purchase-invoice-pk="@invoice.Id"
                             data-url="@rowUrl"
                             data-sort-year="@invoice.Year"
                             data-sort-code="@invoice.Code"
