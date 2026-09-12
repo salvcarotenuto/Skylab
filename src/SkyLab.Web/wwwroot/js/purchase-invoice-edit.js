@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
   const saveButton = document.querySelector("[data-purchase-invoice-save]");
   const page = document.querySelector(".purchase-invoice-form-page");
   const electronicInvoiceOpen = document.querySelector("[data-electronic-invoice-open]");
@@ -33,8 +33,9 @@
   const electronicInvoiceViewerTitle = document.querySelector("[data-electronic-invoice-viewer-title]");
   const electronicInvoiceViewerPanel = document.querySelector("[data-electronic-invoice-viewer-panel]");
   const electronicInvoiceViewerCloseButtons = Array.from(document.querySelectorAll("[data-electronic-invoice-viewer-close]"));
+  const currentActionValue = () => Number.parseInt(page?.dataset.azione || document.querySelector("input[name='Azione']")?.value || "0", 10) || 0;
   const electronicInvoiceCurrentSource = () => {
-    const actionValue = Number.parseInt(page?.dataset.azione || document.querySelector("input[name='Azione']")?.value || "0", 10) || 0;
+    const actionValue = currentActionValue();
     const baseAction = actionValue % 10;
     return baseAction === 2 ? "" : "archive";
   };
@@ -59,6 +60,8 @@
   const paymentCodeModalFrame = document.querySelector("[data-payment-code-modal-frame]");
   const chartAccountModal = document.querySelector("[data-chart-account-modal]");
   const chartAccountModalFrame = document.querySelector("[data-chart-account-modal-frame]");
+  let supplierModal = document.querySelector("[data-supplier-modal]");
+  let supplierModalFrame = document.querySelector("[data-supplier-modal-frame]");
   const stockLoadModal = document.querySelector("[data-stock-load-modal]");
   const stockLoadModalFrame = document.querySelector("[data-stock-load-modal-frame]");
   const invoiceNotes = document.querySelector("[data-purchase-invoice-notes]");
@@ -83,7 +86,16 @@
   let originalInvoiceIdentityKey = "";
   let applyingInitialInvoiceData = false;
   let pendingInvoiceRedirectUrl = "";
+  let pendingSupplierModalData = null;
   let importedFromXml = (electronicInvoiceName?.value ?? "").trim() !== "";
+
+  const buildReturnContext = () => {
+    const query = new URLSearchParams(window.location.search);
+    return {
+      returnTo: query.get("returnTo") || "",
+      returnUrl: query.get("returnUrl") || page?.dataset.returnUrl || "/FattureAcquisto"
+    };
+  };
 
   const showMessage = (message, title = "Fattura elettronica", variant = "", options = {}) => {
     const messageBox = window.SkyLabMessageBox;
@@ -172,7 +184,7 @@
       return false;
     }
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "DuplicateInvoice");
     url.searchParams.set("documentNumber", invoiceNumber.value.trim());
     url.searchParams.set("documentDate", toIsoDate(invoiceDate.value));
@@ -182,11 +194,12 @@
     }
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          "Accept": "application/json"
-        }
-      });
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
       if (!response.ok) {
         return true;
       }
@@ -216,32 +229,39 @@
         return false;
       }
 
-      window.SkyLabMessageBox?.show({
-        title: "Fattura gia' presente",
-        message: `La fattura e' gia' presente in archivio\nPartita: ${String(result.code ?? 0).padStart(6, "0")} / ${result.year ?? ""}\nVuoi registrare in sovrascrittura?`,
-        mode: "confirm",
-        variant: "confirm",
-        confirmText: "Sovrascrivi",
-        cancelText: "Annulla",
-        onConfirm: () => {
-          duplicateInvoiceConfirmedKey = key;
-          duplicateInvoiceXmlCancelledKey = "";
-          applyExistingInvoiceCode(result);
+      return await new Promise((resolve) => {
+        if (!window.SkyLabMessageBox?.show) {
+          duplicateInvoiceXmlCancelledKey = key;
           duplicateInvoicePromptOpen = false;
-        },
-        onCancel: () => {
-          if (source === "xml") {
-            duplicateInvoiceXmlCancelledKey = key;
-          }
-          duplicateInvoicePromptOpen = false;
-          invoiceNumber?.focus();
-          invoiceNumber?.select?.();
+          resolve(false);
+          return;
         }
+
+        window.SkyLabMessageBox.show({
+          title: "Fattura gia' presente",
+          message: `La fattura e' gia' presente in archivio\nPartita: ${String(result.code ?? 0).padStart(6, "0")} / ${result.year ?? ""}\nVuoi registrare in sovrascrittura?`,
+          mode: "confirm",
+          variant: "confirm",
+          confirmText: "Sovrascrivi",
+          cancelText: "Annulla",
+          onConfirm: () => {
+            duplicateInvoiceConfirmedKey = key;
+            duplicateInvoiceXmlCancelledKey = "";
+            applyExistingInvoiceCode(result);
+            duplicateInvoicePromptOpen = false;
+            resolve(true);
+          },
+          onCancel: () => {
+            if (source === "xml") {
+              duplicateInvoiceXmlCancelledKey = key;
+            }
+            duplicateInvoicePromptOpen = false;
+            invoiceNumber?.focus();
+            invoiceNumber?.select?.();
+            resolve(false);
+          }
+        });
       });
-      window.setTimeout(() => {
-        duplicateInvoicePromptOpen = false;
-      }, 0);
-      return false;
     } catch {
       return true;
     }
@@ -278,6 +298,57 @@
     }
   };
 
+  const ensureSupplierModal = () => {
+    if (supplierModal && supplierModalFrame) {
+      return true;
+    }
+
+    supplierModal = document.createElement("div");
+    supplierModal.className = "purchase-invoice-payment-modal-overlay";
+    supplierModal.hidden = true;
+    supplierModal.setAttribute("data-supplier-modal", "");
+    supplierModal.innerHTML = '<section class="purchase-invoice-payment-modal purchase-invoice-supplier-modal" role="dialog" aria-modal="true" aria-label="Nuovo fornitore"><iframe title="Nuovo fornitore" data-supplier-modal-frame></iframe></section>';
+    supplierModal.addEventListener("click", (event) => {
+      if (event.target === supplierModal) {
+        closeSupplierModal();
+      }
+    });
+    document.body.append(supplierModal);
+    supplierModalFrame = supplierModal.querySelector("[data-supplier-modal-frame]");
+    supplierModalFrame?.addEventListener("load", fillSupplierModalFromXml);
+    return supplierModalFrame !== null;
+  };
+
+  const fillSupplierModalFromXml = () => {
+    if (!pendingSupplierModalData || !supplierModalFrame?.contentDocument) {
+      return;
+    }
+
+    const doc = supplierModalFrame.contentDocument;
+    const setValue = (name, value) => {
+      const field = doc.querySelector(`[name="${name}"]`);
+      if (!field || value === undefined || value === null) {
+        return;
+      }
+
+      field.value = String(value);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
+    setValue("Fornitore.Name", pendingSupplierModalData.name);
+    setValue("Fornitore.TaxCode", pendingSupplierModalData.fiscalCode);
+    setValue("Fornitore.VatNumber", pendingSupplierModalData.vat);
+    setValue("Fornitore.City", pendingSupplierModalData.city);
+    setValue("Fornitore.Province", pendingSupplierModalData.province);
+    setValue("Fornitore.PostalCode", pendingSupplierModalData.postalCode);
+    setValue("Fornitore.Street", pendingSupplierModalData.address);
+    setValue("Fornitore.Phone1", pendingSupplierModalData.phone);
+    setValue("Fornitore.Email", pendingSupplierModalData.email);
+    setValue("Fornitore.CertifiedEmail", pendingSupplierModalData.certifiedEmail);
+    doc.querySelector('[name="Fornitore.Name"]')?.focus();
+  };
+
   const showMissingSupplierMessage = (result) => {
     const supplier = result?.supplier ?? {};
     const name = (supplier.name || "").trim() || "(nome non disponibile)";
@@ -298,15 +369,23 @@
       message: `Il fornitore\n${name}\npartita iva: ${vat}\nnon e' presente in archivio\nvuoi inserirlo ora ?`,
       mode: "confirm",
       variant: "confirm",
-      confirmText: "Inserisci",
+      okText: "Inserisci",
       cancelText: "Annulla",
       onConfirm: () => {
-        const supplierUrl = new URL("/Fornitori/Edit", window.location.origin);
-        const returnUrl = new URL(window.location.href);
-        if (selectedElectronicInvoiceFile?.fullPath) {
-          returnUrl.searchParams.set("importXml", selectedElectronicInvoiceFile.fullPath);
+        if (!ensureSupplierModal()) {
+          showMessage("Scheda Fornitore non disponibile.", "Fornitore non trovato", "error");
+          return;
         }
-        supplierUrl.searchParams.set("returnUrl", returnUrl.pathname + returnUrl.search);
+
+        pendingSupplierModalData = {
+          name: name === "(nome non disponibile)" ? "" : name,
+          vat: vat === "(partita IVA non disponibile)" ? "" : vat,
+          fiscalCode,
+          ...supplierParams
+        };
+        const supplierUrl = new URL("/Fornitori/Edit", window.location.origin);
+        supplierUrl.searchParams.set("azione", "102");
+        supplierUrl.searchParams.set("returnTo", "purchaseInvoiceXml");
         supplierUrl.searchParams.set("name", name === "(nome non disponibile)" ? "" : name);
         supplierUrl.searchParams.set("vat", vat === "(partita IVA non disponibile)" ? "" : vat);
         if (fiscalCode) {
@@ -319,7 +398,10 @@
           }
         });
 
-        window.location.href = supplierUrl.toString();
+        supplierModalFrame.src = `${supplierUrl.pathname}${supplierUrl.search}`;
+        supplierModal.hidden = false;
+        document.body.classList.add("purchase-invoice-payment-modal-open");
+        supplierModalFrame.focus();
       }
     });
   };
@@ -404,7 +486,7 @@
 
     const text = String(value ?? "").trim();
     const parsed = window.SkyLabPercent?.parse(text) ?? 0;
-    field.value = text && parsed !== 0
+    field.value = text
       ? (window.SkyLabPercent?.format(parsed) ?? text)
       : "";
   };
@@ -591,22 +673,29 @@
 
   const vatCellSnapshots = new WeakMap();
 
+  const vatCellSnapshotValue = (field) => {
+    const text = String(field?.value ?? "").trim();
+    if (!text) {
+      return "empty";
+    }
+
+    if (field.matches("[data-vat-rate]")) {
+      return `rate:${Math.round(parsePercentField(field) * 10000) / 10000}`;
+    }
+
+    if (field.matches("[data-vat-taxable], [data-vat-tax]")) {
+      return `money:${roundCurrency(parseMoneyField(field))}`;
+    }
+
+    return `text:${text}`;
+  };
+
   const getVatRowTotal = (row) =>
     parseMoneyField(row?.querySelector("[data-vat-taxable]"))
     + parseMoneyField(row?.querySelector("[data-vat-tax]"));
 
-  const hasVatRowData = (row) => {
-    const rateText = String(row?.querySelector("[data-vat-rate]")?.value ?? "").trim();
-    const taxableText = String(row?.querySelector("[data-vat-taxable]")?.value ?? "").trim();
-    const taxText = String(row?.querySelector("[data-vat-tax]")?.value ?? "").trim();
-    return Boolean(rateText || taxableText || taxText);
-  };
-
-  const hasVatRowsDataFrom = (rows, startIndex) =>
-    rows.slice(startIndex).some((row) => hasVatRowData(row));
-
   const clearZeroVatRateDisplay = (field) => {
-    if (field?.matches?.("[data-vat-rate]") && parsePercentField(field) === 0) {
+    if (field?.matches?.("[data-vat-rate]") && !String(field.value ?? "").trim()) {
       field.value = "";
     }
   };
@@ -720,32 +809,90 @@
     return true;
   };
 
-  const calculateVatRowsFrom = (startIndex, { stopBeforeFilled = true } = {}) => {
-    const rows = getVatRows();
-    const invoiceAmount = parseMoneyField(invoiceTotal);
-    if (invoiceAmount <= 0) {
+  const clearVatRowAmounts = (row) => {
+    setFieldValueQuiet(row?.querySelector("[data-vat-taxable]"), "");
+    setFieldValueQuiet(row?.querySelector("[data-vat-tax]"), "");
+  };
+
+  const clearVatRowsFrom = (startIndex) => {
+    getVatRows().slice(startIndex).forEach((row) => {
+      setFieldValueQuiet(row.querySelector("[data-vat-rate]"), "");
+      clearVatRowAmounts(row);
+    });
+  };
+
+  const focusVatTarget = (target) => {
+    if (!target) {
       return;
     }
 
-    for (let index = startIndex; index < rows.length; index += 1) {
-      if (stopBeforeFilled && hasVatRowData(rows[index])) {
-        break;
-      }
+    window.setTimeout(() => {
+      target.focus();
+      target.select?.();
+    }, 0);
+  };
 
-      const previousTotal = rows
-        .slice(0, index)
-        .reduce((total, row) => total + getVatRowTotal(row), 0);
-      const residual = roundCurrency(invoiceAmount - previousTotal);
-      if (Math.abs(residual) < 0.01) {
-        break;
-      }
+  const isVatDetailComplete = () => {
+    const invoiceAmount = roundCurrency(parseMoneyField(invoiceTotal));
+    const inserted = roundCurrency(parseMoneyField(invoiceInserted));
+    const difference = roundCurrency(parseMoneyField(invoiceDifference));
+    return invoiceAmount > 0
+      && Math.abs(invoiceAmount - inserted) < 0.01
+      && Math.abs(difference) < 0.01;
+  };
 
-      if (!calculateVatRowFromGross(rows[index], residual)) {
-        break;
-      }
+  const focusNextVatStepFromRate = (rows, rowIndex) => {
+    if (isVatDetailComplete()) {
+      clearVatRowsFrom(rowIndex + 1);
+      updateVatTotals();
+      focusVatTarget(invoicePayment);
+      return;
+    }
+
+    const residual = Math.abs(parseMoneyField(invoiceDifference));
+    if (residual < 0.01 || rowIndex >= rows.length - 1) {
+      focusVatTarget(invoicePayment);
+      return;
+    }
+
+    focusVatTarget(rows[rowIndex + 1]?.querySelector("[data-vat-rate]"));
+  };
+
+  const confirmVatRateCell = (target, row, rowIndex) => {
+    const rows = getVatRows();
+    const rateText = String(target.value ?? "").trim();
+
+    clearVatRowsFrom(rowIndex + 1);
+
+    if (!rateText) {
+      clearVatRowAmounts(row);
+      updateVatTotals();
+      vatCellSnapshots.set(target, vatCellSnapshotValue(target));
+      return;
+    }
+
+    const previousTotal = rows
+      .slice(0, rowIndex)
+      .reduce((total, vatRow) => total + getVatRowTotal(vatRow), 0);
+    const residual = roundCurrency(parseMoneyField(invoiceTotal) - previousTotal);
+
+    if (!calculateVatRowFromGross(row, residual)) {
+      clearVatRowAmounts(row);
     }
 
     updateVatTotals();
+    vatCellSnapshots.set(target, vatCellSnapshotValue(target));
+    focusNextVatStepFromRate(rows, rowIndex);
+  };
+
+  const confirmVatAmountCell = (target, row, rowIndex) => {
+    if (target.matches("[data-vat-taxable]")) {
+      calculateVatRowFromTaxable(row);
+    }
+
+    clearVatRowsFrom(rowIndex + 1);
+    updateVatTotals();
+    vatCellSnapshots.set(target, vatCellSnapshotValue(target));
   };
 
   const isVatBalanced = () => Math.abs(parseMoneyField(invoiceDifference)) < 0.01;
@@ -869,7 +1016,7 @@
       return;
     }
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "CalculateDueDates");
     url.searchParams.set("paymentCode", String(paymentCode));
     url.searchParams.set("total", String(total));
@@ -892,7 +1039,7 @@
     }
   };
 
-  const applyElectronicInvoiceImport = (result, selectedFile = null) => {
+  const applyElectronicInvoiceImport = async (result, selectedFile = null) => {
     importedFromXml = true;
     setFieldValue(invoiceCode, result.codeDisplay ?? (result.code ? String(result.code).padStart(6, "0") : ""));
     setFieldValue(invoiceYear, result.year ? String(result.year) : "");
@@ -917,7 +1064,7 @@
 
     fillVatRows(result.vatRows ?? []);
     fillDueRows(result.dueRows ?? []);
-    void checkDuplicateInvoice({ force: true, source: "xml" });
+    await checkDuplicateInvoice({ force: true, source: "xml" });
 
     if (electronicInvoiceFullPath && selectedElectronicInvoiceBrowserFile) {
       electronicInvoiceFullPath.dataset.browserFileName = selectedElectronicInvoiceBrowserFile.name;
@@ -1209,7 +1356,7 @@
     electronicInvoicePreviewAbort?.abort();
     electronicInvoicePreviewAbort = new AbortController();
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "ElectronicInvoicePreview");
     url.searchParams.set("fileName", fileName);
 
@@ -1268,7 +1415,7 @@
       return;
     }
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "ElectronicInvoiceFiles");
     url.searchParams.set("search", electronicInvoiceSearch?.value ?? "");
 
@@ -1315,7 +1462,7 @@
       return;
     }
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "ElectronicInvoiceImport");
     url.searchParams.set("fileName", selectedFile.name || selectedFile.fullPath);
 
@@ -1341,7 +1488,7 @@
         return;
       }
 
-      applyElectronicInvoiceImport(result, selectedFile);
+      await applyElectronicInvoiceImport(result, selectedFile);
     } catch {
       showElectronicInvoiceFileMessage("Fattura selezionata non importabile.");
     }
@@ -1369,7 +1516,7 @@
       return;
     }
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "ElectronicInvoiceRaw");
     url.searchParams.set("fileName", selectedFile.name || selectedFile.fullPath);
     if (electronicInvoiceViewerTitle) {
@@ -1396,7 +1543,7 @@
       return;
     }
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "ElectronicInvoiceRaw");
     url.searchParams.set("fileName", fileToOpen);
     const source = electronicInvoiceCurrentSource();
@@ -1441,7 +1588,7 @@
       okText: "Elimina",
       cancelText: "Annulla",
       onConfirm: async () => {
-        const url = new URL(window.location.href);
+        const url = new URL("/FattureAcquisto/Edit", window.location.origin);
         url.searchParams.set("handler", "DeleteElectronicInvoiceFile");
 
         try {
@@ -1497,7 +1644,7 @@
   };
 
   const checkCompanyFiscalData = async () => {
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "CompanyFiscalCheck");
 
     try {
@@ -1593,7 +1740,7 @@
     }
 
     const currentValue = invoicePayment.value;
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "PaymentOptions");
 
     try {
@@ -1645,6 +1792,17 @@
     addBankButton?.focus();
   };
 
+  const closeSupplierModal = () => {
+    if (!supplierModal) {
+      return;
+    }
+
+    supplierModal.hidden = true;
+    document.body.classList.remove("purchase-invoice-payment-modal-open");
+    supplierModalFrame?.removeAttribute("src");
+    electronicInvoiceGrid?.focus();
+  };
+
   const closeStockLoadModal = () => {
     if (!stockLoadModal) {
       return;
@@ -1662,7 +1820,7 @@
       return true;
     }
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "ArchiveElectronicInvoice");
 
     const formData = new FormData();
@@ -1710,7 +1868,7 @@
       return false;
     }
 
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "StockLoadBridge");
     url.searchParams.set("contraAccountCode", String(contraAccountCode));
 
@@ -1771,7 +1929,7 @@
     }
 
     const currentValue = invoiceBank.value;
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "BankOptions");
 
     try {
@@ -1951,8 +2109,22 @@
   };
 
   const postInvoiceSave = async (confirmOverwrite = false, confirmDueDateMismatch = false) => {
-    const url = new URL(window.location.href);
+    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "Save");
+    const actionValue = currentActionValue();
+    if (actionValue) {
+      url.searchParams.set("azione", String(actionValue));
+    }
+
+    const { returnTo, returnUrl } = buildReturnContext();
+    if (returnTo) {
+      url.searchParams.set("returnTo", returnTo);
+    }
+
+    if (returnUrl) {
+      url.searchParams.set("returnUrl", returnUrl);
+    }
+
     const token = requestVerificationToken();
     const response = await fetch(url, {
       method: "POST",
@@ -1965,7 +2137,15 @@
     });
 
     if (!response.ok) {
-      throw new Error("save failed");
+      let detail = "";
+      try {
+        const payload = await response.clone().json();
+        detail = payload?.message || "";
+      } catch {
+        detail = (await response.text()).trim();
+      }
+
+      throw new Error(detail || `Errore salvataggio fattura: ${response.status} ${response.statusText}`);
     }
 
     return response.json();
@@ -2029,20 +2209,6 @@
     }
     originalInvoiceIdentityKey = purchaseInvoiceIdentityKey();
     pendingInvoiceRedirectUrl = result.redirectUrl || "/FattureAcquisto";
-    try {
-      if (await requiresStockLoadBridge()) {
-        if (openStockLoadBridge()) {
-          return;
-        }
-
-        warnAndContinueAfterSave("File XML non disponibile per il carico di magazzino.");
-        return;
-      }
-    } catch {
-      warnAndContinueAfterSave("Controllo carico magazzino non riuscito.");
-      return;
-    }
-
     await continueAfterStockLoadBridge(true);
   };
 
@@ -2058,9 +2224,9 @@
 
     try {
       await saveInvoice(confirmOverwrite);
-    } catch {
+    } catch (error) {
       window.SkyProg?.hide?.();
-      showMessage("Registrazione fattura non riuscita.", "Fattura di acquisto", "error");
+      showMessage(error?.message || "Registrazione fattura non riuscita.", "Fattura di acquisto", "error");
     }
   });
 
@@ -2132,7 +2298,7 @@
       return;
     }
 
-    const currentValue = String(target.value ?? "");
+    const currentValue = vatCellSnapshotValue(target);
     const previousValue = vatCellSnapshots.get(target);
     if (onlyIfChanged && previousValue === currentValue) {
       updateVatTotals();
@@ -2140,40 +2306,23 @@
     }
 
     if (target.matches("[data-vat-rate]")) {
-      const previousTotal = rows
-        .slice(0, rowIndex)
-        .reduce((total, vatRow) => total + getVatRowTotal(vatRow), 0);
-      calculateVatRowFromGross(row, roundCurrency(parseMoneyField(invoiceTotal) - previousTotal));
-      updateVatTotals();
-      if (!hasVatRowsDataFrom(rows, rowIndex + 1)) {
-        calculateVatRowsFrom(rowIndex + 1);
-      }
-      vatCellSnapshots.set(target, String(target.value ?? ""));
+      confirmVatRateCell(target, row, rowIndex);
       return;
     }
 
     if (target.matches("[data-vat-taxable]")) {
-      calculateVatRowFromTaxable(row);
-      updateVatTotals();
-      if (!hasVatRowsDataFrom(rows, rowIndex + 1)) {
-        calculateVatRowsFrom(rowIndex + 1);
-      }
-      vatCellSnapshots.set(target, String(target.value ?? ""));
+      confirmVatAmountCell(target, row, rowIndex);
       return;
     }
 
     if (target.matches("[data-vat-tax]")) {
-      updateVatTotals();
-      if (!hasVatRowsDataFrom(rows, rowIndex + 1)) {
-        calculateVatRowsFrom(rowIndex + 1);
-      }
-      vatCellSnapshots.set(target, String(target.value ?? ""));
+      confirmVatAmountCell(target, row, rowIndex);
     }
   };
 
   invoiceVatTable?.addEventListener("focus", (event) => {
     if (event.target instanceof HTMLInputElement) {
-      vatCellSnapshots.set(event.target, String(event.target.value ?? ""));
+      vatCellSnapshots.set(event.target, vatCellSnapshotValue(event.target));
     }
   }, true);
 
@@ -2294,6 +2443,7 @@
   });
   clearZeroAmountDueDates();
   applyInitialInvoiceData(readInitialInvoiceData());
+  void reloadBankOptions();
 
   document.addEventListener("focusout", (event) => {
     const target = event.target;
@@ -2400,6 +2550,14 @@
     }
   });
 
+  supplierModal?.addEventListener("click", (event) => {
+    if (event.target === supplierModal) {
+      closeSupplierModal();
+    }
+  });
+
+  supplierModalFrame?.addEventListener("load", fillSupplierModalFromXml);
+
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin) {
       return;
@@ -2424,6 +2582,19 @@
 
     if (event.data?.type === "micronote:chart-account-cancel") {
       closeChartAccountModal();
+      return;
+    }
+
+    if (event.data?.type === "skylab:supplier-saved") {
+      closeSupplierModal();
+      if (selectedElectronicInvoiceRowFile()) {
+        void acceptElectronicInvoiceFile();
+      }
+      return;
+    }
+
+    if (event.data?.type === "skylab:supplier-cancel") {
+      closeSupplierModal();
       return;
     }
 

@@ -238,6 +238,7 @@
 
 .purchase-invoice-form-page input,
 .purchase-invoice-form-page select {
+    background: #ffffff;
     border: 1px solid var(--invoice-border);
     border-radius: 5px;
     box-sizing: border-box;
@@ -260,6 +261,12 @@
 .purchase-invoice-form-page input[readonly] {
     background: rgb(230, 230, 240);
     color: #111111;
+}
+
+.purchase-invoice-form-page select:disabled {
+    background: rgb(230, 230, 240);
+    color: #111111;
+    opacity: 1;
 }
 
 /* Dati fattura */

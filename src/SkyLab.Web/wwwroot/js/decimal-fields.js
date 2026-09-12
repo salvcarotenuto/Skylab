@@ -106,3 +106,29 @@
   return { clean, format, formatForEdit, normalizeForSubmit, parse, wire };
 })();
 
+window.SkyLabPercent = (() => {
+  const parse = (value) => window.SkyLabDecimal?.parse(value) ?? 0;
+  const format = (value) => window.SkyLabDecimal?.format(value, 2) ?? "";
+  const formatForEdit = (value) => window.SkyLabDecimal?.formatForEdit(value, 2) ?? "";
+
+  const wire = (input, options = {}) => {
+    if (!input || input.dataset.percentWired === "true") return;
+    input.dataset.percentWired = "true";
+    input.dataset.decimalDigits = input.dataset.decimalDigits || "2";
+    window.SkyLabDecimal?.wire(input, options);
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const fields = Array.from(document.querySelectorAll("[data-percent-field]"));
+    fields.forEach((field) => wire(field));
+    document.querySelectorAll("form").forEach((form) => {
+      form.addEventListener("submit", () => {
+        fields
+          .filter((field) => form.contains(field))
+          .forEach((field) => window.SkyLabDecimal?.normalizeForSubmit(field));
+      }, true);
+    });
+  });
+
+  return { format, formatForEdit, parse, wire };
+})();

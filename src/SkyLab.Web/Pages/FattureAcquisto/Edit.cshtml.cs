@@ -218,10 +218,9 @@ public sealed class EditModel(
         await using var connection = await db.OpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
             """
-            SELECT Codice, COALESCE(Descrizione, '') AS Descrizione
-            FROM conti
-            WHERE COALESCE(Ditta, '') = 'B'
-            ORDER BY Descrizione, Codice;
+            SELECT Codice, COALESCE(Nome, '') AS Nome
+            FROM banche
+            ORDER BY Nome, Codice;
             """,
             connection);
 
@@ -230,7 +229,7 @@ public sealed class EditModel(
         while (await reader.ReadAsync(cancellationToken))
         {
             var code = Convert.ToInt32(reader["Codice"]);
-            var description = Convert.ToString(reader["Descrizione"]) ?? "";
+            var description = Convert.ToString(reader["Nome"]) ?? "";
             rows.Add(new
             {
                 code,
@@ -284,6 +283,7 @@ public sealed class EditModel(
 
     public async Task<IActionResult> OnPostSaveAsync(
         [FromBody] PurchaseInvoiceSaveCommand invoice,
+        int? azione,
         string? returnTo,
         string? returnUrl,
         CancellationToken cancellationToken)
@@ -321,11 +321,19 @@ public sealed class EditModel(
                 year = result.Year,
                 code = result.Code,
                 redirectUrl = result.Success
-                    ? SaveRedirectUrl(returnTo, returnUrl, result.Id)
+                    ? SaveRedirectUrl(azione, returnTo, returnUrl, result.Id)
                     : null
             });
         }
         catch (MySqlException exception)
+        {
+            return new JsonResult(new
+            {
+                success = false,
+                message = $"Registrazione fattura non riuscita. Dettaglio: {exception.Message}"
+            });
+        }
+        catch (Exception exception)
         {
             return new JsonResult(new
             {
@@ -400,11 +408,22 @@ public sealed class EditModel(
         }
     }
 
-    private static string SaveRedirectUrl(string? returnTo, string? returnUrl, int? invoiceId)
+    private static string SaveRedirectUrl(int? azione, string? returnTo, string? returnUrl, int? invoiceId)
     {
+        if (azione is not null && FormAzione.IsInserimentoContinuativo(azione.Value))
+        {
+            var url = "/FattureAcquisto/Edit?azione=4";
+            if (string.Equals(returnTo, "menu", StringComparison.OrdinalIgnoreCase))
+            {
+                url += "&returnTo=menu";
+            }
+
+            return url;
+        }
+
         if (string.Equals(returnTo, "menu", StringComparison.OrdinalIgnoreCase))
         {
-            return "/FattureAcquisto/Edit?returnTo=menu";
+            return AddSelectedId("/FattureAcquisto", invoiceId);
         }
 
         return AddSelectedId(NormalizeReturnUrl(returnUrl), invoiceId);
@@ -893,8 +912,8 @@ public sealed class EditModel(
             return "Campo Totale fattura obbligatorio.";
         }
 
-        if (invoice.VatRows.Count == 0
-            || !invoice.VatRows.Any(row => row.Taxable != 0 || row.Tax != 0))
+        var vatRows = EffectiveVatRows(invoice);
+        if (vatRows.Length == 0)
         {
             return "Inserire almeno una riga di dettaglio imponibile/iva.";
         }
@@ -904,13 +923,13 @@ public sealed class EditModel(
             return $"La data documento deve appartenere all'esercizio contabile in linea ({applicationState.Esercizio}).";
         }
 
-        var insertedTotal = invoice.VatRows.Sum(row => row.Taxable + row.Tax);
+        var insertedTotal = vatRows.Sum(row => row.Taxable + row.Tax);
         if (decimal.Round(insertedTotal - invoice.Total, 2, MidpointRounding.AwayFromZero) != 0)
         {
             return "Quadratura importi errata.";
         }
 
-        if (invoice.VatRows.Any(row => row.Rate < 0 || row.Rate > 100))
+        if (vatRows.Any(row => row.Rate < 0 || row.Rate > 100))
         {
             return "Aliquota iva non valida.";
         }
@@ -938,6 +957,17 @@ public sealed class EditModel(
 
         return "";
     }
+
+    private static PurchaseInvoiceVatSaveRow[] EffectiveVatRows(PurchaseInvoiceSaveCommand invoice) =>
+        invoice.VatRows
+            .Select(row => new PurchaseInvoiceVatSaveRow
+            {
+                Rate = decimal.Round(row.Rate, 2, MidpointRounding.AwayFromZero),
+                Taxable = decimal.Round(row.Taxable, 2, MidpointRounding.AwayFromZero),
+                Tax = decimal.Round(row.Tax, 2, MidpointRounding.AwayFromZero)
+            })
+            .Where(row => row.Taxable != 0 || row.Tax != 0)
+            .ToArray();
 
     private static bool HasDueDateMismatch(PurchaseInvoiceSaveCommand invoice)
     {
@@ -1137,22 +1167,31 @@ public sealed class EditModel(
 
         if (string.IsNullOrWhiteSpace(customerFiscalCode) && string.IsNullOrWhiteSpace(customerVat))
         {
-            return "Dati cessionario non presenti nell'XML: Codice fiscale e Partita IVA assenti.";
+            return "La fattura selezionata non sembra intestata all'azienda corrente.\n"
+                + "Nell'XML mancano sia il Codice fiscale sia la Partita IVA del cessionario.";
         }
 
         if (string.IsNullOrWhiteSpace(customerFiscalCode))
         {
-            return $"Codice fiscale cessionario assente nell'XML. Partita IVA XML: {FormatFiscalDiagnosticValue(customerVat)}; Partita IVA Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.VatNumber)}.";
+            return "La fattura selezionata non sembra intestata all'azienda corrente.\n"
+                + "Codice fiscale del cessionario assente nell'XML.\n"
+                + $"Partita IVA XML: {FormatFiscalDiagnosticValue(customerVat)}.\n"
+                + $"Partita IVA Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.VatNumber)}.";
         }
 
         if (string.IsNullOrWhiteSpace(customerVat))
         {
-            return $"Partita IVA cessionario assente nell'XML. Codice fiscale XML: {FormatFiscalDiagnosticValue(customerFiscalCode)}; Codice fiscale Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.FiscalCode)}.";
+            return "La fattura selezionata non sembra essere intestata all'azienda.\n"
+                + "La Partita IVA del Cessionario non e' presente nel file XML.\n"
+                + $"Il Codice fiscale del Cessionario {FormatFiscalDiagnosticValue(customerFiscalCode)} e' diverso dal Codice fiscale azienda {FormatFiscalDiagnosticValue(companyFiscalData.FiscalCode)}.";
         }
 
-        return "Dati cessionario non corrispondenti all'azienda corrente.\n"
-            + $"Codice fiscale XML: {FormatFiscalDiagnosticValue(customerFiscalCode)}; Codice fiscale Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.FiscalCode)}.\n"
-            + $"Partita IVA XML: {FormatFiscalDiagnosticValue(customerVat)}; Partita IVA Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.VatNumber)}.";
+        return "La fattura selezionata non sembra intestata all'azienda corrente.\n"
+            + "I dati del cessionario presenti nell'XML non corrispondono ai dati azienda salvati nelle Opzioni.\n"
+            + $"Codice fiscale XML: {FormatFiscalDiagnosticValue(customerFiscalCode)}.\n"
+            + $"Codice fiscale Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.FiscalCode)}.\n"
+            + $"Partita IVA XML: {FormatFiscalDiagnosticValue(customerVat)}.\n"
+            + $"Partita IVA Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.VatNumber)}.";
     }
 
     private static string FormatFiscalDiagnosticValue(string value) =>

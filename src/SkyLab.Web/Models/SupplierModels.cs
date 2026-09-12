@@ -8,7 +8,7 @@ public sealed record SupplierOption(int Id,string Label);
 public sealed class SupplierEditModel
 {
     public int Code { get; set; }
-    [Required(ErrorMessage="Inserire il nome del fornitore."),StringLength(250)] public string Name { get; set; }="";
+    [Required(ErrorMessage="Campo Nome obbligatorio."),StringLength(250)] public string Name { get; set; }="";
     [StringLength(20)] public string? TaxCode { get; set; }
     [StringLength(20)] public string? VatNumber { get; set; }
     [StringLength(100)] public string? City { get; set; }
@@ -26,7 +26,7 @@ public sealed class SupplierEditModel
     public short? PaymentCode { get; set; }
     public int? BankCode { get; set; }
     public short? LocalUnitCode { get; set; }
-    [StringLength(8)] public string? AccountCode { get; set; }
+    [Required(ErrorMessage="Campo Contropartita obbligatorio."),StringLength(8)] public string? AccountCode { get; set; }
     [StringLength(50)] public string? Iban { get; set; }
     [StringLength(255)] public string? Notes { get; set; }
 }

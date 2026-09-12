@@ -7,11 +7,71 @@
   const clear = page.querySelector("[data-clear]");
   const count = page.querySelector("[data-count]");
   const empty = page.querySelector("[data-empty]");
+  const gridFrame = page.querySelector(".supplier-grid-frame");
   let selected = null;
   let sortKey = "name";
   let ascending = true;
+  let searchTimer = 0;
+  let lastScrollTop = gridFrame?.scrollTop || 0;
 
+  const showMessage = (message, title = "Fornitori", variant = "info", onConfirm = null) => {
+    if (window.SkyLabMessageBox?.show) {
+      window.SkyLabMessageBox.show({ title, message, variant, onConfirm });
+      return;
+    }
+    window.alert(message);
+    if (typeof onConfirm === "function") onConfirm();
+  };
+  const showConfirm = (message, title, onConfirm) => {
+    if (window.SkyLabMessageBox?.show) {
+      window.SkyLabMessageBox.show({
+        title,
+        message,
+        mode: "confirm",
+        variant: "confirm",
+        okText: "Elimina",
+        cancelText: "Annulla",
+        onConfirm
+      });
+      return;
+    }
+    if (window.confirm(message)) onConfirm();
+  };
+  const syncSortHeaders = () => {
+    page.querySelectorAll("th[data-key]").forEach(heading => {
+      const active = heading.dataset.key === sortKey;
+      heading.classList.toggle("is-sorted", active);
+      if (active) heading.dataset.direction = ascending ? "asc" : "desc";
+      else delete heading.dataset.direction;
+    });
+  };
+  const updateQuery = () => {
+    const url = new URL(location.href);
+    const query = (search.value || "").trim();
+    if (query) url.searchParams.set("Cerca", query);
+    else url.searchParams.delete("Cerca");
+    if (url.href !== location.href) location.href = url.href;
+  };
+  const scheduleQueryUpdate = () => {
+    clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(updateQuery, 450);
+  };
   const visibleRows = () => [...page.querySelectorAll("[data-row]")].filter(row => !row.hidden);
+  const rowIsVisibleInFrame = (row) => {
+    if (!row || !gridFrame) return false;
+    const frameRect = gridFrame.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    return rowRect.top >= frameRect.top && rowRect.bottom <= frameRect.bottom;
+  };
+  const firstVisibleRowInFrame = (direction = 1) => {
+    if (!gridFrame) return visibleRows()[0] || null;
+    const frameRect = gridFrame.getBoundingClientRect();
+    const visible = visibleRows().filter(row => {
+      const rowRect = row.getBoundingClientRect();
+      return rowRect.bottom > frameRect.top && rowRect.top < frameRect.bottom;
+    });
+    return direction >= 0 ? visible[0] || null : visible.at(-1) || null;
+  };
   const choose = (row, focus = false) => {
     rows.forEach(item => item.classList.remove("selected"));
     selected = row;
@@ -34,7 +94,7 @@
   };
 
   rows.forEach(row => {
-    row.addEventListener("click", () => choose(row));
+    row.addEventListener("click", () => choose(row, true));
     row.addEventListener("dblclick", () => { location.href = row.dataset.edit; });
     row.addEventListener("keydown", event => {
       if (event.key === "Enter") {
@@ -57,12 +117,16 @@
       if (show) visibleCount++;
     });
     if (selected?.hidden) choose(null);
+    if (!selected && visibleCount > 0) choose(visibleRows()[0]);
     count.textContent = visibleCount;
     empty.hidden = visibleCount > 0;
     clear.hidden = !query;
   };
 
-  search.addEventListener("input", filter);
+  search.addEventListener("input", () => {
+    filter();
+    scheduleQueryUpdate();
+  });
   search.addEventListener("keydown", event => {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
     event.preventDefault();
@@ -73,6 +137,7 @@
     search.value = "";
     filter();
     search.focus();
+    updateQuery();
   });
 
   // Stesso gestore collaudato della lista Articoli.
@@ -89,11 +154,13 @@
       search.value += event.key;
       search.focus();
       filter();
+      scheduleQueryUpdate();
     } else if (event.key === "Backspace" && search.value) {
       event.preventDefault();
       search.value = search.value.slice(0, -1);
       search.focus();
       filter();
+      scheduleQueryUpdate();
     }
   });
 
@@ -110,20 +177,33 @@
         : String(av).localeCompare(String(bv), "it", { sensitivity: "base" });
       return comparison * (ascending ? 1 : -1);
     }).forEach(row => body.append(row));
+    syncSortHeaders();
+    if (selected) choose(selected, true);
   }));
+
+  gridFrame?.addEventListener("scroll", () => {
+    const direction = gridFrame.scrollTop >= lastScrollTop ? 1 : -1;
+    lastScrollTop = gridFrame.scrollTop;
+    if (!selected || !rowIsVisibleInFrame(selected)) {
+      const next = firstVisibleRowInFrame(direction);
+      if (next) choose(next);
+    }
+  }, { passive: true });
 
   const requireSelection = () => {
     if (selected) return true;
-    alert("Selezionare un fornitore.");
+    showMessage("Selezionare un fornitore.", "Fornitori", "error");
     return false;
   };
   page.querySelector('[data-action="edit"]').onclick = () => {
     if (requireSelection()) location.href = selected.dataset.edit;
   };
   page.querySelector('[data-action="delete"]').onclick = () => {
-    if (!requireSelection() || !confirm(`Eliminare il fornitore ${selected.dataset.code} - ${selected.dataset.label}?`)) return;
-    page.querySelector("[data-delete-code]").value = selected.dataset.code;
-    page.querySelector("[data-delete-form]").submit();
+    if (!requireSelection()) return;
+    showConfirm(`Eliminare il fornitore ${selected.dataset.code} - ${selected.dataset.label}?`, "Elimina fornitore", () => {
+      page.querySelector("[data-delete-code]").value = selected.dataset.code;
+      page.querySelector("[data-delete-form]").submit();
+    });
   };
 
   const preview = page.querySelector("[data-preview]");
@@ -148,7 +228,10 @@
   page.querySelector("[data-zoom-out]").onclick = () => setZoom(zoom - .1);
   page.querySelector("[data-zoom-in]").onclick = () => setZoom(zoom + .1);
   page.querySelector("[data-print-now]").onclick = () => window.print();
-  page.querySelector("[data-pdf]").onclick = () => { alert("Nella finestra di stampa scegliere “Salva come PDF”."); window.print(); };
+  page.querySelector("[data-pdf]").onclick = () => {
+    showMessage("Nella finestra di stampa scegliere “Salva come PDF”.", "Stampa fornitori", "info", () => window.print());
+  };
 
   filter();
+  syncSortHeaders();
 })();

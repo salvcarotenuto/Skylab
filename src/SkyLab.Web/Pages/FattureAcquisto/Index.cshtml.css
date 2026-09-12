@@ -1,14 +1,23 @@
 .purchase-invoices-page {
-    height: calc(100vh - 18px);
-    padding-top: 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0 calc(50% - 50vw);
+    overflow: hidden;
+    padding: 8px 18px 18px;
+    width: 100vw;
 }
 
 .purchase-invoices-page .list-titlebar {
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid #b8c5d6;
+    border-radius: 8px;
     box-sizing: border-box;
     height: 96px;
     margin-bottom: 8px;
     min-height: 96px;
-    padding: 10px 18px;
+    padding: 12px 28px 12px 18px;
 }
 
 .purchase-invoices-page .list-title-layout {
@@ -28,31 +37,80 @@
 }
 
 .purchase-invoices-page .list-title-actions .customer-menu-button,
+.purchase-invoices-page .list-title-actions .btn,
 .purchase-invoices-page .list-title-actions .btn-primary {
     align-items: center;
+    border-radius: 6px;
+    box-sizing: border-box;
     display: inline-flex;
+    flex: 0 0 140px;
+    font-weight: 600;
+    height: 40px !important;
+    justify-content: center;
+    max-width: 140px;
+    min-height: 40px !important;
+    min-width: 140px;
+    padding: 0 13px;
+    text-decoration: none;
+    width: 140px !important;
+}
+
+.purchase-invoices-page .list-title-actions .btn-primary {
+    background: var(--BlueButton);
+    border: 0;
+    color: #fff;
+}
+
+.purchase-invoices-page .list-title-actions .customer-menu-button {
+    background: #fff;
+    border: 1px solid var(--BlueButton);
+    color: var(--BlueButton);
+}
+
+.purchase-invoices-page .list-title-actions .customer-menu-button:hover {
+    background: var(--BlueButton);
+    color: #fff;
+}
+
+.purchase-invoices-page .list-records-box {
+    align-items: center;
+    background: #edf2f8;
+    border: 1px solid #9db3ca;
+    border-radius: 6px;
+    color: #263b55;
+    display: inline-flex;
+    gap: 5px;
     height: 40px;
     justify-content: center;
-    min-width: 88px;
+    min-width: 112px;
+    padding: 0 12px;
+    white-space: nowrap;
+}
+
+.purchase-invoices-page .list-records-box strong {
+    color: #173f76;
 }
 
 .purchase-invoices-filter-panel {
     align-items: center;
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid #b8c5d6;
+    border-radius: 8px;
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
     flex: 0 0 auto;
-    height: 54px;
+    height: 52px;
     justify-content: center;
     margin-bottom: 8px;
-    min-height: 54px;
-    padding: 0 14px;
+    min-height: 52px;
+    padding: 8px 9px;
 }
 
 .purchase-invoices-list-panel {
     flex: 1 1 auto;
     min-height: 0;
-    padding: 0 14px 14px;
+    padding: 0;
 }
 
 .purchase-invoices-filters {
@@ -67,7 +125,6 @@
     display: grid;
     gap: 8px;
     grid-template-columns: 123px 150px 190px 500px 180px minmax(240px, 1fr);
-    transform: translateY(4px);
 }
 
 .purchase-invoices-page .list-filter-field {
@@ -88,6 +145,11 @@
 
 .purchase-invoices-page .list-filter-field input,
 .purchase-invoices-page .list-filter-field select {
+    background: #fff;
+    border: 1px solid #8a8f98;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #172236;
     font-size: 13px;
     font-weight: 420;
     height: 30px;
@@ -95,10 +157,16 @@
     width: 100%;
 }
 
+.purchase-invoices-page .list-filter-field select:disabled {
+    background: rgb(230, 230, 240);
+    color: #111;
+    opacity: 1;
+}
+
 .purchase-invoices-page .list-filter-field input:focus,
 .purchase-invoices-page .list-filter-field select:focus {
-    border-color: #7f91a5;
-    box-shadow: 0 0 0 2px rgba(127, 145, 165, .18);
+    border-color: #1f6feb;
+    box-shadow: 0 0 0 2px rgba(31, 111, 235, .14);
     outline: none;
 }
 
@@ -139,13 +207,86 @@
 }
 
 .purchase-invoices-grid-frame {
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid #9eacbc;
+    border-radius: 6px;
     flex: 1 1 auto;
     height: 100%;
     margin-top: 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px;
 }
 
 .purchase-invoices-grid {
+    border-collapse: collapse;
+    font-size: 13px;
     min-width: 1240px;
+    user-select: none;
+    width: 100%;
+}
+
+.purchase-invoices-grid th {
+    background: linear-gradient(#c7d7e8, #b8cbe0 52%, #a9bed6);
+    border-bottom: 1px solid #758aa1;
+    color: #0e1824;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    height: 30px;
+    padding: 0 22px 0 8px;
+    position: sticky;
+    text-align: left;
+    top: 0;
+    user-select: none;
+    z-index: 2;
+}
+
+.purchase-invoices-grid th.is-sorted::after {
+    content: "▲";
+    position: absolute;
+    right: 7px;
+}
+
+.purchase-invoices-grid th.is-sorted[data-sort-direction="desc"]::after {
+    content: "▼";
+}
+
+.purchase-invoices-grid td {
+    border-bottom: 1px solid #cfd8e3;
+    cursor: default;
+    height: 28px;
+    line-height: 18px;
+    max-width: 360px;
+    overflow: hidden;
+    padding: 4px 6px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.purchase-invoices-grid tbody tr {
+    background: #fff;
+    cursor: default;
+    outline: none;
+}
+
+.purchase-invoices-grid tbody tr:nth-child(even) {
+    background: #f4f7fa;
+}
+
+.purchase-invoices-grid tbody tr:hover {
+    background: #e6f0fa;
+}
+
+.purchase-invoices-grid tbody tr.selected,
+.purchase-invoices-grid tbody tr.selected-row {
+    background: #b8d2ee;
+    box-shadow: inset 4px 0 0 #2f6faa;
+}
+
+.purchase-invoices-grid tbody tr.selected td,
+.purchase-invoices-grid tbody tr.selected-row td {
+    color: #0e1824;
 }
 
 .purchase-invoices-grid th:nth-child(1) { width: 90px; }

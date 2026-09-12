@@ -316,13 +316,13 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         CancellationToken cancellationToken = default)
     {
         var vatRows = invoice.VatRows
-            .Where(row => row.Taxable != 0 || row.Tax != 0)
             .Select(row => new PurchaseInvoiceVatSaveRow
             {
                 Rate = decimal.Round(row.Rate, 2, MidpointRounding.AwayFromZero),
                 Taxable = decimal.Round(row.Taxable, 2, MidpointRounding.AwayFromZero),
                 Tax = decimal.Round(row.Tax, 2, MidpointRounding.AwayFromZero)
             })
+            .Where(row => row.Taxable != 0 || row.Tax != 0)
             .ToArray();
 
         var taxableTotal = vatRows.Sum(row => row.Taxable);
@@ -640,7 +640,13 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             """,
             connection,
             transaction);
-        AddInvoiceParameters(command, invoice, code, taxableTotal, vatTotal, invoiceTotal);
+        var resolvedBankCode = await ResolveBankCodeAsync(
+            connection,
+            transaction,
+            invoice.BankCode,
+            cancellationToken);
+
+        AddInvoiceParameters(command, invoice, code, taxableTotal, vatTotal, invoiceTotal, resolvedBankCode);
         await command.ExecuteNonQueryAsync(cancellationToken);
         return Convert.ToInt32(command.LastInsertedId);
     }
@@ -676,7 +682,13 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             """,
             connection,
             transaction);
-        AddInvoiceParameters(command, invoice, code, taxableTotal, vatTotal, invoiceTotal);
+        var resolvedBankCode = await ResolveBankCodeAsync(
+            connection,
+            transaction,
+            invoice.BankCode,
+            cancellationToken);
+
+        AddInvoiceParameters(command, invoice, code, taxableTotal, vatTotal, invoiceTotal, resolvedBankCode);
         command.Parameters.AddWithValue("@id", id);
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -687,7 +699,8 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         int code,
         decimal taxableTotal,
         decimal vatTotal,
-        decimal invoiceTotal)
+        decimal invoiceTotal,
+        int? resolvedBankCode)
     {
         command.Parameters.AddWithValue("@year", invoice.Year);
         command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
@@ -702,7 +715,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         command.Parameters.AddWithValue("@vatTotal", vatTotal);
         command.Parameters.AddWithValue("@invoiceTotal", invoiceTotal);
         command.Parameters.AddWithValue("@paymentCode", invoice.PaymentCode);
-        command.Parameters.AddWithValue("@bankCode", invoice.BankCode);
+        command.Parameters.AddWithValue("@bankCode", resolvedBankCode is null ? DBNull.Value : resolvedBankCode.Value);
         command.Parameters.AddWithValue("@fileName", invoice.ElectronicInvoiceFileName.Trim());
         command.Parameters.AddWithValue("@notes", invoice.Notes.Trim());
     }
@@ -862,7 +875,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             """
             INSERT INTO movcont
                 (Anno, Settore, Codice, Causale, DataMov, CliFor, Ditta, NumDoc,
-                 Documento, Importo, ULocale, Note)
+                 Documento, Importo, ULocale, Descrizione)
             VALUES
                 (@year, @sector, @code, @cause, @movementDate, @subjectType, @supplierCode, @documentNumber,
                  @document, @amount, @storeCode, @notes);
@@ -887,19 +900,19 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         await using var command = new MySqlCommand(
             """
             UPDATE movcont
-            SET Anno = @year,
-                Settore = @sector,
-                Codice = @code,
-                Causale = @cause,
-                DataMov = @movementDate,
-                CliFor = @subjectType,
-                Ditta = @supplierCode,
-                NumDoc = @documentNumber,
-                Documento = @document,
-                Importo = @amount,
-                ULocale = @storeCode,
-                Note = @notes
-            WHERE ID = @id;
+             SET Anno = @year,
+                 Settore = @sector,
+                 Codice = @code,
+                 Causale = @cause,
+                 DataMov = @movementDate,
+                 CliFor = @subjectType,
+                 Ditta = @supplierCode,
+                 NumDoc = @documentNumber,
+                 Documento = @document,
+                 Importo = @amount,
+                 ULocale = @storeCode,
+                 Descrizione = @notes
+             WHERE ID = @id;
             """,
             connection,
             transaction);
@@ -1058,11 +1071,34 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             transaction,
             invoice.PaymentCode,
             cancellationToken);
+        var bankCode = await ResolveBankCodeAsync(
+            connection,
+            transaction,
+            invoice.BankCode,
+            cancellationToken);
         var hasPaidColumn = await ColumnExistsAsync(
             connection,
             transaction,
             "scadenze",
             "Pagata",
+            cancellationToken);
+        var hasYearColumn = await ColumnExistsAsync(
+            connection,
+            transaction,
+            "scadenze",
+            "Anno",
+            cancellationToken);
+        var hasSectorColumn = await ColumnExistsAsync(
+            connection,
+            transaction,
+            "scadenze",
+            "Settore",
+            cancellationToken);
+        var hasCodeColumn = await ColumnExistsAsync(
+            connection,
+            transaction,
+            "scadenze",
+            "Codice",
             cancellationToken);
         var rowNumber = 1;
         foreach (var dueRow in dueRows.Where(row => row.Amount != 0))
@@ -1081,8 +1117,12 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
                 rowNumber++,
                 invoiceTotal,
                 paymentInfo.TitleType,
+                bankCode,
                 dueRow,
                 hasPaidColumn,
+                hasYearColumn,
+                hasSectorColumn,
+                hasCodeColumn,
                 cancellationToken);
         }
     }
@@ -1102,6 +1142,32 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             transaction);
         command.Parameters.AddWithValue("@invoiceId", invoiceId);
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task<int?> ResolveBankCodeAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int bankCode,
+        CancellationToken cancellationToken)
+    {
+        if (bankCode <= 0)
+        {
+            return null;
+        }
+
+        await using var command = new MySqlCommand(
+            """
+            SELECT 1
+            FROM banche
+            WHERE Codice = @code
+            LIMIT 1;
+            """,
+            connection,
+            transaction);
+        command.Parameters.AddWithValue("@code", bankCode);
+
+        var value = await command.ExecuteScalarAsync(cancellationToken);
+        return value is null ? null : bankCode;
     }
 
     private static async Task<PaymentDueDateInfo> PaymentDueDateInfoAsync(
@@ -1134,20 +1200,30 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         int rowNumber,
         decimal invoiceTotal,
         int titleType,
+        int? bankCode,
         PurchaseInvoiceDueDateSaveRow dueRow,
         bool hasPaidColumn,
+        bool hasYearColumn,
+        bool hasSectorColumn,
+        bool hasCodeColumn,
         CancellationToken cancellationToken)
     {
         var paidField = hasPaidColumn ? ", Pagata" : "";
         var paidValue = hasPaidColumn ? ", @paid" : "";
+        var yearField = hasYearColumn ? ", Anno" : "";
+        var yearValue = hasYearColumn ? ", @year" : "";
+        var sectorField = hasSectorColumn ? ", Settore" : "";
+        var sectorValue = hasSectorColumn ? ", @sector" : "";
+        var codeField = hasCodeColumn ? ", Codice" : "";
+        var codeValue = hasCodeColumn ? ", @code" : "";
         await using var command = new MySqlCommand(
             $"""
             INSERT INTO scadenze
                 (MovIva_Id, Numero, CodPagamento,
-                 DataScadenza, Banca, Importo{paidField})
+                 DataScadenza, Banca, Importo{yearField}{sectorField}{codeField}{paidField})
             VALUES
                 (@invoiceId, @number, @paymentCode,
-                 @dueDate, @bankCode, @amount{paidValue});
+                 @dueDate, @bankCode, @amount{yearValue}{sectorValue}{codeValue}{paidValue});
             """,
             connection,
             transaction);
@@ -1155,8 +1231,23 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         command.Parameters.AddWithValue("@number", rowNumber);
         command.Parameters.AddWithValue("@paymentCode", invoice.PaymentCode);
         command.Parameters.Add("@dueDate", MySqlDbType.Date).Value = dueRow.Date!.Value.ToDateTime(TimeOnly.MinValue);
-        command.Parameters.AddWithValue("@bankCode", invoice.BankCode);
+        command.Parameters.AddWithValue("@bankCode", bankCode is null ? DBNull.Value : bankCode.Value);
         command.Parameters.AddWithValue("@amount", dueRow.Amount);
+
+        if (hasYearColumn)
+        {
+            command.Parameters.AddWithValue("@year", invoice.Year);
+        }
+
+        if (hasSectorColumn)
+        {
+            command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
+        }
+
+        if (hasCodeColumn)
+        {
+            command.Parameters.AddWithValue("@code", code);
+        }
 
         if (hasPaidColumn)
         {
@@ -1460,10 +1551,9 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT Codice, COALESCE(Descrizione, '') AS Nome
-            FROM conti
-            WHERE COALESCE(Ditta, '') = 'B'
-            ORDER BY Descrizione, Codice;
+            SELECT Codice, COALESCE(Nome, '') AS Nome
+            FROM banche
+            ORDER BY Nome, Codice;
             """;
 
         await using var command = new MySqlCommand(sql, connection);
