@@ -116,8 +116,8 @@
     document.body.classList.add("lookup-open");
     search.value = "";
     filterRows();
-    const current = visibleRows.findIndex(row => (row.dataset.code || "").localeCompare(code.value.trim(), "it", { sensitivity: "base" }) === 0);
-    if (current >= 0) setSelected(current);
+    setSelected(0);
+    frame.scrollTop = 0;
     search.focus();
   };
   const confirmLookup = () => {
