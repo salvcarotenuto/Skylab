@@ -37,6 +37,8 @@
     <form id="machine-form" method="post" class="entity-form customer-entity-form" autocomplete="off">
         <input asp-for="Macchina.Id" type="hidden" />
         <input asp-for="Origine" type="hidden" />
+        <input asp-for="ReturnTo" type="hidden" />
+        <input asp-for="ReturnUrl" type="hidden" />
         @if (!isNew)
         {
             <button type="submit" asp-page-handler="Delete" hidden data-machine-delete-submit></button>
