@@ -1176,9 +1176,31 @@ private fun AdditionalItemsSection(
     items: List<AdditionalReportItem>,
     onItemsChange: (List<AdditionalReportItem>) -> Unit
 ) {
+    val context = LocalContext.current
     var showCatalog by remember { mutableStateOf(false) }
+    var scanMessage by remember { mutableStateOf<String?>(null) }
     val available = catalog.filter { it.type == type }
+    val barcodeItems = remember(available) { available.filter { it.barcodes.isNotBlank() } }
+    val scanner = remember(context) {
+        val options = GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8, Barcode.FORMAT_CODE_128, Barcode.FORMAT_QR_CODE)
+            .enableAutoZoom()
+            .build()
+        GmsBarcodeScanning.getClient(context, options)
+    }
     val total = items.sumOf { (parseReportNumber(it.quantity) ?: 0.0) * it.price }
+
+    fun addOrIncrement(selected: MobileCatalogEntity) {
+        val index = items.indexOfFirst { it.reference == selected.reference }
+        if (index >= 0) {
+            onItemsChange(items.toMutableList().apply {
+                val current = get(index)
+                set(index, current.copy(quantity = incrementReportQuantity(current.quantity)))
+            })
+        } else {
+            onItemsChange(items + AdditionalReportItem(selected.reference, selected.description, selected.unit, selected.priceFor(priceList), "1"))
+        }
+    }
 
     DetailSection(title) {
         if (items.isEmpty()) Text("Nessuna voce aggiunta", fontSize = 15.sp)
@@ -1213,6 +1235,36 @@ private fun AdditionalItemsSection(
         if (items.isNotEmpty()) {
             Text("Totale aggiunte: ${formatCurrency(total)}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
+        if (type == "A") {
+            Button(
+                onClick = {
+                    scanMessage = null
+                    scanner.startScan()
+                        .addOnSuccessListener { barcode ->
+                            val value = barcode.rawValue.orEmpty().trim()
+                            val found = barcodeItems.firstOrNull { item -> item.barcodes.split('|').any { it.trim().equals(value, ignoreCase = true) } }
+                            if (found != null) {
+                                addOrIncrement(found)
+                                scanMessage = "${found.reference} aggiunto ai materiali utilizzati"
+                            } else {
+                                scanMessage = "Barcode non presente nel catalogo articoli"
+                            }
+                        }
+                        .addOnFailureListener { scanMessage = "Lettura barcode non disponibile" }
+                },
+                enabled = barcodeItems.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (barcodeItems.isEmpty()) "Barcode non disponibili" else "Scansiona barcode articolo")
+            }
+            scanMessage?.let {
+                Text(
+                    it,
+                    color = if (it.contains("aggiunto")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    fontSize = 14.sp
+                )
+            }
+        }
         Button(onClick = { showCatalog = true }, enabled = available.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
             Text(if (available.isEmpty()) "Catalogo non disponibile" else "+ Aggiungi")
         }
@@ -1224,7 +1276,7 @@ private fun AdditionalItemsSection(
             catalog = available.filter { candidate -> items.none { it.reference == candidate.reference } },
             onDismiss = { showCatalog = false },
             onSelect = { selected ->
-                onItemsChange(items + AdditionalReportItem(selected.reference, selected.description, selected.unit, selected.priceFor(priceList), "1"))
+                addOrIncrement(selected)
                 showCatalog = false
             }
         )
@@ -1244,7 +1296,7 @@ private fun CatalogPickerDialog(
     val barcodeItems = remember(catalog) { catalog.filter { it.barcodes.isNotBlank() } }
     val scanner = remember(context) {
         val options = GmsBarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8, Barcode.FORMAT_CODE_128)
+            .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8, Barcode.FORMAT_CODE_128, Barcode.FORMAT_QR_CODE)
             .enableAutoZoom()
             .build()
         GmsBarcodeScanning.getClient(context, options)
@@ -1272,7 +1324,7 @@ private fun CatalogPickerDialog(
                             scanner.startScan()
                                 .addOnSuccessListener { barcode ->
                                     val value = barcode.rawValue.orEmpty().trim()
-                                    val found = barcodeItems.firstOrNull { item -> item.barcodes.split('|').any { it == value } }
+                                    val found = barcodeItems.firstOrNull { item -> item.barcodes.split('|').any { it.trim().equals(value, ignoreCase = true) } }
                                     if (found != null) onSelect(found) else scanMessage = "Barcode non presente nel Catalogo"
                                 }
                                 .addOnFailureListener { scanMessage = "Lettura barcode non disponibile" }
@@ -1390,7 +1442,7 @@ fun LoginScreenPreview() {
 }
 
 private suspend fun loadLoginUsers(): List<String> = withContext(Dispatchers.IO) {
-    val connection = URL("http://localhost:5187/api/mobile/login-users")
+    val connection = URL("${BuildConfig.API_BASE_URL}/api/mobile/login-users")
         .openConnection() as HttpURLConnection
     try {
         connection.connectTimeout = 5_000
@@ -1408,7 +1460,7 @@ private suspend fun loadLoginUsers(): List<String> = withContext(Dispatchers.IO)
 }
 
 private suspend fun authenticate(username: String, password: String): String? = withContext(Dispatchers.IO) {
-    val connection = URL("http://localhost:5187/api/mobile/login")
+    val connection = URL("${BuildConfig.API_BASE_URL}/api/mobile/login")
         .openConnection() as HttpURLConnection
     try {
         connection.connectTimeout = 5_000
@@ -1430,7 +1482,7 @@ private suspend fun authenticate(username: String, password: String): String? = 
 }
 
 private suspend fun loadMobileOutcomes(token: String): Pair<List<MobileOutcome>, String> = withContext(Dispatchers.IO) {
-    val connection = URL("http://localhost:5187/api/mobile/outcomes").openConnection() as HttpURLConnection
+    val connection = URL("${BuildConfig.API_BASE_URL}/api/mobile/outcomes").openConnection() as HttpURLConnection
     try {
         connection.connectTimeout = 5_000
         connection.readTimeout = 5_000
@@ -1459,7 +1511,7 @@ private data class MobileOutcome(val id: Int, val description: String)
 private class MobileReportRejectedException(message: String): Exception(message)
 
 private suspend fun sendMobileReport(token:String,workId:Int,payload:String)=withContext(Dispatchers.IO){
-    val connection=URL("http://localhost:5187/api/mobile/my-works/$workId/report").openConnection() as HttpURLConnection
+    val connection=URL("${BuildConfig.API_BASE_URL}/api/mobile/my-works/$workId/report").openConnection() as HttpURLConnection
     try{connection.connectTimeout=10_000;connection.readTimeout=20_000;connection.requestMethod="POST";connection.doOutput=true;connection.setRequestProperty("Authorization","Bearer $token");connection.setRequestProperty("Content-Type","application/json; charset=utf-8");connection.outputStream.use{it.write(payload.toByteArray(Charsets.UTF_8))};if(connection.responseCode !in 200..299){val body=connection.errorStream?.bufferedReader()?.use{it.readText()}.orEmpty();val message=try{JSONObject(body).optString("error","Invio rifiutato dal server")}catch(_:Exception){"Invio rifiutato dal server"};throw MobileReportRejectedException(message)};val receipt=JSONObject(connection.inputStream.bufferedReader().use{it.readText()});val expected=JSONObject(payload).getString("submissionId");if(!receipt.optBoolean("received")||receipt.optString("status")!="RICEVUTO"||receipt.optString("submissionId")!=expected)throw java.io.IOException("Ricevuta server non valida") }finally{connection.disconnect()}
 }
 
@@ -1478,8 +1530,14 @@ private suspend fun retryPendingReports(token:String,username:String,dao:WorkRep
 private fun JSONObject.optNullableDouble(name: String): Double? =
     if (isNull(name)) null else optDouble(name).takeUnless { it.isNaN() }
 
-private suspend fun loadMobileCatalog(token: String): List<MobileCatalogEntity> = withContext(Dispatchers.IO) {
-    val connection = URL("http://localhost:5187/api/mobile/catalog").openConnection() as HttpURLConnection
+private data class MobileCatalogSyncData(
+    val catalog: List<MobileCatalogEntity>,
+    val barcodes: List<MobileBarcodeEntity>,
+    val priceLists: List<MobilePriceListEntity>
+)
+
+private suspend fun loadMobileCatalog(token: String): MobileCatalogSyncData = withContext(Dispatchers.IO) {
+    val connection = URL("${BuildConfig.API_BASE_URL}/api/mobile/catalog").openConnection() as HttpURLConnection
     try {
         connection.connectTimeout = 10_000
         connection.readTimeout = 20_000
@@ -1488,7 +1546,7 @@ private suspend fun loadMobileCatalog(token: String): List<MobileCatalogEntity> 
         if (connection.responseCode !in 200..299) error("Risposta server ${connection.responseCode}")
         val array = JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
         val synchronizedAt = System.currentTimeMillis()
-        List(array.length()) { index ->
+        val catalog = List(array.length()) { index ->
             val item = array.getJSONObject(index)
             MobileCatalogEntity(
                 type = item.optString("type"),
@@ -1507,13 +1565,36 @@ private suspend fun loadMobileCatalog(token: String): List<MobileCatalogEntity> 
                 synchronizedAt = synchronizedAt
             )
         }.filter { it.type in setOf("A", "P") && it.reference.isNotBlank() }
+        val barcodes = catalog
+            .filter { it.type == "A" }
+            .flatMap { item ->
+                item.barcodes.split('|')
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .map { code -> MobileBarcodeEntity(code, item.reference, 0, null, synchronizedAt) }
+            }
+        val priceLists = catalog
+            .filter { it.type == "A" }
+            .flatMap { item ->
+                listOfNotNull(
+                    item.price1?.takeIf { it > 0.0 }?.let { MobilePriceListEntity(item.reference, 1, it, synchronizedAt) },
+                    item.price2?.takeIf { it > 0.0 }?.let { MobilePriceListEntity(item.reference, 2, it, synchronizedAt) },
+                    item.price3?.takeIf { it > 0.0 }?.let { MobilePriceListEntity(item.reference, 3, it, synchronizedAt) },
+                    item.price4?.takeIf { it > 0.0 }?.let { MobilePriceListEntity(item.reference, 4, it, synchronizedAt) },
+                    item.price5?.takeIf { it > 0.0 }?.let { MobilePriceListEntity(item.reference, 5, it, synchronizedAt) },
+                    item.price6?.takeIf { it > 0.0 }?.let { MobilePriceListEntity(item.reference, 6, it, synchronizedAt) }
+                )
+            }
+        MobileCatalogSyncData(catalog, barcodes, priceLists)
     } finally {
         connection.disconnect()
     }
 }
 
 private suspend fun synchronizeMobileCatalog(token: String, dao: MobileCatalogDao): Int {
-    val fresh = loadMobileCatalog(token)
+    val syncData = loadMobileCatalog(token)
+    val fresh = syncData.catalog
     val current = withContext(Dispatchers.IO) { dao.items("A") + dao.items("P") }
     val currentByKey = current.associateBy { it.type to it.reference }
     val freshByKey = fresh.associateBy { it.type to it.reference }
@@ -1526,7 +1607,11 @@ private suspend fun synchronizeMobileCatalog(token: String, dao: MobileCatalogDa
             old.price1 != new.price1 || old.price2 != new.price2 || old.price3 != new.price3 ||
             old.price4 != new.price4 || old.price5 != new.price5 || old.price6 != new.price6 || old.barcodes != new.barcodes
     }
-    if (changed > 0) withContext(Dispatchers.IO) { dao.replaceAll(fresh) }
+    val relatedTablesMissing = withContext(Dispatchers.IO) {
+        (syncData.barcodes.isNotEmpty() && dao.barcodeCount() == 0) ||
+            (syncData.priceLists.isNotEmpty() && dao.priceListCount() == 0)
+    }
+    if (changed > 0 || relatedTablesMissing) withContext(Dispatchers.IO) { dao.replaceAll(fresh, syncData.barcodes, syncData.priceLists) }
     return changed
 }
 
@@ -1547,6 +1632,11 @@ private fun MobileCatalogEntity.priceFor(listNumber: Int): Double = when (listNu
     6 -> price6
     else -> null
 }?.takeIf { it > 0.0 } ?: price
+
+private fun incrementReportQuantity(value: String): String {
+    val next = (parseReportNumber(value) ?: 0.0) + 1.0
+    return if (next % 1.0 == 0.0) next.toLong().toString() else String.format(Locale.ITALY, "%.2f", next)
+}
 
 private fun additionalReportItemsJson(items: List<AdditionalReportItem>) = JSONArray().apply {
     items.forEach { item ->
@@ -1719,7 +1809,7 @@ private suspend fun synchronizeMyWorks(token: String, username: String, dao: Cac
 }
 
 private suspend fun loadMyWorks(token: String): List<MobileWork> = withContext(Dispatchers.IO) {
-    val connection = URL("http://localhost:5187/api/mobile/my-works").openConnection() as HttpURLConnection
+    val connection = URL("${BuildConfig.API_BASE_URL}/api/mobile/my-works").openConnection() as HttpURLConnection
     try {
         connection.connectTimeout = 5_000
         connection.readTimeout = 5_000
@@ -1746,7 +1836,7 @@ private suspend fun loadMyWorks(token: String): List<MobileWork> = withContext(D
 }
 
 private suspend fun loadMobileWorkDetail(token: String, workId: Int): Pair<MobileWorkDetail, String> = withContext(Dispatchers.IO) {
-    val connection = URL("http://localhost:5187/api/mobile/my-works/$workId").openConnection() as HttpURLConnection
+    val connection = URL("${BuildConfig.API_BASE_URL}/api/mobile/my-works/$workId").openConnection() as HttpURLConnection
     try {
         connection.connectTimeout = 5_000
         connection.readTimeout = 5_000

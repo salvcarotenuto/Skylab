@@ -9,6 +9,7 @@ val configureDebugApiReverse by tasks.registering(Exec::class) {
     description = "Collega automaticamente l'emulatore all'API SkyLab locale."
     commandLine(
         File(System.getenv("LOCALAPPDATA"), "Android/Sdk/platform-tools/adb.exe").absolutePath,
+        "-e",
         "reverse",
         "tcp:5187",
         "tcp:5187"
@@ -32,14 +33,27 @@ android {
         applicationId = "it.skylab.mobile"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 6
+        versionName = "1.0.4"
+        buildConfigField("String", "API_BASE_URL", "\"https://skylab.sigmadata.it\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("distribution") {
+            val keyPath = System.getenv("SKYLAB_ANDROID_KEYSTORE")
+            if (!keyPath.isNullOrBlank()) {
+                storeFile = file(keyPath)
+                storePassword = System.getenv("SKYLAB_ANDROID_STORE_PASSWORD")
+                keyAlias = "skylab"
+                keyPassword = System.getenv("SKYLAB_ANDROID_STORE_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("distribution")
             optimization {
                 enable = false
             }
@@ -51,6 +65,16 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+}
+
+tasks.configureEach {
+    if (name == "validateSigningRelease") {
+        doFirst {
+            check(!System.getenv("SKYLAB_ANDROID_KEYSTORE").isNullOrBlank()) { "Chiave di distribuzione SkyLab non configurata." }
+            check(!System.getenv("SKYLAB_ANDROID_STORE_PASSWORD").isNullOrBlank()) { "Password della chiave SkyLab non configurata." }
+        }
     }
 }
 

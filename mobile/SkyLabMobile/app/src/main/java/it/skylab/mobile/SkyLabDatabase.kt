@@ -60,6 +60,23 @@ data class MobileCatalogEntity(
     val synchronizedAt: Long
 )
 
+@Entity(tableName = "Barcodes", primaryKeys = ["barcode"])
+data class MobileBarcodeEntity(
+    val barcode: String,
+    val article: String,
+    val type: Int,
+    val supplier: Int?,
+    val synchronizedAt: Long
+)
+
+@Entity(tableName = "ArtListini", primaryKeys = ["article", "listNumber"])
+data class MobilePriceListEntity(
+    val article: String,
+    val listNumber: Int,
+    val price: Double,
+    val synchronizedAt: Long
+)
+
 @Dao
 interface CachedWorkDao {
     @Query("SELECT * FROM cached_works WHERE username = :username ORDER BY plannedOn, plannedAt, workId")
@@ -110,20 +127,54 @@ interface MobileCatalogDao {
     @Query("SELECT * FROM mobile_catalog WHERE type = :type ORDER BY description, reference")
     suspend fun items(type: String): List<MobileCatalogEntity>
 
+    @Query("SELECT * FROM Barcodes WHERE barcode = :barcode LIMIT 1")
+    suspend fun barcode(barcode: String): MobileBarcodeEntity?
+
+    @Query("SELECT * FROM ArtListini WHERE article = :article AND listNumber = :listNumber LIMIT 1")
+    suspend fun priceList(article: String, listNumber: Int): MobilePriceListEntity?
+
+    @Query("SELECT COUNT(*) FROM Barcodes")
+    suspend fun barcodeCount(): Int
+
+    @Query("SELECT COUNT(*) FROM ArtListini")
+    suspend fun priceListCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<MobileCatalogEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBarcodes(items: List<MobileBarcodeEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPriceLists(items: List<MobilePriceListEntity>)
+
     @Query("DELETE FROM mobile_catalog")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM Barcodes")
+    suspend fun deleteAllBarcodes()
+
+    @Query("DELETE FROM ArtListini")
+    suspend fun deleteAllPriceLists()
 
     @Transaction
     suspend fun replaceAll(items: List<MobileCatalogEntity>) {
         deleteAll()
         if (items.isNotEmpty()) insertAll(items)
     }
+
+    @Transaction
+    suspend fun replaceAll(items: List<MobileCatalogEntity>, barcodes: List<MobileBarcodeEntity>, priceLists: List<MobilePriceListEntity>) {
+        deleteAll()
+        deleteAllBarcodes()
+        deleteAllPriceLists()
+        if (items.isNotEmpty()) insertAll(items)
+        if (barcodes.isNotEmpty()) insertBarcodes(barcodes)
+        if (priceLists.isNotEmpty()) insertPriceLists(priceLists)
+    }
 }
 
-@Database(entities = [CachedWorkEntity::class, WorkReportDraftEntity::class, MobileCatalogEntity::class], version = 6, exportSchema = false)
+@Database(entities = [CachedWorkEntity::class, WorkReportDraftEntity::class, MobileCatalogEntity::class, MobileBarcodeEntity::class, MobilePriceListEntity::class], version = 7, exportSchema = false)
 abstract class SkyLabDatabase : RoomDatabase() {
     abstract fun cachedWorks(): CachedWorkDao
     abstract fun workReportDrafts(): WorkReportDraftDao
@@ -137,7 +188,7 @@ abstract class SkyLabDatabase : RoomDatabase() {
                 context.applicationContext,
                 SkyLabDatabase::class.java,
                 "skylab-mobile.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build().also { instance = it }
         }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -174,6 +225,14 @@ abstract class SkyLabDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE work_report_drafts ADD COLUMN sentAt INTEGER")
                 db.execSQL("ALTER TABLE work_report_drafts ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE work_report_drafts ADD COLUMN lastError TEXT NOT NULL DEFAULT ''")
+            }
+        }
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS Barcodes (barcode TEXT NOT NULL, article TEXT NOT NULL, type INTEGER NOT NULL, supplier INTEGER, synchronizedAt INTEGER NOT NULL, PRIMARY KEY(barcode))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_Barcodes_article ON Barcodes(article)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS ArtListini (article TEXT NOT NULL, listNumber INTEGER NOT NULL, price REAL NOT NULL, synchronizedAt INTEGER NOT NULL, PRIMARY KEY(article, listNumber))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_ArtListini_article ON ArtListini(article)")
             }
         }
     }
