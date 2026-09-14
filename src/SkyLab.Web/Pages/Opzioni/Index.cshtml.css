@@ -1,15 +1,90 @@
 .options-page.module-page {
+    gap: 10px;
     max-width: 1240px;
+    padding-top: 0;
 }
 
-.options-page .module-header {
-    margin-bottom: 8px;
+.options-titlebar {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #b8c5d6;
+    border-radius: 8px;
+    box-shadow: none;
+    box-sizing: border-box;
+    height: 96px;
+    margin-bottom: 0;
+    margin-top: 8px;
+    min-height: 96px;
+    padding: 0;
 }
 
+.options-titlebar .list-title-identity {
+    margin-left: 18px;
+}
+
+.options-titlebar .list-title-layout {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+}
+
+.options-title-actions {
+    align-items: center;
+    gap: 10px;
+    margin-right: 28px;
+}
+
+.options-title-actions .btn,
+.options-title-actions .btn-primary,
+.options-title-actions .customer-menu-button {
+    align-items: center;
+    border-radius: 6px;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex: 0 0 140px;
+    font-size: 13px;
+    font-weight: 600;
+    height: 40px;
+    justify-content: center;
+    max-width: 140px;
+    min-height: 40px;
+    padding: 0;
+    text-align: center;
+    text-decoration: none;
+    width: 140px;
+}
+
+.options-title-actions .btn-primary,
+.options-title-actions .btn-primary:hover {
+    background: var(--BlueButton);
+    border: 1px solid var(--BlueButton);
+    color: #fff;
+}
+
+.options-title-actions .customer-menu-button {
+    background: #fff;
+    border: 1px solid var(--BlueButton);
+    color: #000;
+}
+
+.options-title-actions .customer-menu-button:hover {
+    background: var(--BlueButton);
+    border-color: var(--BlueButton);
+    color: #fff;
+}
+
+#options-form {
+    margin: 0;
+}
+
+
 .options-shell {
-    background: #ffffff;
+    margin: 10px 0 0;
+    padding-top: 0;
+    background: #fff;
     border: 1px solid #aab3bf;
     border-radius: 7px;
+    box-sizing: border-box;
     display: grid;
     grid-template-columns: 186px minmax(0, 1fr);
     min-height: 560px;
@@ -21,13 +96,13 @@
     border-right: 1px solid #aab3bf;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     padding: 12px 10px;
 }
 
 .options-nav-button {
     align-items: center;
-    background: #ffffff;
+    background: #fff;
     border: 1px solid #aab3bf;
     border-radius: 5px;
     color: #22384e;
@@ -35,7 +110,7 @@
     display: flex;
     font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     height: 34px;
     justify-content: flex-start;
     padding: 0 12px;
@@ -45,18 +120,19 @@
 .options-nav-button.active {
     background: var(--BlueButton);
     border-color: var(--BlueButton);
-    color: #ffffff;
-}
-
-.options-nav-button:disabled {
-    background: #f5f7fb;
-    color: #7b8798;
-    cursor: default;
-    opacity: 1;
+    color: #fff;
 }
 
 .options-content {
-    padding: 14px;
+    padding: 12px 12px 12px 14px;
+}
+
+.options-tab-panel {
+    display: none;
+}
+
+.options-tab-panel.active {
+    display: block;
 }
 
 .options-frame {
@@ -70,10 +146,16 @@
 
 .options-grid {
     display: grid;
-    gap: 6px 12px;
+    gap: 7px 10px;
 }
 
-.options-company-grid {
+.options-company-grid,
+.options-mail-grid,
+.options-backup-grid,
+.options-print-grid,
+.options-accounting-grid,
+.options-billing-grid,
+.options-fe-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -83,29 +165,32 @@
 
 .options-grid .field {
     align-items: center;
-    column-gap: 6px;
+    column-gap: 3px;
     display: grid;
-    grid-template-columns: 150px minmax(0, 1fr);
+    grid-template-columns: 132px minmax(0, 1fr);
+    min-width: 0;
 }
 
-.options-grid .field-wide {
-    grid-column: span 2;
+.options-grid .field-wide,
+.options-grid .field-full {
+    grid-column: 1 / -1;
 }
 
+.options-grid .field-short,
 .options-address-grid .field-short {
-    grid-template-columns: 120px minmax(0, 1fr);
+    grid-template-columns: 78px 86px;
 }
 
-.options-address-grid .options-pec-field {
+.options-address-grid .options-pec-field,
+.options-address-grid .options-country-field {
     grid-template-columns: 86px minmax(0, 1fr);
 }
 
-.options-address-grid .options-country-field {
-    grid-template-columns: 86px 70px;
-}
-
 .options-grid label,
-.options-grid input {
+.options-grid input,
+.options-grid select,
+.options-grid textarea {
+    box-sizing: border-box;
     font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     font-weight: 520;
@@ -121,21 +206,42 @@
     height: 30px;
     padding: 0 9px;
     user-select: none;
+    white-space: nowrap;
 }
 
-.options-grid input {
-    background: #ffffff;
+.options-grid input,
+.options-grid select,
+.options-grid textarea {
+    background: #fff;
     border: 1px solid #9aa5b5;
     border-radius: 5px;
     color: #111827;
-    height: 30px;
-    padding: 0 10px;
+    min-width: 0;
+    padding: 0 8px;
+    width: 100%;
 }
 
-.options-grid input:focus {
+.options-grid input,
+.options-grid select {
+    height: 30px;
+}
+
+.options-grid textarea {
+    min-height: 58px;
+    padding: 7px 10px;
+    resize: vertical;
+}
+
+.options-grid input:focus,
+.options-grid select:focus,
+.options-grid textarea:focus {
     border-color: var(--BlueButton);
-    box-shadow: 0 0 0 2px rgba(75, 100, 165, 0.18);
+    box-shadow: 0 0 0 2px rgba(75, 100, 165, .18);
     outline: none;
+}
+
+.options-textarea-field {
+    align-items: start !important;
 }
 
 .options-city-field {
@@ -143,10 +249,10 @@
 }
 
 .options-city-suggestions {
-    background: #ffffff;
+    background: #fff;
     border: 1px solid #8f9bac;
-    box-shadow: 0 8px 22px rgba(35, 45, 65, .22);
-    left: 156px;
+    box-shadow: 0 8px 22px rgba(35,45,65,.22);
+    left: 153px;
     max-height: 194px;
     overflow-y: auto;
     position: absolute;
@@ -155,36 +261,9 @@
     z-index: 20;
 }
 
-.options-city-suggestions-head {
-    align-items: center;
-    background: #b8cbe0;
-    border-bottom: 1px solid #8aa8c5;
-    color: #17395c;
-    display: grid;
-    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
-    font-size: 12px;
-    font-weight: 520;
-    grid-template-columns: minmax(0, 1fr) 82px 52px;
-    height: 27px;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-.options-city-suggestions-head span {
-    border-right: 1px solid #9eb4cc;
-    box-sizing: border-box;
-    padding: 0 8px;
-}
-
-.options-city-suggestions-head span:last-child {
-    border-right: 0;
-    text-align: center;
-}
-
 .options-city-suggestions button {
     align-items: center;
-    background: #ffffff;
+    background: #fff;
     border: 0;
     border-bottom: 1px solid #d6deea;
     color: #172236;
@@ -193,7 +272,7 @@
     font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
     font-size: 13px;
     font-weight: 400;
-    grid-template-columns: minmax(0, 1fr) 82px 52px;
+    grid-template-columns: minmax(0,1fr) 82px 52px;
     height: 28px;
     padding: 0;
     text-align: left;
@@ -217,11 +296,149 @@
     white-space: nowrap;
 }
 
-.options-city-suggestions button span {
-    color: #40516d;
-}
-
 .options-city-suggestions button span:last-child {
     border-right: 0;
     justify-content: center;
+}
+
+
+
+
+
+
+
+.options-grid select:enabled {
+    background: #fff;
+}
+
+
+.options-page .options-grid .field > label {
+    align-items: center;
+    background: #b8cbe0;
+    border: 1px solid #8a8f98;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #22384e;
+    display: inline-flex;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    height: 30px;
+    padding: 0 9px;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.options-page .options-grid .field > input,
+.options-page .options-grid .field > select,
+.options-page .options-grid .field > textarea {
+    background: #fff;
+    border: 1px solid #9aa5b5;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #111827;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 0;
+    padding: 0 8px;
+    width: 100%;
+}
+
+.options-page .options-grid .field > input,
+.options-page .options-grid .field > select {
+    height: 30px;
+}
+
+.options-page .options-grid .field > textarea {
+    min-height: 58px;
+    padding: 7px 10px;
+    resize: vertical;
+}
+
+.options-page .options-grid .field > input:focus,
+.options-page .options-grid .field > select:focus,
+.options-page .options-grid .field > textarea:focus {
+    border-color: var(--BlueButton);
+    box-shadow: 0 0 0 2px rgba(75, 100, 165, .18);
+    outline: none;
+}
+
+.options-page.data-form-skin .options-grid .field > label {
+    align-items: center !important;
+    background: #b8cbe0 !important;
+    border: 1px solid #8a8f98 !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+    color: #22384e !important;
+    display: inline-flex !important;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    height: 30px !important;
+    justify-content: flex-start !important;
+    line-height: 30px !important;
+    padding: 0 9px !important;
+    white-space: nowrap !important;
+}
+
+.options-page.data-form-skin .options-grid .field > input,
+.options-page.data-form-skin .options-grid .field > select,
+.options-page.data-form-skin .options-grid .field > textarea {
+    background: #fff !important;
+    border: 1px solid #9aa5b5 !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+    color: #111827 !important;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    min-width: 0 !important;
+    padding: 0 8px !important;
+    width: 100% !important;
+}
+
+.options-page.data-form-skin .options-grid .field > input,
+.options-page.data-form-skin .options-grid .field > select {
+    height: 30px !important;
+}
+
+#options-form .options-grid .field > label {
+    align-items: center !important;
+    background-color: #b8cbe0 !important;
+    border: 1px solid #8a8f98 !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+    color: #22384e !important;
+    display: inline-flex !important;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    height: 30px !important;
+    justify-content: flex-start !important;
+    line-height: 30px !important;
+    margin: 0 !important;
+    padding: 0 9px !important;
+    white-space: nowrap !important;
+}
+
+#options-form .options-grid .field > input,
+#options-form .options-grid .field > select,
+#options-form .options-grid .field > textarea {
+    background-color: #fff !important;
+    border: 1px solid #9aa5b5 !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+    color: #111827 !important;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    min-width: 0 !important;
+    padding: 0 8px !important;
+    width: 100% !important;
+}
+
+#options-form .options-grid .field > input,
+#options-form .options-grid .field > select {
+    height: 30px !important;
 }

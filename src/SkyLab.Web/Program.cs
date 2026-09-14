@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 using SkyLab.Web.Models;
 using SkyLab.Web.Data;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Threading.RateLimiting;
 
 namespace SkyLab.Web;
 
@@ -19,14 +21,38 @@ public class Program
             .AddMvcOptions(options =>
                 options.ModelBinderProviders.Insert(0, new SkyLab.Web.Infrastructure.FlexibleDecimalModelBinderProvider()));
         builder.Services.AddDataProtection()
-            .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys")));
+            .PersistKeysToFileSystem(new DirectoryInfo(builder.Configuration["SkyLab:DataProtectionKeysPath"]
+                ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys")))
+            .SetApplicationName("SkyLab");
         builder.Services.AddSingleton<SkyLab.Web.Services.ApplicationState>();
         builder.Services.AddScoped<SkyLab.Web.Services.SkyLabServicePaths>();
         builder.Services.AddScoped<SkyLabDatabase>();
+        builder.Services.AddSingleton<SkyLabDatabaseOptions>();
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddDistributedMemoryCache();
+        builder.Services.AddSession(options =>
+        {
+            options.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Cookie.Name = ".SkyLab.Session";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+        });
+        builder.Services.AddScoped<SkyLab.Web.Services.ApplicationAuthService>();
+        builder.Services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = 429;
+            options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        });
         builder.Services.AddScoped<PurchaseInvoiceRepository>();
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();
         builder.Services.AddScoped<SkyLab.Web.Services.CustomerService>();
+        builder.Services.AddScoped<SkyLab.Web.Services.SmtpConnectionTester>();
         builder.Services.AddScoped<SkyLab.Web.Services.SupplierService>();
         builder.Services.AddScoped<SkyLab.Web.Services.WorkService>();
         builder.Services.AddScoped<SkyLab.Web.Services.UserService>();
@@ -40,7 +66,9 @@ public class Program
         });
 
         var app = builder.Build();
+        app.Services.GetRequiredService<SkyLabDatabaseOptions>().LoadDefaultCompanyAsync().GetAwaiter().GetResult();
 
+        app.UseForwardedHeaders();
         // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
         {
@@ -54,6 +82,25 @@ public class Program
         app.UseRequestLocalization();
 
         app.UseRouting();
+        app.UseRateLimiter();
+        app.UseSession();
+        var authenticationRequired = !app.Environment.IsDevelopment()
+            || builder.Configuration.GetValue("SkyLab:Authentication:Required", false);
+        app.Use(async (context, next) =>
+        {
+            var path = context.Request.Path;
+            var publicRequest = path.Equals("/Login", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/Error", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWithSegments("/api/mobile")
+                || path.StartsWithSegments("/css") || path.StartsWithSegments("/js")
+                || path.StartsWithSegments("/lib") || path.StartsWithSegments("/images")
+                || path.Equals("/favicon.ico", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/SkyLab.Web.styles.css", StringComparison.OrdinalIgnoreCase);
+            if (!authenticationRequired || publicRequest || context.RequestServices.GetRequiredService<SkyLab.Web.Services.ApplicationAuthService>().IsLoggedIn())
+            { await next(); return; }
+            if (path.StartsWithSegments("/api")) { context.Response.StatusCode = 401; return; }
+            context.Response.Redirect("/Login");
+        });
 
         app.UseAuthorization();
 
@@ -61,14 +108,14 @@ public class Program
         app.MapRazorPages()
            .WithStaticAssets();
 
-        if (app.Environment.IsDevelopment())
+        if (builder.Configuration.GetValue("SkyLab:Mobile:Enabled", app.Environment.IsDevelopment()))
         {
             app.MapGet("/api/mobile/login-users", async (SkyLab.Web.Services.UserService users, CancellationToken ct) =>
                 Results.Ok(await users.GetMobileLoginUsersAsync(ct)));
             app.MapPost("/api/mobile/login", async (MobileLoginRequest request, SkyLab.Web.Services.UserService users, SkyLab.Web.Services.MobileAuthService auth, CancellationToken ct) =>
                 await users.VerifyMobileLoginAsync(request.Username, request.Password, ct)
                     ? Results.Ok(new { authenticated = true, token = auth.CreateSession(request.Username) })
-                    : Results.Unauthorized());
+                    : Results.Unauthorized()).RequireRateLimiting("login");
             app.MapGet("/api/mobile/my-works", async (HttpRequest request, SkyLab.Web.Services.MobileAuthService auth, SkyLab.Web.Services.WorkService works, CancellationToken ct) =>
             {
                 var username = auth.GetUsername(request.Headers.Authorization);
@@ -105,3 +152,4 @@ public class Program
 }
 
 public sealed record MobileLoginRequest(string Username, string Password);
+

@@ -4,16 +4,18 @@ using SkyLab.Web.Services;
 using SkyLab.Web.Data;
 using MySqlConnector;
 using System.Reflection;
-
 namespace SkyLab.Web.Pages.Opzioni;
 
-public sealed class IndexModel(CustomerService customerService, SkyLabDatabase database) : PageModel
+public sealed class IndexModel(CustomerService customerService, SkyLabDatabase database, SmtpConnectionTester smtpTester) : PageModel
 {
     private static readonly PropertyInfo[] OptionProperties =
         typeof(OptionsDraftModel).GetProperties(BindingFlags.Instance | BindingFlags.Public);
 
+    
     [BindProperty]
     public OptionsDraftModel Options { get; set; } = new();
+    [BindProperty]
+    public int ActiveTab { get; set; }
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
@@ -29,6 +31,8 @@ public sealed class IndexModel(CustomerService customerService, SkyLabDatabase d
 
     public async Task<JsonResult> OnGetCitiesAsync(string? q, CancellationToken cancellationToken) =>
         new(await customerService.SearchCitiesAsync(q, cancellationToken));
+    public async Task<JsonResult> OnPostTestMailAsync([FromBody] SmtpTestRequest? request, CancellationToken cancellationToken) =>
+        new(await smtpTester.TestAsync(request, cancellationToken));
 
     private async Task<OptionsDraftModel> LoadOptionsAsync(CancellationToken cancellationToken)
     {
@@ -164,6 +168,69 @@ public sealed class OptionsDraftModel
     public string? RagioneSociale { get; set; }
     public string? AttivitaEsercitata { get; set; }
     public string? CodiceFiscale { get; set; }
+    public string? SedeOperativaNazione { get; set; }
+
+    public string? TitolareCognome { get; set; }
+    public string? TitolareNome { get; set; }
+    public string? TitolareDataNascita { get; set; }
+    public string? TitolareCodiceFiscale { get; set; }
+    public string? TitolareCitta { get; set; }
+    public string? TitolareProvincia { get; set; }
+    public string? TitolareCap { get; set; }
+    public string? TitolareIndirizzo { get; set; }
+    public string? TitolareTelefono { get; set; }
+    public string? TitolareEmail { get; set; }
+    public string? TitolarePec { get; set; }
+
+    public string? AttivitaEsenzioneIva { get; set; }
+    public string? CodiceEsenzioneIva { get; set; }
+    public string? IvaSpeseIncasso { get; set; }
+    public string? AliqIvaVendite { get; set; }
+    public string? AliquotaRitenutaIrpef { get; set; }
+
+    public string? FattPrefissoDocumenti { get; set; }
+    public string? FattPagamentoStandard { get; set; }
+    public string? FattBancaAppoggio { get; set; }
+    public string? FattIban { get; set; }
+    public string? FattSwift { get; set; }
+    public string? FattSpeseIncasso { get; set; }
+
+    public string? FeCodiceSdiAzienda { get; set; }
+    public string? FePecDestinazioneSdi { get; set; }
+    public string? FeMatriceNomeXml { get; set; }
+    public string? FeRegimeFiscale { get; set; }
+    public string? FeTipoRitenuta { get; set; }
+    public string? FeCausaleRitenuta { get; set; }
+
+    public string? MailOrdNomeMittente { get; set; }
+    public string? MailOrdEmailMittente { get; set; }
+    public string? MailOrdServerSmtp { get; set; }
+    public string? MailOrdPortaSmtp { get; set; }
+    public string? MailOrdSicurezza { get; set; }
+    public string? MailOrdAutenticazione { get; set; }
+    public string? MailOrdUsername { get; set; }
+    public string? MailOrdPassword { get; set; }
+
+    public string? MailPecNomeMittente { get; set; }
+    public string? MailPecEmailMittente { get; set; }
+    public string? MailPecServerSmtp { get; set; }
+    public string? MailPecPortaSmtp { get; set; }
+    public string? MailPecSicurezza { get; set; }
+    public string? MailPecAutenticazione { get; set; }
+    public string? MailPecUsername { get; set; }
+    public string? MailPecPassword { get; set; }
+
+    public string? BackupAbilitaAutomatica { get; set; }
+    public string? BackupPosizione { get; set; }
+    public string? BackupOrario { get; set; }
+    public string? BackupCancellaVecchie { get; set; }
+    public string? BackupGiorniVecchie { get; set; }
+
+    public string? StampaDatiAzienda { get; set; }
+    public string? StampaFontName { get; set; }
+    public string? StampaFontSize { get; set; }
+    public string? StampaAlign { get; set; }
+    public string? TimbroTxt { get; set; }
     public string? PartitaIva { get; set; }
     public string? NumeroRea { get; set; }
     public string? Telefono { get; set; }
@@ -181,3 +248,8 @@ public sealed class OptionsDraftModel
     public string? SedeOperativaIndirizzo { get; set; }
     public string? AzEmail { get; set; }
 }
+
+
+
+
+

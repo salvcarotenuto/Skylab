@@ -3,6 +3,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveButton = document.querySelector('button[form="options-form"][type="submit"]');
   let saving = false;
 
+  const showProgress = () => {
+    const progress = window.SkyProg;
+    if (progress?.show) {
+      progress.show();
+    } else if (progress?.Show) {
+      progress.Show();
+    }
+  };
+
   const closeProgress = (afterClose) => {
     const progress = window.SkyProg;
     if (progress?.close) {
@@ -18,9 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
     if (saving) return;
 
+    if (!validateOptionsBeforeSave()) return;
+
     saving = true;
     if (saveButton) saveButton.disabled = true;
-    window.SkyProg?.Show?.();
+    showProgress();
 
     let destination = "";
     let returnedPage = "";
@@ -181,6 +192,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+
+  const validateOptionsBeforeSave = () => {
+    const fiscalCodeValue = normalizeFiscalValue(taxCode?.value || "");
+    if (fiscalCodeValue && (![11, 16].includes(fiscalCodeValue.length) || !isValidFiscalCode(fiscalCodeValue))) {
+      if (taxCode) taxCode.value = fiscalCodeValue;
+      message("Codice fiscale non valido.", taxCode);
+      return false;
+    }
+
+    const vatValue = String(vatNumber?.value || "").replace(/\D/g, "").slice(0, 11);
+    if (vatValue && !isValidVatNumber(vatValue)) {
+      if (vatNumber) vatNumber.value = vatValue;
+      message("Partita IVA non valida.", vatNumber);
+      return false;
+    }
+
+    const stateValue = String(stateCode?.value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+    if (stateCode) stateCode.value = stateValue;
+    if (stateValue && stateValue.length !== 2) {
+      message("Sigla stato non valida.", stateCode);
+      return false;
+    }
+
+    document.querySelectorAll("[data-options-percent]").forEach(field => {
+      field.value = formatPercentValue(field.value);
+    });
+
+    return true;
+  };
   const wireCityGuide = (scope) => {
     const city = document.querySelector(`[data-options-city="${scope}"]`);
     const postalCode = document.querySelector(`[data-options-postal-code="${scope}"]`);
@@ -281,6 +321,122 @@ document.addEventListener("DOMContentLoaded", () => {
     city.addEventListener("blur", () => window.setTimeout(close, 120));
   };
 
+
+  const activeTab = document.querySelector("[data-options-active-tab]");
+  const tabButtons = Array.from(document.querySelectorAll("[data-options-tab]"));
+  const tabPanels = Array.from(document.querySelectorAll("[data-options-panel]"));
+  const activateTab = (tab) => {
+    tabButtons.forEach(button => {
+      const active = button.dataset.optionsTab === tab;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    tabPanels.forEach(panel => panel.classList.toggle("active", panel.dataset.optionsPanel === tab));
+    if (activeTab) activeTab.value = tab;
+  };
+  tabButtons.forEach(button => button.addEventListener("click", () => activateTab(button.dataset.optionsTab || "0")));
+  activateTab(activeTab?.value || "0");
+  const normalizePercentValue = (value) => {
+    let text = (value || "").replace(/\s/g, "").replace(/\./g, ",").replace(/[^0-9,]/g, "");
+    const firstComma = text.indexOf(",");
+    if (firstComma !== -1) {
+      text = text.slice(0, firstComma + 1) + text.slice(firstComma + 1).replace(/,/g, "");
+    }
+    const parts = text.split(",");
+    if (parts[1]?.length > 2) {
+      parts[1] = parts[1].slice(0, 2);
+      text = parts.join(",");
+    }
+    const numeric = Number.parseFloat(text.replace(",", "."));
+    if (Number.isFinite(numeric) && numeric > 100) {
+      text = "100";
+    }
+    return text;
+  };
+
+  const formatPercentValue = (value) => {
+    const text = normalizePercentValue(value);
+    if (!text) return "";
+    const numeric = Number.parseFloat(text.replace(",", "."));
+    if (!Number.isFinite(numeric)) return "";
+    return Math.min(Math.max(numeric, 0), 100).toLocaleString("it-IT", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const wirePercentFields = () => {
+    document.querySelectorAll("[data-options-percent]").forEach(field => {
+      field.addEventListener("input", () => {
+        const normalized = normalizePercentValue(field.value);
+        if (field.value !== normalized) field.value = normalized;
+      });
+      field.addEventListener("blur", () => {
+        field.value = formatPercentValue(field.value);
+      });
+      field.addEventListener("focus", () => {
+        field.value = normalizePercentValue(field.value);
+        field.select();
+      });
+    });
+  };
+  const fieldValue = (name) => document.querySelector(`[name="Options.${name}"]`)?.value || "";
+  const wireMailTestButtons = () => {
+    document.querySelectorAll("[data-options-mail-test]").forEach(button => {
+      button.addEventListener("click", async () => {
+        const kind = button.dataset.optionsMailTest === "pec" ? "Pec" : "Ord";
+        const payload = {
+          server: fieldValue(`Mail${kind}ServerSmtp`),
+          port: fieldValue(`Mail${kind}PortaSmtp`),
+          security: fieldValue(`Mail${kind}Sicurezza`),
+          authentication: fieldValue(`Mail${kind}Autenticazione`) === "1",
+          username: fieldValue(`Mail${kind}Username`),
+          password: fieldValue(`Mail${kind}Password`)
+        };
+
+        button.disabled = true;
+        const token = form?.querySelector('input[name="__RequestVerificationToken"]')?.value || "";
+        try {
+          const response = await fetch(`${location.pathname}?handler=TestMail`, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json",
+              "RequestVerificationToken": token
+            },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+          window.SkyLabMessageBox?.show?.({
+            title: "Test posta elettronica",
+            message: result.message || result.Message || ((result.ok || result.Ok) ? "Connessione riuscita." : "Connessione non riuscita."),
+            variant: (result.ok || result.Ok) ? "success" : "error",
+            okText: "OK"
+          }) ?? window.alert(result.message || "Test completato.");
+        } catch {
+          window.SkyLabMessageBox?.show?.({
+            title: "Test posta elettronica",
+            message: "Connessione non riuscita.",
+            variant: "error",
+            okText: "OK"
+          }) ?? window.alert("Connessione non riuscita.");
+        } finally {
+          button.disabled = false;
+        }
+      });
+    });
+  };
+
+  wireMailTestButtons();
+
+
+  wirePercentFields();
+
   wireCityGuide("legal");
   wireCityGuide("operational");
 });
+
+
+
+

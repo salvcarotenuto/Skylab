@@ -4,134 +4,356 @@
     ViewData["Title"] = "Opzioni";
 }
 
+<style data-options-field-standard>
+#options-form .options-grid .field > label {
+    align-items: center !important;
+    background-color: #b8cbe0 !important;
+    border: 1px solid #8a8f98 !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+    color: #22384e !important;
+    display: inline-flex !important;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    margin: 0 !important;
+    padding: 0 8px !important;
+    white-space: nowrap !important;
+}
+
+#options-form .options-grid .field > input,
+#options-form .options-grid .field > select,
+#options-form .options-grid .field > textarea {
+    background-color: #fff !important;
+    border: 1px solid #8a8f98 !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+    color: #000 !important;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 520 !important;
+    min-width: 0 !important;
+    padding: 3px 8px !important;
+    width: 100% !important;
+}
+
+#options-form .options-grid .field > input,
+#options-form .options-grid .field > select {
+    height: 30px !important;
+}
+
+#options-form .options-grid .field > textarea {
+    min-height: 58px !important;
+    padding: 7px 10px !important;
+}
+
+
+#options-form .options-accounting-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+#options-form .options-accounting-grid .field {
+    grid-template-columns: 158px minmax(0, 1fr) !important;
+}
+
+#options-form .options-fe-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+#options-form .options-fe-grid .field {
+    grid-template-columns: 158px minmax(0, 1fr) !important;
+}
+#options-form .options-billing-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+#options-form .options-billing-grid .field {
+    grid-template-columns: 158px minmax(0, 1fr) !important;
+}
+
+#options-form .options-mail-test-row {
+    grid-template-columns: minmax(0, 1fr) 140px !important;
+}
+
+#options-form .options-mail-test-row > span {
+    display: block;
+}
+
+#options-form .options-mail-test-button {
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--BlueButton);
+    border-radius: 6px;
+    color: #000;
+    display: inline-flex;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    height: 30px;
+    justify-content: center;
+    padding: 0;
+    width: 140px;
+}
+
+#options-form .options-mail-test-button:hover {
+    background: var(--BlueButton);
+    color: #fff;
+}
+
+.options-page #options-form > .options-shell {
+    background-color: #fff !important;
+    border: 1px solid #9eacbc !important;
+    box-shadow: 0 0 0 1px rgba(158, 172, 188, .35) !important;
+}
+
+.options-page > .options-titlebar,
+.options-page.module-page {
+    padding-top: 24px !important;
+}
+
+#options-form {
+    margin-top: 0 !important;
+}
+
+.options-page.module-page {
+    padding-top: 18px !important;
+    gap: 10px !important;
+}
+
+#options-form {
+    margin: 0 18px !important;
+}
+
+/* Ripristino pulito titolo/corpo: nessuno sfondo esterno sperimentale */
+.options-page.module-page {
+    padding-top: 8px !important;
+    gap: 10px !important;
+}
+
+#options-form {
+    margin: 0 !important;
+}
+/* Titolo/corpo scheda - stato pulito */
+.options-page.module-page {
+    padding-top: 8px !important;
+    gap: 10px !important;
+}
+
+.options-page > .options-titlebar {
+    background-color: #fff !important;
+    border: 1px solid #b8c5d6 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    height: 96px !important;
+    margin: 0 !important;
+    min-height: 96px !important;
+    outline: 0 !important;
+}
+
+#options-form {
+    margin: 0 !important;
+}
+
+#options-form .options-shell {
+    background-color: #fff !important;
+    border: 1px solid #b8c5d6 !important;
+    border-radius: 7px !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    outline: 0 !important;
+}
+
+.options-page > .options-titlebar::before,
+.options-page #options-form > .options-shell::before {
+    content: none !important;
+    display: none !important;
+}
+
+
+/* Spazio sotto titolo senza padding */
+.options-page.module-page {
+    padding-top: 8px !important;
+    gap: 0 !important;
+}
+
+.options-page > .options-titlebar {
+    height: 96px !important;
+    min-height: 96px !important;
+    margin: 0 !important;
+}
+
+#options-form {
+    margin: 10px 0 0 !important;
+}
+
+#options-form .options-shell {
+    margin: 0 !important;
+}
+</style>
 <section class="module-page options-page data-form-skin">
-    <header class="module-header customer-form-header">
-        <div class="module-title-identity">
-            <a class="skylab-header-brand" asp-page="/Index" aria-label="Torna al menu principale">
-                <img src="~/images/skylab-logo.png" alt="" />
-            </a>
-            <div>
-                <h1>Opzioni</h1>
-                <p>SkyLab - Strumenti</p>
-            </div>
+    <header class="list-titlebar options-titlebar">
+        <div class="list-title-identity">
+            <span class="list-title-layout">
+                <span class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></span>
+                <span><strong>Opzioni</strong><small>SkyLab - Strumenti</small></span>
+            </span>
         </div>
-        <div class="customer-form-toolbar">
+        <div class="list-title-actions options-title-actions">
             <button class="btn btn-primary" type="submit" form="options-form">Salva</button>
             <a class="btn customer-menu-button" asp-page="/Index">Annulla</a>
         </div>
     </header>
 
     <form id="options-form" method="post" novalidate data-enter-navigation>
-    <section class="options-shell">
-        <aside class="options-navigation" aria-label="Sezioni opzioni">
-            <button class="options-nav-button active" type="button">Dati azienda</button>
-            <button class="options-nav-button" type="button" disabled>Dati titolare</button>
-            <button class="options-nav-button" type="button" disabled>Contabilità</button>
-            <button class="options-nav-button" type="button" disabled>Fatturazione</button>
-            <button class="options-nav-button" type="button" disabled>Fattura elettronica</button>
-            <button class="options-nav-button" type="button" disabled>Posta elettronica</button>
-            <button class="options-nav-button" type="button" disabled>Copie sicurezza</button>
-            <button class="options-nav-button" type="button" disabled>Parametri stampa</button>
-        </aside>
+        <input asp-for="ActiveTab" type="hidden" data-options-active-tab />
+        <section class="options-shell">
+            <aside class="options-navigation" role="tablist" aria-label="Sezioni opzioni">
+                <button class="options-nav-button active" type="button" role="tab" aria-selected="true" data-options-tab="0">Dati azienda</button>
+                <button class="options-nav-button" type="button" role="tab" aria-selected="false" data-options-tab="1">Dati titolare</button>
+                <button class="options-nav-button" type="button" role="tab" aria-selected="false" data-options-tab="2">Contabilita</button>
+                <button class="options-nav-button" type="button" role="tab" aria-selected="false" data-options-tab="3">Fatturazione</button>
+                <button class="options-nav-button" type="button" role="tab" aria-selected="false" data-options-tab="4">Fattura elettronica</button>
+                <button class="options-nav-button" type="button" role="tab" aria-selected="false" data-options-tab="5">Posta elettronica</button>
+                <button class="options-nav-button" type="button" role="tab" aria-selected="false" data-options-tab="6">Copie sicurezza</button>
+                <button class="options-nav-button" type="button" role="tab" aria-selected="false" data-options-tab="7">Parametri stampa</button>
+            </aside>
 
-        <div class="options-content">
-            <fieldset class="form-frame compact-frame options-frame">
-                <legend>Dati anagrafici</legend>
-                <div class="options-grid options-company-grid">
-                    <div class="field field-wide">
-                        <label asp-for="Options.RagioneSociale">Ragione sociale</label>
-                        <input asp-for="Options.RagioneSociale" maxlength="100" autocomplete="off" autofocus />
-                    </div>
-                    <div class="field field-wide">
-                        <label asp-for="Options.AttivitaEsercitata">Attività esercitata</label>
-                        <input asp-for="Options.AttivitaEsercitata" maxlength="250" autocomplete="off" />
-                    </div>
-                    <div class="field">
-                        <label asp-for="Options.CodiceFiscale">Codice fiscale</label>
-                        <input asp-for="Options.CodiceFiscale" maxlength="16" autocomplete="off" data-options-tax-code />
-                    </div>
-                    <div class="field">
-                        <label asp-for="Options.PartitaIva">Partita IVA</label>
-                        <input asp-for="Options.PartitaIva" maxlength="11" inputmode="numeric" autocomplete="off" data-options-vat-number />
-                    </div>
-                    <div class="field">
-                        <label asp-for="Options.NumeroRea">Numero REA</label>
-                        <input asp-for="Options.NumeroRea" maxlength="12" autocomplete="off" />
-                    </div>
-                    <div class="field">
-                        <label asp-for="Options.Telefono">Telefono</label>
-                        <input asp-for="Options.Telefono" maxlength="40" autocomplete="off" />
-                    </div>
-                    <div class="field">
-                        <label asp-for="Options.SitoWeb">Sito web</label>
-                        <input asp-for="Options.SitoWeb" maxlength="50" autocomplete="off" />
-                    </div>
-                    <div class="field">
-                        <label asp-for="Options.NaturaGiuridica">Natura giuridica</label>
-                        <input asp-for="Options.NaturaGiuridica" maxlength="50" autocomplete="off" />
-                    </div>
-                </div>
-            </fieldset>
+            <div class="options-content">
+                <section class="options-tab-panel active" role="tabpanel" data-options-panel="0">
+                    <fieldset class="form-frame compact-frame options-frame">
+                        <legend>Dati anagrafici</legend>
+                        <div class="options-grid options-company-grid">
+                            <div class="field field-wide"><label asp-for="Options.RagioneSociale">Ragione sociale</label><input asp-for="Options.RagioneSociale" maxlength="100" autocomplete="off" autofocus /></div>
+                            <div class="field field-wide"><label asp-for="Options.AttivitaEsercitata">Attivita esercitata</label><input asp-for="Options.AttivitaEsercitata" maxlength="250" autocomplete="off" /></div>
+                            <div class="field"><label asp-for="Options.CodiceFiscale">Codice fiscale</label><input asp-for="Options.CodiceFiscale" maxlength="16" autocomplete="off" data-options-tax-code /></div>
+                            <div class="field"><label asp-for="Options.PartitaIva">Partita IVA</label><input asp-for="Options.PartitaIva" maxlength="11" inputmode="numeric" autocomplete="off" data-options-vat-number /></div>
+                            <div class="field"><label asp-for="Options.NumeroRea">Numero REA</label><input asp-for="Options.NumeroRea" maxlength="12" autocomplete="off" /></div>
+                            <div class="field"><label asp-for="Options.Telefono">Telefono</label><input asp-for="Options.Telefono" maxlength="40" autocomplete="off" /></div>
+                            <div class="field"><label asp-for="Options.SitoWeb">Sito web</label><input asp-for="Options.SitoWeb" maxlength="50" autocomplete="off" /></div>
+                            <div class="field"><label asp-for="Options.NaturaGiuridica">Natura giuridica</label><input asp-for="Options.NaturaGiuridica" maxlength="50" autocomplete="off" /></div>
+                        </div>
+                    </fieldset>
+                    <fieldset class="form-frame compact-frame options-frame">
+                        <legend>Sede legale</legend>
+                        <div class="options-grid options-address-grid">
+                            <div class="field options-city-field"><label asp-for="Options.SedeLegaleCitta">Citta</label><input asp-for="Options.SedeLegaleCitta" maxlength="50" autocomplete="off" data-options-city="legal" aria-autocomplete="list" aria-controls="options-legal-city-suggestions" /><div id="options-legal-city-suggestions" class="options-city-suggestions" role="listbox" hidden></div></div>
+                            <div class="field field-short"><label asp-for="Options.SedeLegaleProvincia">Prov.</label><input asp-for="Options.SedeLegaleProvincia" maxlength="2" autocomplete="off" data-options-province="legal" /></div>
+                            <div class="field field-short"><label asp-for="Options.SedeLegaleCap">CAP</label><input asp-for="Options.SedeLegaleCap" maxlength="5" inputmode="numeric" autocomplete="off" data-options-postal-code="legal" /></div>
+                            <div class="field"><label asp-for="Options.SedeLegaleIndirizzo">Indirizzo</label><input asp-for="Options.SedeLegaleIndirizzo" maxlength="80" autocomplete="off" /></div>
+                            <div class="field options-pec-field"><label asp-for="Options.AzPec">PEC</label><input asp-for="Options.AzPec" maxlength="100" autocomplete="off" /></div>
+                            <div class="field options-country-field"><label asp-for="Options.SiglaStato">Sigla stato</label><input asp-for="Options.SiglaStato" maxlength="2" autocomplete="off" data-options-state-code /></div>
+                        </div>
+                    </fieldset>
+                    <fieldset class="form-frame compact-frame options-frame">
+                        <legend>Sede operativa</legend>
+                        <div class="options-grid options-address-grid">
+                            <div class="field options-city-field"><label asp-for="Options.SedeOperativaCitta">Citta</label><input asp-for="Options.SedeOperativaCitta" maxlength="50" autocomplete="off" data-options-city="operational" aria-autocomplete="list" aria-controls="options-operational-city-suggestions" /><div id="options-operational-city-suggestions" class="options-city-suggestions" role="listbox" hidden></div></div>
+                            <div class="field field-short"><label asp-for="Options.SedeOperativaProvincia">Prov.</label><input asp-for="Options.SedeOperativaProvincia" maxlength="2" autocomplete="off" data-options-province="operational" /></div>
+                            <div class="field field-short"><label asp-for="Options.SedeOperativaCap">CAP</label><input asp-for="Options.SedeOperativaCap" maxlength="5" inputmode="numeric" autocomplete="off" data-options-postal-code="operational" /></div>
+                            <div class="field"><label asp-for="Options.SedeOperativaIndirizzo">Indirizzo</label><input asp-for="Options.SedeOperativaIndirizzo" maxlength="80" autocomplete="off" /></div>
+                            <div class="field options-pec-field"><label asp-for="Options.AzEmail">E-mail</label><input asp-for="Options.AzEmail" maxlength="100" autocomplete="off" /></div>
+                            <div class="field options-country-field"><label asp-for="Options.SedeOperativaNazione">Nazione</label><input asp-for="Options.SedeOperativaNazione" maxlength="50" autocomplete="off" /></div>
+                        </div>
+                    </fieldset>
+                </section>
 
-            <fieldset class="form-frame compact-frame options-frame">
-                <legend>Sede legale</legend>
-                <div class="options-grid options-address-grid">
-                    <div class="field options-city-field">
-                        <label asp-for="Options.SedeLegaleCitta">Città</label>
-                        <input asp-for="Options.SedeLegaleCitta" maxlength="50" autocomplete="off" data-options-city="legal" aria-autocomplete="list" aria-controls="options-legal-city-suggestions" />
-                        <div id="options-legal-city-suggestions" class="options-city-suggestions" role="listbox" hidden></div>
-                    </div>
-                    <div class="field field-short">
-                        <label asp-for="Options.SedeLegaleProvincia">Prov.</label>
-                        <input asp-for="Options.SedeLegaleProvincia" maxlength="2" autocomplete="off" data-options-province="legal" />
-                    </div>
-                    <div class="field field-short">
-                        <label asp-for="Options.SedeLegaleCap">CAP</label>
-                        <input asp-for="Options.SedeLegaleCap" maxlength="5" inputmode="numeric" autocomplete="off" data-options-postal-code="legal" />
-                    </div>
-                    <div class="field">
-                        <label asp-for="Options.SedeLegaleIndirizzo">Indirizzo</label>
-                        <input asp-for="Options.SedeLegaleIndirizzo" maxlength="80" autocomplete="off" />
-                    </div>
-                    <div class="field options-pec-field">
-                        <label asp-for="Options.AzPec">PEC</label>
-                        <input asp-for="Options.AzPec" maxlength="100" autocomplete="off" />
-                    </div>
-                    <div class="field options-country-field">
-                        <label asp-for="Options.SiglaStato">Sigla stato</label>
-                        <input asp-for="Options.SiglaStato" maxlength="2" autocomplete="off" data-options-state-code />
-                    </div>
-                </div>
-            </fieldset>
+                <section class="options-tab-panel" role="tabpanel" data-options-panel="1">
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Dati anagrafici</legend><div class="options-grid options-company-grid">
+                        <div class="field"><label asp-for="Options.TitolareCognome">Cognome</label><input asp-for="Options.TitolareCognome" maxlength="50" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.TitolareNome">Nome</label><input asp-for="Options.TitolareNome" maxlength="50" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.TitolareDataNascita">Data nascita</label><input asp-for="Options.TitolareDataNascita" maxlength="10" autocomplete="off" placeholder="gg/mm/aaaa" /></div>
+                        <div class="field"><label asp-for="Options.TitolareCodiceFiscale">Codice fiscale</label><input asp-for="Options.TitolareCodiceFiscale" maxlength="16" autocomplete="off" /></div>
+                    </div></fieldset>
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Dati residenza</legend><div class="options-grid options-address-grid options-owner-address-grid">
+                        <div class="field"><label asp-for="Options.TitolareCitta">Citta</label><input asp-for="Options.TitolareCitta" maxlength="50" autocomplete="off" /></div>
+                        <div class="field field-short"><label asp-for="Options.TitolareProvincia">Prov.</label><input asp-for="Options.TitolareProvincia" maxlength="2" autocomplete="off" /></div>
+                        <div class="field field-short"><label asp-for="Options.TitolareCap">CAP</label><input asp-for="Options.TitolareCap" maxlength="5" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.TitolareIndirizzo">Indirizzo</label><input asp-for="Options.TitolareIndirizzo" maxlength="80" autocomplete="off" /></div>
+                        <div class="field options-pec-field"><label asp-for="Options.TitolareTelefono">Telefono</label><input asp-for="Options.TitolareTelefono" maxlength="40" autocomplete="off" /></div>
+                        <div class="field options-pec-field"><label asp-for="Options.TitolareEmail">E-mail</label><input asp-for="Options.TitolareEmail" maxlength="100" autocomplete="off" /></div>
+                        <div class="field options-pec-field"><label asp-for="Options.TitolarePec">PEC</label><input asp-for="Options.TitolarePec" maxlength="100" autocomplete="off" /></div>
+                    </div></fieldset>
+                </section>
 
-            <fieldset class="form-frame compact-frame options-frame">
-                <legend>Sede operativa</legend>
-                <div class="options-grid options-address-grid">
-                    <div class="field options-city-field">
-                        <label asp-for="Options.SedeOperativaCitta">Città</label>
-                        <input asp-for="Options.SedeOperativaCitta" maxlength="50" autocomplete="off" data-options-city="operational" aria-autocomplete="list" aria-controls="options-operational-city-suggestions" />
-                        <div id="options-operational-city-suggestions" class="options-city-suggestions" role="listbox" hidden></div>
-                    </div>
-                    <div class="field field-short">
-                        <label asp-for="Options.SedeOperativaProvincia">Prov.</label>
-                        <input asp-for="Options.SedeOperativaProvincia" maxlength="2" autocomplete="off" data-options-province="operational" />
-                    </div>
-                    <div class="field field-short">
-                        <label asp-for="Options.SedeOperativaCap">CAP</label>
-                        <input asp-for="Options.SedeOperativaCap" maxlength="5" inputmode="numeric" autocomplete="off" data-options-postal-code="operational" />
-                    </div>
-                    <div class="field">
-                        <label asp-for="Options.SedeOperativaIndirizzo">Indirizzo</label>
-                        <input asp-for="Options.SedeOperativaIndirizzo" maxlength="80" autocomplete="off" />
-                    </div>
-                    <div class="field options-pec-field">
-                        <label asp-for="Options.AzEmail">E-mail</label>
-                        <input asp-for="Options.AzEmail" maxlength="100" autocomplete="off" />
-                    </div>
-                </div>
-            </fieldset>
-        </div>
-    </section>
+                <section class="options-tab-panel" role="tabpanel" data-options-panel="2">
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Contabilita</legend><div class="options-grid options-accounting-grid">
+                        <div class="field"><label asp-for="Options.AttivitaEsenzioneIva">Esenzione IVA</label><select asp-for="Options.AttivitaEsenzioneIva"><option value=""></option><option value="0">No</option><option value="1">Si</option></select></div>
+                        <div class="field"><label asp-for="Options.CodiceEsenzioneIva">Codice esenzione</label><input asp-for="Options.CodiceEsenzioneIva" maxlength="10" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.IvaSpeseIncasso">IVA spese incasso</label><input asp-for="Options.IvaSpeseIncasso" maxlength="6" inputmode="decimal" autocomplete="off" data-options-percent /></div>
+                        <div class="field"><label asp-for="Options.AliqIvaVendite">IVA vendite</label><input asp-for="Options.AliqIvaVendite" maxlength="6" inputmode="decimal" autocomplete="off" data-options-percent /></div>
+                        <div class="field"><label asp-for="Options.AliquotaRitenutaIrpef">Ritenuta IRPEF</label><input asp-for="Options.AliquotaRitenutaIrpef" maxlength="6" inputmode="decimal" autocomplete="off" data-options-percent /></div>
+                    </div></fieldset>
+                </section>
+
+                <section class="options-tab-panel" role="tabpanel" data-options-panel="3">
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Fatturazione</legend><div class="options-grid options-billing-grid">
+                        <div class="field"><label asp-for="Options.FattPrefissoDocumenti">Prefisso documenti</label><input asp-for="Options.FattPrefissoDocumenti" maxlength="10" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FattPagamentoStandard">Pagamento standard</label><input asp-for="Options.FattPagamentoStandard" maxlength="3" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FattBancaAppoggio">Banca appoggio</label><input asp-for="Options.FattBancaAppoggio" maxlength="50" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FattIban">IBAN</label><input asp-for="Options.FattIban" maxlength="34" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FattSwift">SWIFT</label><input asp-for="Options.FattSwift" maxlength="11" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FattSpeseIncasso">Spese incasso</label><input asp-for="Options.FattSpeseIncasso" maxlength="10" inputmode="decimal" autocomplete="off" /></div>
+                    </div></fieldset>
+                </section>
+
+                <section class="options-tab-panel" role="tabpanel" data-options-panel="4">
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Fattura elettronica</legend><div class="options-grid options-fe-grid">
+                        <div class="field"><label asp-for="Options.FeCodiceSdiAzienda">Codice SDI</label><input asp-for="Options.FeCodiceSdiAzienda" maxlength="7" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FePecDestinazioneSdi">PEC SDI</label><input asp-for="Options.FePecDestinazioneSdi" maxlength="100" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FeMatriceNomeXml">Matrice XML</label><input asp-for="Options.FeMatriceNomeXml" maxlength="40" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FeRegimeFiscale">Regime fiscale</label><input asp-for="Options.FeRegimeFiscale" maxlength="10" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FeTipoRitenuta">Tipo ritenuta</label><input asp-for="Options.FeTipoRitenuta" maxlength="10" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FeCausaleRitenuta">Causale ritenuta</label><input asp-for="Options.FeCausaleRitenuta" maxlength="10" autocomplete="off" /></div>
+                    </div></fieldset>
+                </section>
+
+                <section class="options-tab-panel" role="tabpanel" data-options-panel="5">
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Posta elettronica ordinaria</legend><div class="options-grid options-mail-grid">
+                        <div class="field"><label asp-for="Options.MailOrdNomeMittente">Nome mittente</label><input asp-for="Options.MailOrdNomeMittente" maxlength="100" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.MailOrdEmailMittente">E-mail mittente</label><input asp-for="Options.MailOrdEmailMittente" maxlength="100" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.MailOrdServerSmtp">Server SMTP</label><input asp-for="Options.MailOrdServerSmtp" maxlength="100" autocomplete="off" /></div>
+                        <div class="field field-short"><label asp-for="Options.MailOrdPortaSmtp">Porta</label><input asp-for="Options.MailOrdPortaSmtp" maxlength="5" inputmode="numeric" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.MailOrdSicurezza">Sicurezza</label><select asp-for="Options.MailOrdSicurezza"><option value=""></option><option value="1">Nessuna</option><option value="2">STARTTLS</option><option value="3">SSL/TLS</option></select></div>
+                        <div class="field"><label asp-for="Options.MailOrdAutenticazione">Autenticazione</label><select asp-for="Options.MailOrdAutenticazione"><option value=""></option><option value="0">No</option><option value="1">Si</option></select></div>
+                        <div class="field"><label asp-for="Options.MailOrdUsername">Username</label><input asp-for="Options.MailOrdUsername" maxlength="100" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.MailOrdPassword">Password</label><input asp-for="Options.MailOrdPassword" maxlength="100" autocomplete="off" type="password" /></div><div class="field field-full options-mail-test-row"><span></span><button class="options-mail-test-button" type="button" data-options-mail-test="ord">Test connessione</button></div>
+                    </div></fieldset>
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Posta elettronica certificata</legend><div class="options-grid options-mail-grid">
+                        <div class="field"><label asp-for="Options.MailPecNomeMittente">Nome mittente</label><input asp-for="Options.MailPecNomeMittente" maxlength="100" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.MailPecEmailMittente">E-mail mittente</label><input asp-for="Options.MailPecEmailMittente" maxlength="100" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.MailPecServerSmtp">Server SMTP</label><input asp-for="Options.MailPecServerSmtp" maxlength="100" autocomplete="off" /></div>
+                        <div class="field field-short"><label asp-for="Options.MailPecPortaSmtp">Porta</label><input asp-for="Options.MailPecPortaSmtp" maxlength="5" inputmode="numeric" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.MailPecSicurezza">Sicurezza</label><select asp-for="Options.MailPecSicurezza"><option value=""></option><option value="1">Nessuna</option><option value="2">STARTTLS</option><option value="3">SSL/TLS</option></select></div>
+                        <div class="field"><label asp-for="Options.MailPecAutenticazione">Autenticazione</label><select asp-for="Options.MailPecAutenticazione"><option value=""></option><option value="0">No</option><option value="1">Si</option></select></div>
+                        <div class="field"><label asp-for="Options.MailPecUsername">Username</label><input asp-for="Options.MailPecUsername" maxlength="100" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.MailPecPassword">Password</label><input asp-for="Options.MailPecPassword" maxlength="100" autocomplete="off" type="password" /></div><div class="field field-full options-mail-test-row"><span></span><button class="options-mail-test-button" type="button" data-options-mail-test="pec">Test connessione</button></div>
+                    </div></fieldset>
+                </section>
+
+                <section class="options-tab-panel" role="tabpanel" data-options-panel="6">
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Copie di sicurezza</legend><div class="options-grid options-backup-grid">
+                        <div class="field"><label asp-for="Options.BackupAbilitaAutomatica">Copie automatiche</label><select asp-for="Options.BackupAbilitaAutomatica"><option value=""></option><option value="0">No</option><option value="1">Si</option></select></div>
+                        <div class="field field-full"><label asp-for="Options.BackupPosizione">Posizione copie</label><input asp-for="Options.BackupPosizione" maxlength="260" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.BackupOrario">Orario copie</label><input asp-for="Options.BackupOrario" maxlength="5" autocomplete="off" placeholder="hh:mm" /></div>
+                        <div class="field"><label asp-for="Options.BackupCancellaVecchie">Cancella vecchie</label><select asp-for="Options.BackupCancellaVecchie"><option value=""></option><option value="0">No</option><option value="1">Si</option></select></div>
+                        <div class="field"><label asp-for="Options.BackupGiorniVecchie">Giorni conservazione</label><input asp-for="Options.BackupGiorniVecchie" maxlength="3" inputmode="numeric" autocomplete="off" /></div>
+                    </div></fieldset>
+                </section>
+
+                <section class="options-tab-panel" role="tabpanel" data-options-panel="7">
+                    <fieldset class="form-frame compact-frame options-frame"><legend>Parametri di stampa</legend><div class="options-grid options-print-grid">
+                        <div class="field field-full options-textarea-field"><label asp-for="Options.StampaDatiAzienda">Dati azienda</label><textarea asp-for="Options.StampaDatiAzienda" maxlength="500" rows="5"></textarea></div>
+                        <div class="field"><label asp-for="Options.StampaFontName">Font</label><select asp-for="Options.StampaFontName"><option value=""></option><option>Arial</option><option>Calibri</option><option>Consolas</option><option>Courier New</option><option>Microsoft Sans Serif</option><option>Segoe UI</option><option>Times New Roman</option></select></div>
+                        <div class="field field-short"><label asp-for="Options.StampaFontSize">Dimensione</label><select asp-for="Options.StampaFontSize"><option value=""></option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>26</option><option>28</option><option>36</option><option>48</option><option>72</option></select></div>
+                        <div class="field"><label asp-for="Options.StampaAlign">Allineamento</label><select asp-for="Options.StampaAlign"><option value=""></option><option value="0">Sinistra</option><option value="1">Centro</option><option value="2">Destra</option></select></div>
+                        <div class="field field-full options-textarea-field"><label asp-for="Options.TimbroTxt">Timbro</label><textarea asp-for="Options.TimbroTxt" maxlength="500" rows="5"></textarea></div>
+                    </div></fieldset>
+                </section>
+            </div>
+        </section>
     </form>
 </section>
 
@@ -139,3 +361,25 @@
     <script src="~/js/form-enter-navigation.js" asp-append-version="true"></script>
     <script src="~/js/options.js" asp-append-version="true"></script>
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
