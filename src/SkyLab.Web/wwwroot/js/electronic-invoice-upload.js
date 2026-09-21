@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const root = document.querySelector("[data-electronic-invoice-upload]");
   if (!root) {
     return;
@@ -252,7 +252,29 @@
     }
   };
 
-  selectButton?.addEventListener("click", () => input?.click());
+  const confirmFolderSelection = () => {
+    if (!input) {
+      return;
+    }
+
+    if (window.SkyLabMessageBox?.show) {
+      window.SkyLabMessageBox.show({
+        title: "Caricamento FE acquisti",
+        message: "Selezionare una cartella contenente fatture elettroniche XML o P7M.",
+        detail: "I file selezionati saranno caricati nella cartella transitoria aziendale.",
+        mode: "confirm",
+        variant: "confirm",
+        okText: "Seleziona",
+        cancelText: "Annulla",
+        onConfirm: () => input.click()
+      });
+      return;
+    }
+
+    input.click();
+  };
+
+  selectButton?.addEventListener("click", confirmFolderSelection);
   input?.addEventListener("change", () => uploadFiles(input.files));
   clearButton?.addEventListener("click", clearRows);
 

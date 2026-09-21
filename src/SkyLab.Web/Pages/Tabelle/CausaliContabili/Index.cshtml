@@ -21,10 +21,19 @@
             <button class="btn btn-primary" type="button" data-cause-new>Nuovo</button>
             <button class="btn customer-menu-button" type="button" data-cause-edit disabled>Modifica</button>
             <button class="btn customer-menu-button" type="button" data-cause-delete disabled>Elimina</button>
-            <a class="btn customer-menu-button" asp-page="/Index">Esci</a>
+            <a class="btn customer-menu-button" asp-page="/Index" data-cause-exit>Esci</a>
         </div>
     </header>
-    <div class="cause-toolbar"><label for="cause-search">Cerca</label><div class="cause-search-wrap"><input id="cause-search" placeholder="Descrizione causale" autocomplete="off" autofocus data-cause-search /><button type="button" aria-label="Pulisci filtro" data-cause-clear hidden>×</button></div><label for="cause-movement-filter">Tipo movimento</label><select id="cause-movement-filter" data-cause-movement-filter><option value="">Tutti</option><option value="C">C - Movimento contabile</option><option value="B">B - Movimento bancario</option><option value="V">V - Movimento IVA</option></select></div>
+    <div class="cause-toolbar">
+        <div class="cause-filter-field cause-filter-search">
+            <label for="cause-search">Cerca</label>
+            <div class="cause-search-wrap"><input id="cause-search" placeholder="Descrizione causale" autocomplete="off" autofocus data-cause-search /><button type="button" aria-label="Pulisci filtro" data-cause-clear hidden>×</button></div>
+        </div>
+        <div class="cause-filter-field cause-filter-movement">
+            <label for="cause-movement-filter">Tipo movimento</label>
+            <select id="cause-movement-filter" data-cause-movement-filter><option value="">Tutti</option><option value="C">C - Movimento contabile</option><option value="B">B - Movimento bancario</option><option value="V">V - Movimento IVA</option></select>
+        </div>
+    </div>
     <div class="cause-grid-frame">
         <table class="cause-grid">
             <thead><tr><th data-cause-sort="code">Codice</th><th data-cause-sort="description">Descrizione</th><th data-cause-sort="movement">Tipo</th><th data-cause-sort="party">Soggetto</th><th data-cause-sort="sign">Segno</th><th data-cause-sort="inout">E/U</th><th data-cause-sort="debit">Dare</th><th data-cause-sort="debitDescription">Conto Dare</th><th data-cause-sort="credit">Avere</th><th data-cause-sort="creditDescription">Conto Avere</th><th data-cause-sort="cash">Cassa</th><th data-cause-sort="invoice">Fattura</th><th data-cause-sort="due">Scadenza</th><th data-cause-sort="title">Titolo</th><th data-cause-sort="salary">Stipendio</th><th data-cause-sort="print">Stampa</th><th data-cause-sort="locked">Bloccato</th></tr></thead>

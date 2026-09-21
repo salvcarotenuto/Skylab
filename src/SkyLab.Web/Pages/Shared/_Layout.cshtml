@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/skylab-brand.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/static-progress.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/skylab-zoom.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SkyLab.Web.styles.css" asp-append-version="true" />
 </head>
 <body class="@ViewData["BodyClass"]">
@@ -36,7 +37,30 @@
     <script src="~/js/filter-date-picker.js" asp-append-version="true"></script>
     <script src="~/js/updown.js" asp-append-version="true"></script>
     <script src="~/js/static-progress.js" asp-append-version="true"></script>
+    <script src="~/js/skylab-zoom.js" asp-append-version="true"></script>
 
+    @{
+        var pagePath = ViewContext.HttpContext.Request.Path;
+        var watchReports = pagePath.Equals("/", StringComparison.OrdinalIgnoreCase)
+            || pagePath.Equals("/Index", StringComparison.OrdinalIgnoreCase)
+            || pagePath.StartsWithSegments("/Interventi")
+            || pagePath.StartsWithSegments("/Lavori");
+    }
+    @if (watchReports)
+    {
+        <aside class="mobile-report-notice" data-mobile-report-toast hidden role="status" aria-live="polite" aria-label="Consuntivo ricevuto">
+            <h2>Consuntivo ricevuto dal mobile</h2>
+            <p data-mobile-report-work></p>
+            <p data-mobile-report-customer></p>
+            <p data-mobile-report-operator></p>
+            <div class="mobile-report-notice-actions">
+                <button type="button" class="btn btn-primary" data-mobile-report-open>Apri scheda</button>
+                <button type="button" class="btn customer-menu-button" data-mobile-report-close>Chiudi</button>
+            </div>
+        </aside>
+        <link rel="stylesheet" href="~/css/mobile-report-notice.css" asp-append-version="true" />
+        <script src="~/js/mobile-report-watch.js" asp-append-version="true"></script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

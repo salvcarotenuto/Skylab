@@ -2,20 +2,13 @@
 
 namespace SkyLab.Web.Data;
 
-public sealed class SkyLabDatabase(IConfiguration configuration)
+public sealed class SkyLabDatabase(SkyLabDatabaseOptions options)
 {
-    public string CurrentCompanyDatabaseName => "skylab_0001";
+    public string CurrentCompanyDatabaseName => options.CompanyDatabaseName;
 
     public async Task<MySqlConnection> OpenConnectionAsync(CancellationToken cancellationToken = default)
     {
-        var configured = configuration.GetConnectionString("SkyLab")
-            ?? throw new InvalidOperationException("Connessione MySQL SkyLab non configurata.");
-        var builder = new MySqlConnectionStringBuilder(configured)
-        {
-            Database = CurrentCompanyDatabaseName,
-            SslMode = MySqlSslMode.None
-        };
-        var connection = new MySqlConnection(builder.ConnectionString);
+        var connection = new MySqlConnection(options.BuildCompanyConnectionString());
         await connection.OpenAsync(cancellationToken);
         return connection;
     }

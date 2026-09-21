@@ -9,32 +9,35 @@
             <div><p class="eyebrow">Anagrafiche · Clienti</p><h1>Clienti</h1><p>Ricerca e gestione dei dati anagrafici, fiscali e di contatto.</p></div>
         </div>
         <div class="customer-list-heading-actions">
+            <span class="customer-list-count"><strong data-customer-count>@Model.Items.Count</strong> clienti</span>
             <a class="btn btn-primary new-customer-button" asp-page="Edit">Nuovo cliente</a>
-            <a class="btn btn-outline-primary customer-menu-button" asp-page="/Index">← Menu principale</a>
+            <a class="btn customer-menu-button" asp-page="/Index" data-customer-exit>Menu principale</a>
         </div>
     </header>
 
     <form method="get" class="customer-search" data-customer-search-form>
-        <input asp-for="Cerca" class="form-control" placeholder="Cerca per nome o codice" autocomplete="off" autofocus data-customer-search />
+        <div class="customer-search-field">
+            <label for="Cerca">Cerca</label>
+            <input asp-for="Cerca" class="form-control" placeholder="Nome o codice" autocomplete="off" autofocus data-customer-search />
+        </div>
         <div class="customer-filter-check">
             <input asp-for="IncludiNonAttivi" data-customer-inactive />
             <label class="customer-filter-check-text" asp-for="IncludiNonAttivi">Includi non attivi</label>
             <label class="customer-filter-check-button" for="IncludiNonAttivi" aria-label="Includi o escludi i clienti non attivi"></label>
         </div>
-        <span class="customer-search-count"><strong data-customer-count>@Model.Items.Count</strong> clienti</span>
     </form>
 
     <div class="customer-list-frame">
         <div class="customer-list" data-customer-list>
             @foreach (var customer in Model.Items)
             {
-                <article class="customer-row" data-customer-row data-filter-name="@customer.Name" data-filter-code="@customer.Code">
-                    <div><div class="customer-identity-line"><span class="status">@customer.Code.ToString("00000")</span><h2>@customer.Name</h2><small>@customer.City @customer.Province</small></div></div>
-                    <div><span>Contatti</span><strong>@customer.Phone</strong><small>@customer.Email</small></div>
-                    <div><span>Sedi</span><strong>@customer.Sites</strong></div>
-                    <div><span>Installato</span><strong>@customer.Machines</strong></div>
+                <article class="customer-row" tabindex="0" data-customer-row data-filter-name="@customer.Name" data-filter-code="@customer.Code">
+                    <div class="customer-main"><div class="customer-identity-line"><span class="status">@customer.Code.ToString("00000")</span><h2>@customer.Name</h2><small>@customer.City @customer.Province</small></div></div>
+                    <div class="customer-contacts"><span>Contatti</span><strong>@customer.Phone</strong><small>@customer.Email</small></div>
+                    <div class="customer-stat"><span>Sedi</span><strong>@customer.Sites</strong></div>
+                    <div class="customer-stat"><span>Installato</span><strong>@customer.Machines</strong></div>
                     <div class="row-actions">
-                        <a class="btn customer-menu-button customer-row-button" asp-page="Edit" asp-route-id="@customer.Code">Anagrafica</a>
+                        <a class="btn customer-menu-button customer-row-button" asp-page="Edit" asp-route-id="@customer.Code" data-customer-primary>Anagrafica</a>
                         <a class="btn customer-menu-button customer-row-button" asp-page="Sedi/Index" asp-route-clienteId="@customer.Code">Sedi</a>
                         <a class="btn customer-menu-button customer-row-button" asp-page="Operativo" asp-route-id="@customer.Code">Fascicolo</a>
                     </div>

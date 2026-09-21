@@ -1,0 +1,339 @@
+.installed-list-page {
+    height: calc(100vh - 18px);
+    margin-top: 10px;
+    overflow: hidden;
+    padding: 0;
+}
+
+.installed-list-page ::deep .installed-titlebar {
+    box-sizing: border-box;
+    height: 96px;
+    margin-bottom: 10px;
+    min-height: 96px;
+    padding: 0;
+}
+
+.installed-list-page ::deep .list-title-layout {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    height: 72px;
+    margin-left: 18px;
+}
+
+.installed-list-page ::deep .list-title-identity strong {
+    font-size: 26px;
+    line-height: 1.05;
+}
+
+.installed-list-page ::deep .list-title-identity small {
+    margin-top: 3px;
+}
+
+.installed-list-page ::deep .installed-title-actions .btn {
+    align-items: center;
+    display: inline-flex;
+    height: 40px;
+    justify-content: center;
+    min-width: 140px;
+}
+
+.installed-list-page ::deep .installed-title-actions {
+    margin-right: 18px;
+}
+
+.installed-list-page ::deep .installed-records-box {
+    height: 40px;
+    min-height: 40px;
+}
+
+.installed-list-page ::deep .installed-filter-panel {
+    flex: 0 0 auto;
+}
+
+.installed-list-page ::deep .installed-filters {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #c8d6e6;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(34, 69, 108, .08);
+    box-sizing: border-box;
+    display: grid;
+    column-gap: 10px;
+    row-gap: 0;
+    grid-template-columns: 10px 300px 410px 285px 340px 1fr;
+    height: 52px;
+    margin-bottom: 0;
+    padding: 0;
+}
+
+.installed-list-page ::deep .installed-filters .list-filter-field {
+    align-items: center;
+    align-self: center;
+    display: grid;
+    column-gap: 3px;
+    row-gap: 0;
+    grid-template-columns: max-content minmax(0, 1fr);
+    height: 32px;
+    margin: 0;
+    min-width: 0;
+}
+
+.installed-list-page ::deep .installed-date-filter {
+    grid-column: 2;
+    grid-template-columns: 168px minmax(0, 1fr);
+}
+
+.installed-list-page ::deep .installed-search-filter {
+    grid-column: 3;
+    grid-template-columns: 76px minmax(0, 1fr);
+}
+
+.installed-list-page ::deep .installed-filters .list-filter-field:nth-of-type(3) {
+    grid-template-columns: 82px minmax(0, 1fr);
+}
+
+.installed-list-page ::deep .installed-filters .list-filter-field:nth-of-type(3) {
+    grid-column: 4;
+}
+
+.installed-list-page ::deep .installed-filters .list-filter-field:nth-of-type(4) {
+    grid-column: 5;
+    grid-template-columns: 92px minmax(0, 1fr);
+}
+
+.installed-list-page ::deep .installed-filters .list-search-control {
+    align-items: center;
+    display: flex;
+    height: 32px;
+    margin: 0;
+    min-width: 0;
+    width: 100%;
+}
+
+.installed-list-page ::deep .installed-filters label {
+    align-items: center;
+    background: #b8cbe0;
+    border: 1px solid #8a8f98;
+    border-radius: 6px;
+    box-sizing: border-box;
+    color: #0e1824;
+    display: flex;
+    font-size: 13px;
+    font-weight: 400;
+    height: 32px;
+    line-height: 32px;
+    margin: 0;
+    padding: 0;
+    text-indent: 8px;
+    white-space: nowrap;
+}
+
+.installed-list-page ::deep .installed-filters input,
+.installed-list-page ::deep .installed-filters select {
+    background: #fff;
+    border: 1px solid #8a8f98;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #000;
+    display: block;
+    font-size: 13px;
+    font-weight: 420;
+    height: 32px;
+    line-height: normal;
+    margin: 0;
+    margin-top: 0;
+    min-height: 32px;
+    padding: 0;
+    text-indent: 8px;
+    width: 100%;
+}
+
+.installed-list-page ::deep .installed-filters input:focus,
+.installed-list-page ::deep .installed-filters select:focus {
+    border-color: #1f6feb;
+    box-shadow: 0 0 0 3px rgba(31,111,235,.14);
+    outline: none;
+}
+
+.installed-list-page ::deep .installed-list-separator {
+    flex: 0 0 12px;
+}
+
+.installed-list-page ::deep .installed-list-frame {
+    background: rgba(255,255,255,.78);
+    border: 1px solid #c8d6e6;
+    border-radius: 10px;
+    box-shadow: inset 0 1px 3px rgba(34,69,108,.06);
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.installed-list-page ::deep .installed-list-frame:focus {
+    outline: none;
+}
+
+.installed-list-page ::deep .installed-list {
+    display: grid;
+    gap: 8px;
+    margin: 10px;
+}
+
+.installed-list-page ::deep .installed-card {
+    border-color: #cfdae7;
+    border-left-color: #2f6faa;
+    border-radius: 8px;
+    box-shadow: none;
+    box-sizing: border-box;
+    min-height: 78px;
+    padding: 0;
+    user-select: none;
+}
+
+.installed-list-page ::deep .installed-card > div:first-child {
+    margin-left: 12px;
+}
+
+.installed-list-page ::deep .installed-card > .installed-open {
+    margin-right: 12px;
+}
+
+.installed-list-page ::deep .installed-card:hover {
+    background: #e3edf8;
+}
+
+.installed-list-page ::deep .installed-card span {
+    font-size: 11px;
+    letter-spacing: 0;
+}
+
+.installed-list-page ::deep .installed-card h2,
+.installed-list-page ::deep .installed-card strong,
+.installed-list-page ::deep .installed-card small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.installed-list-page ::deep .installed-card h2 {
+    font-size: 13px;
+    font-weight: 500;
+    margin: 3px 0 0;
+}
+
+.installed-list-page ::deep .installed-card strong,
+.installed-list-page ::deep .installed-card small {
+    font-size: 13px;
+}
+
+.installed-list-page ::deep .installed-open {
+    height: 34px;
+    min-height: 34px;
+}
+
+.installed-list-page ::deep .installed-empty {
+    flex: 1 1 auto;
+    margin: 0;
+}
+
+.installed-list-page ::deep .installed-filters .installed-date-filter {
+    grid-template-columns: 190px minmax(0, 1fr);
+}
+
+.installed-list-page ::deep .installed-filters .installed-search-filter {
+    grid-template-columns: 90px minmax(0, 1fr);
+}
+
+.installed-list-page ::deep .installed-filters .list-filter-field:nth-of-type(3) {
+    grid-template-columns: 100px minmax(0, 1fr);
+}
+
+.installed-list-page ::deep .installed-filters .list-filter-field:nth-of-type(4) {
+    grid-template-columns: 110px minmax(0, 1fr);
+}
+
+/* Rifinitura label/data e select barra filtri */
+.installed-list-page ::deep .installed-filters {
+    grid-template-columns: 10px 310px 410px 285px 340px 1fr;
+}
+
+.installed-list-page ::deep .installed-filters .installed-date-filter {
+    grid-template-columns: 125px minmax(0, 1fr);
+}
+
+.installed-list-page ::deep .installed-filters .list-filter-field select {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 0 28px 0 8px;
+    text-indent: 0;
+    line-height: 30px;
+}
+
+/* Lista macchine installate: datepicker personalizzato nella barra filtri */
+.installed-list-page ::deep .installed-filters .installed-filter-date-control {
+    background: transparent;
+    border: 0;
+    box-sizing: border-box;
+    height: 32px;
+    padding: 0;
+    width: 100%;
+}
+
+.installed-list-page ::deep .installed-filters .installed-filter-date-control .micronote-date-input {
+    box-sizing: border-box;
+    height: 32px;
+    line-height: 30px;
+    padding: 0 30px 0 8px;
+    text-align: center;
+    width: 100%;
+}
+
+/* Pulsante Apri piu' largo nella lista macchine installate */
+.installed-list-page ::deep .installed-card {
+    grid-template-columns: minmax(210px, 1.05fr) minmax(180px, .85fr) 115px 130px 80px 116px;
+}
+
+.installed-list-page ::deep .installed-card > .installed-open {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Pulsanti Apri con look Esci */
+.installed-list-page ::deep .installed-open {
+    background: #eef3fb;
+    border: 1px solid var(--BlueButton);
+    border-radius: 6px;
+    color: #0c2d68;
+    font-weight: 500;
+}
+
+.installed-list-page ::deep .installed-open:hover {
+    background: #dceaff;
+    color: #0c2d68;
+}
+
+/* Spostamento pulsanti Apri 10px a sinistra */
+.installed-list-page ::deep .installed-card {
+    grid-template-columns: minmax(205px, 1.025fr) minmax(175px, .825fr) 115px 130px 80px 116px 10px;
+}
+
+.installed-list-page ::deep .installed-card > .installed-open {
+    grid-column: 6;
+    margin-right: 0;
+}
+
+/* Hover Apri identico a Esci */
+.installed-list-page ::deep .installed-open {
+    background: #eef2fb;
+    border-color: var(--BlueButton);
+    color: #334d8c;
+}
+
+.installed-list-page ::deep .installed-open:hover {
+    background: var(--BlueButton);
+    border-color: var(--BlueButton);
+    color: #fff;
+}

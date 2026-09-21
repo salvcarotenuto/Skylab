@@ -11,9 +11,9 @@ public sealed class SkyLabServicePaths
         "Titoli"
     ];
 
-    public SkyLabServicePaths(IConfiguration configuration)
+    public SkyLabServicePaths(IConfiguration configuration, SkyLab.Web.Data.SkyLabDatabaseOptions options)
     {
-        CompanyKey = "0001";
+        CompanyKey = options.CompanyKey;
         Root = configuration["SkyLab:DataRoot"]
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "SkyLab");
         CompanyRoot = Path.Combine(Root, "Aziende", CompanyKey);

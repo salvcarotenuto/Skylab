@@ -1,0 +1,18 @@
+#### 04.02.001 - SkyProg Nel Salvataggio
+
+Questo criterio puo diventare parte di una direttiva di più ampio respiro che disegni il flusso generare delle operazioni di salvataggio, con indicazione delle fasi tipiche di questo:
+ ovvero esecuzione dei controlli di coerenza e di validazione dei dati, 
+ utilizzo del box standard per la cominicazione all'utente dell'evebtuale errore/impedimento riscontrato in sede di validazione dei dati, 
+ acquisizione di eventuali riposte/conferme da parte dell'utente nei casi previsti, 
+ ritorno alla fase di inserimento dati per la correzione dei dati incoerenti, 
+ attivazione delle operazioni di salvataggio per i casi di validazione positiva o risposta/conderma dell'utente che accetta i dati/operatività oggetto di attenzione;
+ prima ancora di iniziare le effettive operazioni di salvataggio:
+apertura dello Skyprog mirato a dare un feednack visuale all'utente delle attività di scrittura che aandranno a farsi (in background) sul database;
+ esecuzione materiale delle suddette operazioni; 
+ chiusura dello Sktprog per offrire all'utente un'indicazione visuale del completamento delle attività sul database; 
+ ritorno al punto previsto dal flusso del modulo (reset scheda per nuovo inserimento / chiusura del modulo con ritorno al form chiamante.
+
+#### 04.03.001 - Inserimento Guidato Di Citta Provincia Cap
+eviterei questo tipo di tappresentazione del criterio:
+"Nei moduli che contengono dati anagrafici, i campi Citta, Provincia e Cap devono essere assistiti con il meccanismo di inserimento guidato standard gia' applicato nel modulo Opzioni."
+eviterei di fare riferiminto esplicito ed esclusivo al modulo Opzioni perche il riferimento resta precario o inconsistente nel caso di mancanza o malfunzionamento del modulo Opzioni

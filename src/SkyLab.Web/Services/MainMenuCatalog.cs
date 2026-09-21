@@ -28,7 +28,7 @@ public static class MainMenuCatalog
         new("magazzino", "Magazzino", "MG", "accent-stock",
         [
             Group("Articoli", Link("Lista articoli", "/Magazzino/Articoli/Index"), Pending("Carico da inventario"), Pending("Stampa listino"), Pending("Stampa etichette"), Pending("Inventario di magazzino"), Pending("Articoli sotto scorta")),
-            Group("Movimenti", "Carico per acquisti", "Estratto conto articolo", "Lista movimenti di magazzino", "Lista movimenti per raggruppamento", "Ordini a fornitori")
+            Group("Movimenti", Link("Carico per acquisti", "/Magazzino/CaricoAcquisti/Index"), Pending("Estratto conto articolo"), Pending("Lista movimenti di magazzino"), Pending("Lista movimenti per raggruppamento"), Pending("Ordini a fornitori"))
         ]),
         new("lavorazione", "Lavorazione", "LV", "accent-employees",
         [

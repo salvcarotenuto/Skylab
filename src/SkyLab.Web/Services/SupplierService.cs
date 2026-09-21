@@ -3,9 +3,9 @@ using SkyLab.Web.Models;
 
 namespace SkyLab.Web.Services;
 
-public sealed class SupplierService(IConfiguration configuration)
+public sealed class SupplierService(SkyLab.Web.Data.SkyLabDatabaseOptions options)
 {
-    private string ConnectionString { get { var cs=configuration.GetConnectionString("SkyLab")??throw new InvalidOperationException("Connessione MySQL non configurata.");return new MySqlConnectionStringBuilder(cs){Database="skylab_0001",SslMode=MySqlSslMode.None}.ConnectionString; } }
+    private string ConnectionString => options.BuildCompanyConnectionString();
 
     public async Task<IReadOnlyList<SupplierListItem>> SearchAsync(string? search,CancellationToken ct)
     {

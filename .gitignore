@@ -2,6 +2,9 @@
 **/bin/
 **/obj/
 artifacts/
+.build-check/
+.deploy/
+.publish/
 
 # Visual Studio / Rider / VS Code
 .vs/
@@ -26,6 +29,7 @@ appsettings.Local.json
 secrets.json
 .env
 .env.*
+SkyLabPrivate/
 
 # Operating system files
 Thumbs.db

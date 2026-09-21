@@ -1,0 +1,5 @@
+.mobile-report-notice{position:fixed;z-index:1080;left:50%;top:50%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 32px));padding:24px;background:#fff;border:2px solid #526ac8;border-radius:12px;box-shadow:0 12px 48px #172c5560;color:#172c55}
+.mobile-report-notice[hidden]{display:none}
+.mobile-report-notice h2{font-size:1.25rem;margin:0 0 16px;font-weight:700}
+.mobile-report-notice p{margin:6px 0;overflow-wrap:anywhere}
+.mobile-report-notice-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:20px}

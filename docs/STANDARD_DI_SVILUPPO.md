@@ -533,9 +533,14 @@ Come criterio iniziale:
 - sfondo bianco opaco;
 - stessa larghezza del titolo;
 - altezza pari a `52px`;
-- contenuto ordinato e coerente con la funzione di filtro rapido.
+- contenuto ordinato e coerente con la funzione di filtro rapido;
+- i campi filtro devono adottare lo standard grafico generale dei campi applicativi, compresi label, input, select e controlli specializzati;
+- i campi filtro devono avere gap interno tra label e controllo pari a `3px`;
+- i campi filtro devono avere gap esterno minimo tra campi pari a `10px`;
+- i campi filtro devono essere centrati verticalmente rispetto alla barra filtri e allineati tra loro sulla stessa posizione verticale;
+- i filtri devono essere reattivi e aggiornare immediatamente i dati in lettura, senza pulsante `Applica filtri`.
 
-I filtri devono essere reattivi e devono aggiornare automaticamente la query dati quando il valore cambia.
+La barra filtri delle liste non deve quindi prevedere un pulsante di conferma manuale per applicare i filtri, salvo eccezione esplicitamente motivata nello Standard.
 
 #### 05.01.R03 - Separazione Strutturale Tra Filtri E Griglia
 
@@ -621,6 +626,23 @@ Come criterio iniziale:
 - la riga selezionata deve restare sempre visibile durante la navigazione da tastiera;
 - la riga selezionata deve restare sempre visibile anche durante la navigazione con rotellina del mouse.
 
+#### 05.01.R04 - Divieto Globale Di Selezione Del Testo Nelle Liste
+
+Il testo visualizzato nei contenuti delle liste non deve essere selezionabile durante l'uso ordinario.
+
+La regola si applica a ogni tipologia di lista, comprese:
+
+- liste CRUD tabellari;
+- liste a righe composte;
+- griglie e liste inserite nelle schede;
+- finestre Zoom e dialoghi di selezione;
+- elenchi di ricerca e selezione record;
+- eventuali strutture equivalenti basate su tabelle, righe, schede o contenitori.
+
+Il contenitore della lista e i suoi elementi informativi devono applicare `user-select: none` e, quando necessario per compatibilita', `-webkit-user-select: none`.
+
+Restano esclusi dal divieto soltanto i controlli realmente editabili, come campi di ricerca, `input`, `textarea` ed elementi `contenteditable`, nei quali la selezione del testo e' funzionale all'immissione o alla modifica dei dati.
+
 #### 05.01.R01 - Tasto Esc Per Ritorno Al Menu
 
 Nelle liste CRUD, il tasto `Esc` deve riportare al menu o al modulo chiamante previsto dal flusso.
@@ -638,11 +660,15 @@ Come criterio iniziale:
 - testata griglia: gradiente `linear-gradient(#c7d7e8, #b8cbe0 52%, #a9bed6)`;
 - bordo inferiore testata: `#758aa1`;
 - testo testata: `#0e1824`;
+- testata della colonna ordinata: gradiente `linear-gradient(#bbcee1, #abc2da 52%, #9db6cf)`;
 - passaggio puntatore mouse sulla riga: `#e3edf8`;
 - riga selezionata: `#b8d2ee`;
+- riga di posizione corrente del cursore, sia da mouse sia da tastiera: `#b8d2ee`;
 - indicatore laterale della riga selezionata: `#2f6faa`.
 
-Questi colori costituiscono il riferimento grafico iniziale delle liste e devono restare uniformi salvo rettifica dello standard.
+La riga selezionata e la riga di posizione corrente del cursore condividono intenzionalmente lo stesso colore, per rappresentare un unico stato operativo. Il semplice passaggio del puntatore mantiene invece il colore distinto previsto per l'hover.
+
+Questi colori costituiscono il riferimento grafico delle liste e devono restare uniformi salvo rettifica esplicita dello Standard.
 
 #### 05.01.C07 - Pulsanti Di Titolo E Navigazione Della Lista
 
@@ -669,6 +695,18 @@ Per le griglie dati, il criterio iniziale dei font e':
 Il criterio vale sia per le liste CRUD grandi a pieno schermo sia per le griglie piu' piccole inserite nelle schede o nei dialoghi.
 
 Le griglie piccole possono essere rettificate quando la dimensione del contenitore o la densita' dei dati richiedono una misura piu' compatta.
+
+#### 05.01.C09 - Scroll Unico Della Griglia
+
+Nelle liste CRUD, lo scorrimento verticale della pagina deve agire esclusivamente sulla griglia dati (o sul contenitore della griglia), non sul contenitore generale della lista.
+
+Come criterio iniziale:
+
+- il contenitore principale della lista non deve generare scroll verticale autonomo;
+- il contenitore della griglia (`list-grid-frame` o contenitore equivalente) deve gestire lo scroll verticale;
+- la parte titolo e la barra filtri devono restare visibili durante lo scroll della lista.
+
+Questa regola serve a mantenere stabile il riferimento visivo della lista e a ridurre salti di contesto durante la navigazione dati.
 
 ## 06 - Zoom E Lookup
 

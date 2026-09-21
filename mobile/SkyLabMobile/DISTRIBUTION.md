@@ -6,7 +6,7 @@ Accesso ai dati tramite login; la disponibilità pubblica dell'APK non concede a
 
 ## Firma
 
-La firma definitiva è configurata tramite variabili `SKYLAB_ANDROID_KEYSTORE` e `SKYLAB_ANDROID_STORE_PASSWORD`, alias `skylab`. Nessuna password o chiave va nel repository o sul sito pubblico. Il materiale privato iniziale è nella cartella locale protetta `C:\Codex\SkyLabPrivate\AndroidSigning`: conservarne una copia sicura separata prima di distribuire aggiornamenti. La perdita della chiave impedisce gli aggiornamenti diretti.
+La firma definitiva è configurata tramite variabili `SKYLAB_ANDROID_KEYSTORE` e `SKYLAB_ANDROID_STORE_PASSWORD`, alias `skylab`. Nessuna password o chiave va nel repository o sul sito pubblico. Il materiale privato iniziale è nella cartella locale protetta `C:\Codex\Skylab\SkyLabPrivate\AndroidSigning`: conservarne una copia sicura separata prima di distribuire aggiornamenti. La perdita della chiave impedisce gli aggiornamenti diretti.
 
 L'APK di test sul Redmi è firmato con la chiave debug: la prima installazione release non può sostituirlo direttamente. Prima della disinstallazione manuale verificare che tutte le bozze siano gestite e tutti gli invii abbiano ricevuta. La disinstallazione elimina la cache e i dati locali. Gli aggiornamenti release successivi devono mantenere applicationId e chiave e incrementare versionCode.
 

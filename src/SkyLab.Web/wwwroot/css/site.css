@@ -154,6 +154,9 @@ body { margin:0; min-height:100vh; background:linear-gradient(rgba(237,242,248,.
 .mobile-report-label{align-items:center;background:#fff0ed;border:1px solid #d8665b;border-radius:5px;color:#a61b12;display:flex;font-size:14px;font-weight:600;height:38px;padding:0 12px;white-space:nowrap}
 .agenda-report-toast{background:#fff;border:1px solid #72839a;box-shadow:0 12px 34px rgba(20,35,55,.28);display:grid;gap:4px;left:50%;min-width:330px;padding:18px 48px 16px 18px;position:fixed;top:50%;transform:translate(-50%,-50%);z-index:1000}
 .agenda-report-toast[hidden]{display:none}.agenda-report-toast strong{color:#173f76;font-size:15px}.agenda-report-toast span{font-size:12px}.agenda-toast-close{background:none;border:0;font-size:22px;position:absolute;right:10px;top:6px}.agenda-toast-actions{display:flex;gap:8px;margin-top:8px}.agenda-toast-open,.agenda-toast-dismiss{border:1px solid var(--BlueButton);border-radius:5px;font-weight:700;min-height:34px;padding:0 18px}.agenda-toast-open{background:var(--BlueButton);color:#fff}.agenda-toast-dismiss{background:#fff;color:var(--BlueButton)}
+
+/* Lista macchine installate: barra filtri conforme allo Standard Liste */
+.installed-list-page .installed-filters{align-items:center;background:#fff;border:1px solid #c8d6e6;border-radius:10px;box-shadow:0 4px 10px rgba(34,69,108,.08);box-sizing:border-box;display:grid;grid-template-columns:10px 300px 410px 285px 340px 1fr;column-gap:10px;row-gap:0;height:52px;margin-bottom:0;padding:0}.installed-list-page .installed-filters .list-filter-field{align-items:center;align-self:center;display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:3px;row-gap:0;height:32px;margin:0;min-width:0}.installed-list-page .installed-date-filter{grid-column:2;grid-template-columns:168px minmax(0,1fr)}.installed-list-page .installed-search-filter{grid-column:3;grid-template-columns:76px minmax(0,1fr)}.installed-list-page .installed-filters .list-filter-field:nth-of-type(3){grid-column:4;grid-template-columns:82px minmax(0,1fr)}.installed-list-page .installed-filters .list-filter-field:nth-of-type(4){grid-column:5;grid-template-columns:92px minmax(0,1fr)}.installed-list-page .installed-filters .list-search-control{align-items:center;display:flex;height:32px;margin:0;min-width:0;width:100%}.installed-list-page .installed-filters label{align-items:center;background:#b8cbe0;border:1px solid #8a8f98;border-radius:6px;box-sizing:border-box;color:#0e1824;display:flex;font-size:13px;font-weight:400;height:32px;line-height:32px;margin:0;padding:0;text-indent:8px;white-space:nowrap}.installed-list-page .installed-filters input,.installed-list-page .installed-filters select{background:#fff;border:1px solid #8a8f98;border-radius:5px;box-sizing:border-box;color:#000;display:block;font-size:13px;font-weight:420;height:32px;line-height:normal;margin:0!important;min-height:32px;padding:0;text-indent:8px;width:100%}.installed-list-page .installed-filters button[type=submit],.installed-list-page .installed-filter-apply{display:none!important}
 /* Dialog fattura elettronica */
 .purchase-invoice-fe-overlay,
 .purchase-invoice-xml-overlay{align-items:center;background:rgba(23,34,54,.34);bottom:0;display:flex;justify-content:center;left:0;padding:24px;position:fixed;right:0;top:0;z-index:3000}
@@ -473,4 +476,673 @@ body { margin:0; min-height:100vh; background:linear-gradient(rgba(237,242,248,.
 }
 .article-list-page .article-grid tbody tr{
     cursor:default;
+}
+
+/* Lista macchine installate: larghezze interne barra filtri */
+.installed-list-page .installed-filters .installed-date-filter {
+    grid-template-columns: 190px minmax(0, 1fr);
+}
+
+.installed-list-page .installed-filters .installed-search-filter {
+    grid-template-columns: 90px minmax(0, 1fr);
+}
+
+.installed-list-page .installed-filters .list-filter-field:nth-of-type(3) {
+    grid-template-columns: 100px minmax(0, 1fr);
+}
+
+.installed-list-page .installed-filters .list-filter-field:nth-of-type(4) {
+    grid-template-columns: 110px minmax(0, 1fr);
+}
+
+/* Lista macchine installate: rifinitura label/data e select barra filtri */
+.installed-list-page .installed-filters {
+    grid-template-columns: 10px 310px 410px 285px 340px 1fr;
+}
+
+.installed-list-page .installed-filters .installed-date-filter {
+    grid-template-columns: 125px minmax(0, 1fr);
+}
+
+.installed-list-page .installed-filters .list-filter-field select {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 0 28px 0 8px;
+    text-indent: 0;
+    line-height: 30px;
+}
+
+/* Lista macchine installate: datepicker personalizzato nella barra filtri */
+.installed-list-page .installed-filters .installed-filter-date-control {
+    background: transparent;
+    border: 0;
+    box-sizing: border-box;
+    height: 32px;
+    padding: 0;
+    width: 100%;
+}
+
+.installed-list-page .installed-filters .installed-filter-date-control .micronote-date-input {
+    box-sizing: border-box;
+    height: 32px;
+    line-height: 30px;
+    padding: 0 30px 0 8px;
+    text-align: center;
+    width: 100%;
+}
+
+/* Lista macchine installate: pulsante Apri piu' largo */
+.installed-list-page .installed-card {
+    grid-template-columns: minmax(210px, 1.05fr) minmax(180px, .85fr) 115px 130px 80px 116px;
+}
+
+.installed-list-page .installed-card > .installed-open {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Lista macchine installate: pulsanti Apri con look Esci */
+.installed-list-page .installed-open {
+    background: #eef3fb;
+    border: 1px solid var(--BlueButton);
+    border-radius: 6px;
+    color: #0c2d68;
+    font-weight: 500;
+}
+
+.installed-list-page .installed-open:hover {
+    background: #dceaff;
+    color: #0c2d68;
+}
+
+/* Lista macchine installate: spostamento pulsanti Apri 10px a sinistra */
+.installed-list-page .installed-card {
+    grid-template-columns: minmax(205px, 1.025fr) minmax(175px, .825fr) 115px 130px 80px 116px 10px;
+}
+
+.installed-list-page .installed-card > .installed-open {
+    grid-column: 6;
+    margin-right: 0;
+}
+
+/* Lista macchine installate: hover Apri identico a Esci */
+.installed-list-page .installed-open {
+    background: #eef2fb;
+    border-color: var(--BlueButton);
+    color: #334d8c;
+}
+
+.installed-list-page .installed-open:hover {
+    background: var(--BlueButton);
+    border-color: var(--BlueButton);
+    color: #fff;
+}
+
+/* Scheda macchina: barra titolo standard e pulsanti titolo */
+.machine-form-page .machine-titlebar {
+    background: rgba(255,255,255,.96);
+    border: 1px solid #b8c5d6;
+    border-radius: 8px;
+    box-shadow: none;
+    box-sizing: border-box;
+    min-height: 74px;
+    padding: 7px 16px 7px 20px;
+}
+
+.machine-form-page .machine-titlebar .list-title-layout {
+    align-items: center;
+    display: flex;
+    gap: 15px;
+}
+
+.machine-form-page .machine-title-actions .btn,
+.machine-form-page .machine-title-actions .btn-primary,
+.machine-form-page .machine-title-actions .customer-menu-button {
+    align-items: center;
+    border-radius: 6px;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex: 0 0 140px;
+    font-size: 14px;
+    font-weight: 500;
+    height: 40px;
+    justify-content: center;
+    max-width: 140px;
+    min-height: 40px;
+    padding: 0 14px;
+    text-align: center;
+    text-decoration: none;
+    width: 140px;
+}
+
+.machine-form-page .machine-title-actions .btn-primary {
+    background: var(--BlueButton);
+    border: 0;
+    color: #fff;
+}
+
+.machine-form-page .machine-title-actions .customer-menu-button {
+    background: #fff;
+    border: 1px solid var(--BlueButton);
+    color: #000;
+}
+
+.machine-form-page .machine-title-actions .customer-menu-button:hover {
+    background: var(--BlueButton);
+    color: #fff;
+}
+
+.machine-form-page .machine-title-actions .machine-delete-button {
+    background: #fff;
+    border: 1px solid #b42318;
+    color: #8f1d14;
+}
+
+.machine-form-page .machine-title-actions .machine-delete-button:hover {
+    background: #b42318;
+    color: #fff;
+}
+
+/* Scheda macchina: riallineamento al disciplinare 04.04 barra titolo */
+.machine-form-page .machine-titlebar {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #b8c5d6;
+    border-radius: 8px;
+    box-shadow: none;
+    box-sizing: border-box;
+    height: 96px;
+    margin-bottom: 10px;
+    margin-top: 8px;
+    min-height: 96px;
+    padding: 0;
+}
+
+.machine-form-page .machine-titlebar .list-title-identity {
+    margin-left: 18px;
+}
+
+.machine-form-page .machine-titlebar .list-title-layout {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+}
+
+.machine-form-page .machine-title-actions {
+    align-items: center;
+    gap: 10px;
+    margin-right: 28px;
+}
+
+.machine-form-page .machine-title-actions .btn,
+.machine-form-page .machine-title-actions .btn-primary,
+.machine-form-page .machine-title-actions .customer-menu-button {
+    align-items: center;
+    border-radius: 6px;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex: 0 0 140px;
+    font-size: 13px;
+    font-weight: 600;
+    height: 40px;
+    justify-content: center;
+    max-width: 140px;
+    min-height: 40px;
+    padding: 0;
+    text-align: center;
+    text-decoration: none;
+    width: 140px;
+}
+
+.machine-form-page .machine-title-actions .btn-primary,
+.machine-form-page .machine-title-actions .btn-primary:hover {
+    background: var(--BlueButton);
+    border: 1px solid var(--BlueButton);
+    color: #fff;
+}
+
+.machine-form-page .machine-title-actions .machine-delete-button,
+.machine-form-page .machine-title-actions .customer-menu-button {
+    background: #fff;
+    border: 1px solid var(--BlueButton);
+    color: #000;
+}
+
+.machine-form-page .machine-title-actions .machine-delete-button:hover,
+.machine-form-page .machine-title-actions .customer-menu-button:hover {
+    background: var(--BlueButton);
+    border-color: var(--BlueButton);
+    color: #fff;
+}
+
+/* Scheda macchina: spazi superiori conformi al disciplinare 04.04 */
+.machine-form-page {
+    padding-top: 0;
+}
+
+.machine-form-page .machine-titlebar {
+    margin-top: 8px;
+    margin-bottom: 10px;
+}
+
+.machine-form-page .customer-entity-form,
+.machine-form-page .entity-form {
+    margin-top: 0;
+}
+
+.machine-form-page .customer-entity-form > .form-frame:first-of-type,
+.machine-form-page .entity-form > .form-frame:first-of-type {
+    margin-top: 0;
+}
+
+/* Scheda macchina: spazio effettivo sotto titolo pari allo standard */
+.machine-form-page.customer-form-page {
+    gap: 10px;
+}
+
+.machine-form-page .machine-titlebar {
+    margin-bottom: 0;
+}
+
+/* Scheda macchina: prima riga solo codice articolo e descrizione */
+.machine-form-page .machine-description-field {
+    grid-column: 2 / span 3;
+    grid-row: 1;
+}
+
+.machine-form-page .machine-duration-field {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.machine-form-page .machine-category-field {
+    grid-column: 2 / span 2;
+    grid-row: 2;
+}
+
+.machine-form-page .machine-installed-date-field {
+    grid-column: 4;
+    grid-row: 2;
+}
+
+.machine-form-page .machine-supplied-quantity-field {
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.machine-form-page .machine-daily-consumption-field {
+    grid-column: 2 / span 2;
+    grid-row: 3;
+}
+
+.machine-form-page .machine-next-service-field {
+    grid-column: 4;
+    grid-row: 3;
+}
+
+.machine-form-page .machine-value-field {
+    grid-column: 4;
+    grid-row: 4;
+}
+
+/* Scheda macchina: codice articolo +20px */
+.machine-form-page .machine-article-control {
+    grid-template-columns: minmax(0, 1fr) 34px;
+}
+
+.machine-form-page .form-grid-4:has(.machine-description-field) {
+    grid-template-columns: calc(25% + 20px) calc(25% - 7px) calc(25% - 7px) calc(25% - 6px);
+}
+
+/* Scheda macchina: nuova icona lente standard */
+.machine-form-page .machine-article-control .lookup-button {
+    background-color: #fff;
+    background-image: url("/images/skylab-search.svg");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 19px 19px;
+}
+
+.machine-form-page .machine-article-control .lookup-button::before,
+.machine-form-page .machine-article-control .lookup-button::after {
+    content: none;
+}
+
+/* Scheda macchina: correzione overflow campi destra */
+.machine-form-page .form-grid-4:has(.machine-description-field) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.machine-form-page .machine-description-field {
+    grid-column: 2 / span 3;
+}
+
+.machine-form-page .machine-article-control {
+    margin-right: -20px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Scheda macchina: allineamento colonne dopo aumento codice articolo */
+.machine-form-page .form-grid-4:has(.machine-description-field) {
+    grid-template-columns: minmax(0, calc(25% + 20px)) minmax(0, 25%) minmax(0, 25%) minmax(0, calc(25% - 20px));
+}
+
+.machine-form-page .machine-article-control {
+    margin-right: 0;
+    position: static;
+    z-index: auto;
+}
+
+.machine-form-page .machine-description-field {
+    grid-column: 2 / span 3;
+}
+
+/* Scheda macchina: contenimento codice articolo e riallineamento descrizione */
+.machine-form-page .form-grid-4:has(.machine-description-field) {
+    grid-template-columns: minmax(300px, calc(25% + 35px)) minmax(0, 25%) minmax(0, 25%) minmax(250px, calc(25% - 35px));
+}
+
+.machine-form-page .machine-article-control {
+    box-sizing: border-box;
+    display: grid;
+    gap: 3px;
+    grid-template-columns: minmax(0, 1fr) 34px;
+    min-width: 0;
+    overflow: visible;
+    width: 100%;
+}
+
+.machine-form-page .machine-article-control input {
+    min-width: 0;
+}
+
+.machine-form-page .machine-description-field {
+    grid-column: 2 / span 3;
+    min-width: 0;
+}
+
+/* Caricamento FE acquisti */
+.electronic-invoice-upload-module .page-container {
+  max-width: none;
+}
+
+.electronic-invoice-upload-module .app-footer {
+  display: none;
+}
+
+.electronic-invoice-upload-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: calc(100vh - 32px);
+  margin: 0 calc(50% - 50vw);
+  overflow: hidden;
+  padding: 14px 18px 18px;
+  width: 100vw;
+}
+
+.electronic-invoice-upload-page .list-titlebar {
+  background: rgba(255,255,255,.96);
+  border: 1px solid #b8c5d6;
+  border-radius: 8px;
+  box-shadow: none;
+  box-sizing: border-box;
+  flex: 0 0 80px;
+  height: 80px;
+  margin: 0;
+  min-height: 80px;
+  padding: 7px 14px;
+}
+
+.electronic-invoice-upload-page .list-title-identity {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.electronic-invoice-upload-page .list-title-identity img {
+  border-radius: 10px;
+  height: 64px;
+  object-fit: contain;
+  width: 64px;
+}
+
+.electronic-invoice-upload-page .list-title-actions {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+}
+
+.electronic-invoice-upload-page .list-records-box {
+  background: #edf2f8;
+  border: 1px solid #9db3ca;
+  border-radius: 6px;
+  color: #263b55;
+  height: 40px;
+  min-height: 40px;
+  min-width: 112px;
+}
+
+.electronic-invoice-upload-form {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.electronic-invoice-upload-frame {
+  background: rgba(255,255,255,.96);
+  border: 1px solid #b8c5d6;
+  border-radius: 8px;
+  box-shadow: none;
+  display: grid;
+  gap: 10px;
+  grid-template-rows: 50px 34px minmax(0, 1fr);
+  height: 100%;
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+.electronic-invoice-upload-toolbar {
+  align-items: center;
+  box-sizing: border-box;
+  display: grid !important;
+  flex-wrap: nowrap;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 160px 140px 140px;
+  height: 50px;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.electronic-invoice-upload-toolbar .list-title-button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--BlueButton);
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: #000;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  height: 34px;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 12px;
+  text-decoration: none;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.electronic-invoice-upload-toolbar .list-title-button:hover {
+  background: var(--BlueButton);
+  border-color: var(--BlueButton);
+  color: #fff;
+}
+
+.electronic-invoice-upload-path-field {
+  align-items: center;
+  display: grid;
+  gap: 3px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.electronic-invoice-upload-path-field label {
+  align-items: center;
+  background: #b8cbe0;
+  border: 1px solid #8a8f98;
+  border-radius: 6px;
+  color: #0e1824;
+  display: flex;
+  font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 10px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.electronic-invoice-upload-path-field input {
+  background: #e8e9f8;
+  border: 1px solid #8a8f98;
+  border-radius: 6px;
+  color: #000;
+  font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 520;
+  height: 30px;
+  min-width: 0;
+  padding: 3px 8px;
+  width: 100%;
+}
+
+.electronic-invoice-upload-progress {
+  align-items: center;
+  background: #d5e1ee;
+  border: 1px solid #9aa8ba;
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  min-height: 34px;
+  margin: 0 10px;
+  padding: 4px 8px;
+}
+
+.electronic-invoice-upload-progress-bar {
+  background: #e8e9f8;
+  border: 1px solid #8a8f98;
+  border-radius: 4px;
+  height: 16px;
+  overflow: hidden;
+}
+
+.electronic-invoice-upload-progress-bar span {
+  background: var(--BlueButton);
+  display: block;
+  height: 100%;
+  transition: width 120ms ease-out;
+  width: 0%;
+}
+
+.electronic-invoice-upload-progress-text {
+  color: #0f2236;
+  font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 520;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.electronic-invoice-upload-body {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  min-height: 0;
+  padding: 0 10px 10px;
+}
+
+.electronic-invoice-upload-summary {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+}
+
+.electronic-invoice-upload-summary div {
+  align-items: center;
+  background: #d5e1ee;
+  border: 1px solid #9aa8ba;
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: 1fr 88px;
+  min-height: 32px;
+  padding: 0 8px;
+}
+
+.electronic-invoice-upload-summary span,
+.electronic-invoice-upload-summary strong {
+  font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 520;
+}
+
+.electronic-invoice-upload-summary strong {
+  background: #e8e9f8;
+  border: 1px solid #8a8f98;
+  border-radius: 4px;
+  padding: 3px 6px;
+  text-align: right;
+}
+
+.electronic-invoice-upload-grid-frame {
+  min-height: 0;
+  overflow: auto;
+}
+
+.electronic-invoice-upload-grid {
+  min-width: 1040px;
+  table-layout: fixed;
+}
+
+.electronic-invoice-upload-grid th,
+.electronic-invoice-upload-grid td {
+  font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+  font-size: 13px;
+  height: 27px;
+}
+
+.electronic-invoice-upload-grid th:nth-child(1) { width: 270px; }
+.electronic-invoice-upload-grid th:nth-child(2) { width: 70px; }
+.electronic-invoice-upload-grid th:nth-child(3) { width: 100px; }
+.electronic-invoice-upload-grid th:nth-child(4) { width: 100px; }
+.electronic-invoice-upload-grid th:nth-child(5) { width: 460px; }
+
+.electronic-invoice-upload-grid td:nth-child(2),
+.electronic-invoice-upload-grid td:nth-child(3),
+.electronic-invoice-upload-grid td:nth-child(4) {
+  text-align: center;
+}
+
+.electronic-invoice-upload-grid .empty-row td {
+  color: #4c5a6b;
+  text-align: center;
+}
+
+.electronic-invoice-upload-grid .fe-upload-uploaded td {
+  background: #e8f5eb;
+}
+
+.electronic-invoice-upload-grid .fe-upload-existing td {
+  background: #fff9d7;
+}
+
+.electronic-invoice-upload-grid .fe-upload-skipped td,
+.electronic-invoice-upload-grid .fe-upload-error td {
+  background: #fde7e5;
 }

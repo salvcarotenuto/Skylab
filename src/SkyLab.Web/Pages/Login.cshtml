@@ -1,0 +1,20 @@
+@page
+@model SkyLab.Web.Pages.LoginModel
+@{ ViewData["Title"]="Accesso"; ViewData["HideFooter"]=true; }
+<section class="skylab-login-shell data-form-skin">
+ <div class="skylab-login-frame">
+  <header class="skylab-login-brand"><img src="~/images/skylab-logo.png" alt="SkyLab"/><div><h1>SkyLab</h1><p>Accesso utente · Azienda 0001</p></div></header>
+  <section class="skylab-login-panel"><h2>Credenziali utente</h2>
+   <form method="post" autocomplete="off" data-enter-navigation>
+    <div class="field"><label for="Username">Utente</label><select asp-for="Username" autofocus required><option value="">Seleziona utente</option>@foreach(var user in Model.Users){<option value="@user.UserName">@user.UserName</option>}</select></div>
+    <div class="field"><label for="Password">Password</label><input asp-for="Password" type="password" maxlength="50" autocomplete="current-password" required/></div>
+    @if(Model.Error is not null){<p role="alert" class="skylab-login-error">@Model.Error</p>}
+    <footer><button type="submit" class="btn btn-primary">Conferma</button></footer>
+   </form>
+  </section>
+ </div>
+</section>
+<style>
+.skylab-login-shell{align-items:center;display:flex;justify-content:center;min-height:90vh}.skylab-login-frame{background:#fff;border:1px solid #8799ad;border-radius:8px;box-shadow:0 12px 30px #17223625;padding:18px;width:min(500px,calc(100vw - 32px))}.skylab-login-brand{align-items:center;display:flex;gap:16px;margin-bottom:18px}.skylab-login-brand img{height:70px;width:70px}.skylab-login-brand h1{margin:0}.skylab-login-brand p{color:#536984;margin:4px 0 0}.skylab-login-panel{background:#e7e7f7;border:1px solid #8a8f98;padding:14px}.skylab-login-panel h2{background:#6aa4dc;font-size:15px;padding:10px;margin:-14px -14px 16px}.skylab-login-panel .field{display:grid;gap:5px;margin-bottom:12px}.skylab-login-panel input,.skylab-login-panel select{width:100%}.skylab-login-panel footer{display:flex;justify-content:flex-end;margin-top:18px}.skylab-login-panel footer button{width:130px}.skylab-login-error{color:#b42318;font-size:14px}
+</style>
+@section Scripts{<script src="~/js/form-enter-navigation.js" asp-append-version="true"></script>}

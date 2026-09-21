@@ -1,35 +1,63 @@
 @page
 @model SkyLab.Web.Pages.Lavori.MacchineInstallateModel
-@{ ViewData["Title"] = "Macchine installate"; }
+@{
+    ViewData["Title"] = "Macchine installate";
+    ViewData["HideFooter"] = true;
+}
 
-<nav class="module-nav mb-3" aria-label="Navigazione lavorazione">
-    <a class="module-home" asp-page="/Index">← Menu generale</a>
-    <span>Lavorazione · Pianificazione</span>
-</nav>
-
-<header class="planning-heading">
-    <div><p class="eyebrow">Impianti dei clienti</p><h1>Macchine installate</h1><p>Macchine e impianti sui quali pianificare installazioni, manutenzioni e revisioni.</p></div>
-    <div class="header-actions"><div class="planning-counter"><strong>@Model.Macchine.Count</strong><span>installazioni</span></div><a class="btn btn-primary" asp-page="Macchina" asp-route-origine="installate">Nuova installazione</a></div>
+<section class="list-page installed-list-page" data-installed-list-page data-menu-url="/">
+<header class="list-titlebar installed-titlebar">
+    <a class="list-title-identity" asp-page="/Index">
+        <span class="list-title-layout">
+            <span class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></span>
+            <span><strong>Macchine installate</strong><small>SkyLab · Impianti dei clienti</small></span>
+        </span>
+    </a>
+    <div class="list-title-actions installed-title-actions">
+        <span class="list-records-box installed-records-box"><strong>@Model.Macchine.Count</strong><span>record</span></span>
+        <a class="btn btn-primary" asp-page="Macchina" asp-route-origine="installate">Nuova installazione</a>
+        <a class="btn customer-menu-button" asp-page="/Index">Esci</a>
+    </div>
 </header>
 
-<form method="get" class="installed-filters">
-    <label>Installate fino al<input asp-for="InstallateAl" type="date" class="form-control" /></label>
-    <label class="filter-search">Cerca<input asp-for="Cerca" class="form-control" placeholder="Cliente, articolo o codice" /></label>
-    <label>Categoria<select asp-for="Categoria" class="form-select"><option value="0">Tutte</option>@foreach(var c in Model.Categorie){<option value="@c.Code">@c.Description</option>}</select></label>
-    <label>Ordina per<select asp-for="Ordina" class="form-select"><option value="articolo">Articolo</option><option value="cliente">Cliente</option><option value="installazione">Data installazione</option><option value="valore">Valore</option><option value="scadenza">Prossima scadenza</option></select></label>
-    <button class="btn btn-primary" type="submit">Applica filtri</button>
-</form>
+<section class="installed-filter-panel">
+    <form method="get" class="list-toolbar installed-filters" data-installed-filter-form>
+        <div class="list-filter-field installed-date-filter"><label for="InstallateAl_Display">Installate fino al</label><span class="micronote-date-control installed-filter-date-control" data-date-control><input name="InstallateAl" id="InstallateAl" type="hidden" value="@(Model.InstallateAl?.ToString("yyyy-MM-dd") ?? "")" data-filter-date-hidden data-installed-date-hidden /><input id="InstallateAl_Display" class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" value="@(Model.InstallateAl?.ToString("dd/MM/yyyy") ?? "")" placeholder="gg/mm/aaaa" data-filter-date-display /><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data installazione" data-date-picker-button></button></span></div>
+        <div class="list-filter-field installed-search-filter"><label for="Cerca">Cerca</label><div class="list-search-control"><input asp-for="Cerca" id="Cerca" placeholder="Cliente, articolo o codice" autocomplete="off" /></div></div>
+        <div class="list-filter-field"><label for="Categoria">Categoria</label><select asp-for="Categoria" id="Categoria"><option value="0">Tutte</option>@foreach(var c in Model.Categorie){<option value="@c.Code">@c.Description</option>}</select></div>
+        <div class="list-filter-field"><label for="Ordina">Ordina per</label><select asp-for="Ordina" id="Ordina"><option value="articolo">Articolo</option><option value="cliente">Cliente</option><option value="installazione">Data installazione</option><option value="valore">Valore</option><option value="scadenza">Prossima scadenza</option></select></div>
+    </form>
+</section>
+<div class="installed-list-separator" aria-hidden="true"></div>
 
-<div class="installed-list">
-@foreach (var macchina in Model.Macchine)
+@if (Model.Macchine.Count == 0)
 {
-    <article class="installed-card">
-        <div class="installed-machine"><span>@macchina.Category</span><h2>@(string.IsNullOrWhiteSpace(macchina.ArticleDescription) ? macchina.ArticleCode : macchina.ArticleDescription)</h2><strong>@macchina.ArticleCode</strong></div>
-        <div class="installed-customer"><span>Cliente</span><strong>@macchina.CustomerName</strong><small>@macchina.City</small></div>
-        <div><span>Installazione</span><strong>@(macchina.InstalledOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
-        <div><span>Prossimo intervento</span><strong class="@(macchina.NextServiceOn < DateTime.Today ? "text-danger" : "")">@(macchina.NextServiceOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
-        <div><span>Valore</span><strong>@(macchina.Value?.ToString("N2") ?? "—")</strong></div>
-        <a class="installed-open" asp-page="Macchina" asp-route-id="@macchina.Id" asp-route-origine="installate" asp-route-returnTo="installate" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Apri</a>
-    </article>
+    <div class="empty-panel installed-empty">
+        <h2>Nessuna installazione trovata</h2>
+        <p>Prova a modificare i filtri o impostare una nuova data.</p>
+    </div>
 }
-</div>
+else
+{
+    <div class="installed-list-frame" tabindex="0">
+    <div class="installed-list">
+        @foreach (var macchina in Model.Macchine)
+        {
+            var serviceOverdue = macchina.NextServiceOn.HasValue && macchina.NextServiceOn.Value < DateTime.Today;
+            <article class="installed-card" data-machine-id="@macchina.Id">
+                <div class="installed-machine"><span>@macchina.Category</span><h2>@(string.IsNullOrWhiteSpace(macchina.ArticleDescription) ? macchina.ArticleCode : macchina.ArticleDescription)</h2><strong>@macchina.ArticleCode</strong></div>
+                <div class="installed-customer"><span>Cliente</span><strong>@macchina.CustomerName</strong><small>@macchina.City</small></div>
+                <div><span>Installazione</span><strong>@(macchina.InstalledOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
+                <div><span>Prossimo intervento</span><strong class="@(serviceOverdue ? "installed-overdue" : "")">@(macchina.NextServiceOn?.ToString("dd/MM/yyyy") ?? "—")</strong></div>
+                <div><span>Valore</span><strong>@(macchina.Value?.ToString("N2") ?? "—")</strong></div>
+                <a class="installed-open" asp-page="Macchina" asp-route-id="@macchina.Id" asp-route-origine="installate" asp-route-returnTo="installate" asp-route-returnUrl="@(Request.Path + Request.QueryString)" title="Apri scheda macchina @macchina.ArticleCode">Apri</a>
+            </article>
+        }
+    </div>
+    </div>
+}
+</section>
+
+@section Scripts {
+    <script src="~/js/installed-machines-list.js" asp-append-version="true"></script>
+}

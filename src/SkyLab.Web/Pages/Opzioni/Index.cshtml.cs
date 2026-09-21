@@ -36,12 +36,11 @@ public sealed class IndexModel(CustomerService customerService, SkyLabDatabase d
 
     private async Task<OptionsDraftModel> LoadOptionsAsync(CancellationToken cancellationToken)
     {
-        await EnsureOptionsTableAsync(cancellationToken);
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
             """
             SELECT Chiave, COALESCE(Valore, '') AS Valore
-            FROM Opzioni;
+            FROM opzioni;
             """,
             connection);
 
@@ -66,7 +65,6 @@ public sealed class IndexModel(CustomerService customerService, SkyLabDatabase d
 
     private async Task SaveOptionsAsync(OptionsDraftModel options, CancellationToken cancellationToken)
     {
-        await EnsureOptionsTableAsync(cancellationToken);
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
@@ -90,26 +88,7 @@ public sealed class IndexModel(CustomerService customerService, SkyLabDatabase d
             throw;
         }
     }
-
-    private async Task EnsureOptionsTableAsync(CancellationToken cancellationToken)
-    {
-        await using var connection = await database.OpenConnectionAsync(cancellationToken);
-        await using var command = new MySqlCommand(
-            """
-            CREATE TABLE IF NOT EXISTS Opzioni (
-                Chiave VARCHAR(100) NOT NULL PRIMARY KEY,
-                Valore TEXT NULL
-            );
-
-            ALTER TABLE Opzioni
-                MODIFY Chiave VARCHAR(100) NOT NULL,
-                MODIFY Valore TEXT NULL;
-            """,
-            connection);
-        await command.ExecuteNonQueryAsync(cancellationToken);
-    }
-
-    private static async Task SaveOptionAsync(
+private static async Task SaveOptionAsync(
         MySqlConnection connection,
         MySqlTransaction transaction,
         string key,
@@ -118,7 +97,7 @@ public sealed class IndexModel(CustomerService customerService, SkyLabDatabase d
     {
         await using var command = new MySqlCommand(
             """
-            INSERT INTO Opzioni (Chiave, Valore)
+            INSERT INTO opzioni (Chiave, Valore)
             VALUES (@key, @value)
             ON DUPLICATE KEY UPDATE Valore = VALUES(Valore);
             """,
@@ -248,6 +227,7 @@ public sealed class OptionsDraftModel
     public string? SedeOperativaIndirizzo { get; set; }
     public string? AzEmail { get; set; }
 }
+
 
 
 

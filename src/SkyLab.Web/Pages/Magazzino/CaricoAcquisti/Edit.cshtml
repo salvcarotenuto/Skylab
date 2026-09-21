@@ -1,0 +1,37 @@
+@page
+@model SkyLab.Web.Pages.Magazzino.CaricoAcquisti.EditModel
+@{
+    ViewData["Title"] = "Carico per acquisti";
+    ViewData["HideFooter"] = true;
+}
+<link rel="stylesheet" href="~/css/purchase-load-edit.css" asp-append-version="true" />
+
+<section class="purchase-load-edit-page" data-purchase-load-edit data-azione="@Model.Azione">
+    <header class="purchase-load-edit-titlebar">
+        <div class="purchase-load-edit-heading"><img src="~/images/skylab-logo.png" alt="SkyLab" /><div><h1>Carico per acquisti</h1><p>SkyLab · Registrazione carico di magazzino</p></div></div>
+        <div class="purchase-load-edit-actions"><button type="button" class="purchase-load-edit-button primary" data-purchase-load-preview-command>Salva</button><a class="purchase-load-edit-button" asp-page="Index">Annulla</a></div>
+    </header>
+    <main class="purchase-load-form-body">
+        <section class="purchase-load-document">
+            <div class="purchase-load-electronic-row"><div class="purchase-load-file-icon"><img src="~/images/FattEl_01.png" alt="Fattura elettronica" /></div><label>Fattura elettronica</label><input value="Nessun file caricato" readonly tabindex="-1" /><button type="button" class="purchase-load-action-button" data-purchase-load-preview-command>Carica</button><button type="button" class="purchase-load-action-button" data-purchase-load-preview-command>Visualizza</button></div>
+            <div class="purchase-load-fields">
+                <div class="purchase-load-field partita"><label>Partita</label><input value="000124" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" readonly tabindex="-1" /></div><span class="purchase-load-separator">/</span><div class="purchase-load-field year"><input value="2026" aria-label="Anno" readonly tabindex="-1" /></div><div class="purchase-load-field number"><label>Numero documento</label><input value="FT 318" /></div><div class="purchase-load-field type"><label>Tipo carico</label><select><option value="10">10 - Carico per acquisti</option><option value="12">12 - Carico per reso</option></select></div><div class="purchase-load-field date"><label>Data documento</label><input type="date" value="2026-09-12" /></div>
+                <div class="purchase-load-supplier-row"><div class="purchase-load-field supplier-code"><label>Fornitore</label><input value="00027" maxlength="5" inputmode="numeric" pattern="[0-9]{5}" oninput="this.value=this.value.replace(/\D/g,'').slice(0,5)" onblur="this.value=this.value.padStart(5,'0')" /></div><div class="purchase-load-field supplier-name"><input value="Forniture Tecniche Italia" aria-label="Denominazione fornitore" readonly tabindex="-1" /></div><button type="button" class="field-command field-command-search" aria-label="Ricerca fornitore" data-purchase-load-preview-command></button><button type="button" class="field-command" aria-label="Nuovo fornitore" data-purchase-load-preview-command>+</button></div><div class="purchase-load-field store"><label>Un. locale</label><select><option>Spese comuni</option><option>Sede principale</option></select></div>
+            </div>
+        </section>
+        <section class="purchase-load-lines">
+            <div class="purchase-load-lines-layout">
+                <div class="purchase-load-line-actions"><button type="button" data-purchase-load-preview-command>aggiungi</button><button type="button" data-purchase-load-preview-command>modifica</button><button type="button" data-purchase-load-preview-command>cancella</button></div>
+                <div class="purchase-load-lines-frame" tabindex="0"><table><thead><tr><th>Articolo</th><th>Descrizione</th><th>U.m.</th><th>Quantità</th><th>Prezzo</th><th>Sconto</th><th>Importo</th><th>Iva</th></tr></thead><tbody>
+                    <tr class="is-selected" data-purchase-load-line><td>ADDOLCITORE.CLACK.20</td><td>Addolcitore 20 LT di resina con bombola</td><td>PZ</td><td>2,000</td><td>610,000</td><td>0,00</td><td>1.220,00</td><td>22,00%</td></tr>
+                    <tr data-purchase-load-line><td>SALE25</td><td>Sale in pastiglie sacco 25 KG</td><td>SC</td><td>20,000</td><td>18,500</td><td>0,00</td><td>370,00</td><td>22,00%</td></tr>
+                    @for (var index = 0; index < 8; index++) { <tr data-purchase-load-line><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr> }
+                </tbody></table></div>
+            </div>
+        </section>
+        <div class="purchase-load-edit-footer"><div><button type="button" class="purchase-load-action-button" data-purchase-load-preview-command>Scheda articolo</button><button type="button" class="purchase-load-action-button" data-purchase-load-preview-command>Aggiungi articolo</button><button type="button" class="purchase-load-action-button" data-purchase-load-preview-command>Sostituisci articolo</button></div><div class="purchase-load-total"><span>Totale carico</span><strong>2.244,80</strong></div></div>
+        <p class="purchase-load-edit-note">Anteprima grafica: il salvataggio e le funzioni operative saranno sviluppati nella fase successiva.</p>
+    </main>
+</section>
+
+@section Scripts { <script src="~/js/purchase-load-preview.js" asp-append-version="true"></script> }
