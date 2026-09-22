@@ -25,9 +25,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const electronicInvoiceSearchClear = document.querySelector("[data-electronic-invoice-search-clear]");
   const electronicInvoiceCount = document.querySelector("[data-electronic-invoice-count]");
   const electronicInvoiceAccept = document.querySelector("[data-electronic-invoice-accept]");
-  const electronicInvoicePreview = document.querySelector("[data-electronic-invoice-preview]");
-  const electronicInvoicePreviewBox = document.querySelector("[data-electronic-invoice-preview-box]");
-  const electronicInvoiceDelete = document.querySelector("[data-electronic-invoice-delete]");
   const electronicInvoiceViewer = document.querySelector("[data-electronic-invoice-viewer]");
   const electronicInvoiceViewerFrame = document.querySelector("[data-electronic-invoice-viewer-frame]");
   const electronicInvoiceViewerTitle = document.querySelector("[data-electronic-invoice-viewer-title]");
@@ -60,8 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const paymentCodeModalFrame = document.querySelector("[data-payment-code-modal-frame]");
   const chartAccountModal = document.querySelector("[data-chart-account-modal]");
   const chartAccountModalFrame = document.querySelector("[data-chart-account-modal-frame]");
-  let supplierModal = document.querySelector("[data-supplier-modal]");
-  let supplierModalFrame = document.querySelector("[data-supplier-modal-frame]");
   const stockLoadModal = document.querySelector("[data-stock-load-modal]");
   const stockLoadModalFrame = document.querySelector("[data-stock-load-modal-frame]");
   const invoiceNotes = document.querySelector("[data-purchase-invoice-notes]");
@@ -75,9 +70,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector(".purchase-invoice-form-page form[data-enter-navigation]");
   let selectedElectronicInvoiceFile = null;
   let selectedElectronicInvoiceBrowserFile = null;
-  let electronicInvoicePreviewAbort = null;
-  let electronicInvoiceLastScrollTop = 0;
-  let electronicInvoiceWheelFrame = 0;
   let electronicInvoiceSuppressEscapeUntil = 0;
   let duplicateInvoiceConfirmedKey = "";
   let duplicateInvoicePromptedKey = "";
@@ -86,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let originalInvoiceIdentityKey = "";
   let applyingInitialInvoiceData = false;
   let pendingInvoiceRedirectUrl = "";
-  let pendingSupplierModalData = null;
   let importedFromXml = (electronicInvoiceName?.value ?? "").trim() !== "";
 
   const buildReturnContext = () => {
@@ -125,9 +116,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const showElectronicInvoiceFileMessage = (message, variant = "error") => {
-    showMessage(message, "Fattura elettronica", variant, {
-      onConfirm: focusElectronicInvoiceDialog
-    });
+    const messages = window.SkyLabElectronicInvoiceDialog;
+    if (variant === "info") messages?.info?.(message);
+    else messages?.error?.(message);
+    if (!messages) showMessage(message, "Fattura elettronica", variant, { onConfirm: focusElectronicInvoiceDialog });
   };
 
   const purchaseInvoiceIdentityKey = () => {
@@ -296,114 +288,6 @@ document.addEventListener("DOMContentLoaded", () => {
         && nextControl.type !== "checkbox") {
       nextControl.select();
     }
-  };
-
-  const ensureSupplierModal = () => {
-    if (supplierModal && supplierModalFrame) {
-      return true;
-    }
-
-    supplierModal = document.createElement("div");
-    supplierModal.className = "purchase-invoice-payment-modal-overlay";
-    supplierModal.hidden = true;
-    supplierModal.setAttribute("data-supplier-modal", "");
-    supplierModal.innerHTML = '<section class="purchase-invoice-payment-modal purchase-invoice-supplier-modal" role="dialog" aria-modal="true" aria-label="Nuovo fornitore"><iframe title="Nuovo fornitore" data-supplier-modal-frame></iframe></section>';
-    supplierModal.addEventListener("click", (event) => {
-      if (event.target === supplierModal) {
-        closeSupplierModal();
-      }
-    });
-    document.body.append(supplierModal);
-    supplierModalFrame = supplierModal.querySelector("[data-supplier-modal-frame]");
-    supplierModalFrame?.addEventListener("load", fillSupplierModalFromXml);
-    return supplierModalFrame !== null;
-  };
-
-  const fillSupplierModalFromXml = () => {
-    if (!pendingSupplierModalData || !supplierModalFrame?.contentDocument) {
-      return;
-    }
-
-    const doc = supplierModalFrame.contentDocument;
-    const setValue = (name, value) => {
-      const field = doc.querySelector(`[name="${name}"]`);
-      if (!field || value === undefined || value === null) {
-        return;
-      }
-
-      field.value = String(value);
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
-    };
-
-    setValue("Fornitore.Name", pendingSupplierModalData.name);
-    setValue("Fornitore.TaxCode", pendingSupplierModalData.fiscalCode);
-    setValue("Fornitore.VatNumber", pendingSupplierModalData.vat);
-    setValue("Fornitore.City", pendingSupplierModalData.city);
-    setValue("Fornitore.Province", pendingSupplierModalData.province);
-    setValue("Fornitore.PostalCode", pendingSupplierModalData.postalCode);
-    setValue("Fornitore.Street", pendingSupplierModalData.address);
-    setValue("Fornitore.Phone1", pendingSupplierModalData.phone);
-    setValue("Fornitore.Email", pendingSupplierModalData.email);
-    setValue("Fornitore.CertifiedEmail", pendingSupplierModalData.certifiedEmail);
-    doc.querySelector('[name="Fornitore.Name"]')?.focus();
-  };
-
-  const showMissingSupplierMessage = (result) => {
-    const supplier = result?.supplier ?? {};
-    const name = (supplier.name || "").trim() || "(nome non disponibile)";
-    const vat = (supplier.vat || "").trim() || "(partita IVA non disponibile)";
-    const fiscalCode = (supplier.fiscalCode || "").trim();
-    const supplierParams = {
-      address: supplier.address,
-      city: supplier.city,
-      postalCode: supplier.postalCode,
-      province: supplier.province,
-      phone: supplier.phone,
-      email: supplier.email,
-      certifiedEmail: supplier.certifiedEmail
-    };
-
-    window.SkyLabMessageBox?.show({
-      title: "Fornitore non trovato",
-      message: `Il fornitore\n${name}\npartita iva: ${vat}\nnon e' presente in archivio\nvuoi inserirlo ora ?`,
-      mode: "confirm",
-      variant: "confirm",
-      okText: "Inserisci",
-      cancelText: "Annulla",
-      onConfirm: () => {
-        if (!ensureSupplierModal()) {
-          showMessage("Scheda Fornitore non disponibile.", "Fornitore non trovato", "error");
-          return;
-        }
-
-        pendingSupplierModalData = {
-          name: name === "(nome non disponibile)" ? "" : name,
-          vat: vat === "(partita IVA non disponibile)" ? "" : vat,
-          fiscalCode,
-          ...supplierParams
-        };
-        const supplierUrl = new URL("/Fornitori/Edit", window.location.origin);
-        supplierUrl.searchParams.set("azione", "102");
-        supplierUrl.searchParams.set("returnTo", "purchaseInvoiceXml");
-        supplierUrl.searchParams.set("name", name === "(nome non disponibile)" ? "" : name);
-        supplierUrl.searchParams.set("vat", vat === "(partita IVA non disponibile)" ? "" : vat);
-        if (fiscalCode) {
-          supplierUrl.searchParams.set("fiscalCode", fiscalCode);
-        }
-        Object.entries(supplierParams).forEach(([key, value]) => {
-          const normalized = (value || "").trim();
-          if (normalized) {
-            supplierUrl.searchParams.set(key, normalized);
-          }
-        });
-
-        supplierModalFrame.src = `${supplierUrl.pathname}${supplierUrl.search}`;
-        supplierModal.hidden = false;
-        document.body.classList.add("purchase-invoice-payment-modal-open");
-        supplierModalFrame.focus();
-      }
-    });
   };
 
   const requestVerificationToken = () =>
@@ -1177,56 +1061,6 @@ document.addEventListener("DOMContentLoaded", () => {
       : null;
   };
 
-  const setElectronicInvoicePreviewRow = (row) => {
-    Array.from(electronicInvoiceFiles?.querySelectorAll("tr.is-previewed") ?? []).forEach((item) => {
-      item.classList.remove("is-previewed");
-    });
-
-    row?.classList.add("is-previewed");
-  };
-
-  const visibleElectronicInvoiceRows = () => {
-    if (!electronicInvoiceGrid) {
-      return [];
-    }
-
-    const gridRect = electronicInvoiceGrid.getBoundingClientRect();
-    const headerHeight = electronicInvoiceHeaderHeight();
-    const top = gridRect.top + headerHeight;
-    const bottom = gridRect.bottom;
-
-    return electronicInvoiceRows().filter((row) => {
-      const rowRect = row.getBoundingClientRect();
-      return rowRect.bottom > top && rowRect.top < bottom;
-    });
-  };
-
-  const selectVisibleElectronicInvoiceRow = (direction) => {
-    const rows = visibleElectronicInvoiceRows();
-    if (!rows.length) {
-      return;
-    }
-
-    setElectronicInvoiceSelection(direction < 0 ? rows[rows.length - 1] : rows[0], {
-      ensureVisible: false
-    });
-  };
-
-  const moveElectronicInvoiceSelection = (direction) => {
-    const rows = electronicInvoiceRows();
-    if (!rows.length) {
-      return;
-    }
-
-    const current = electronicInvoiceFiles?.querySelector("tr.is-selected[data-full-path]");
-    const currentIndex = current ? rows.indexOf(current) : -1;
-    const nextIndex = Math.max(0, Math.min(rows.length - 1, currentIndex + direction));
-    const nextRow = rows[nextIndex < 0 ? 0 : nextIndex];
-
-    setElectronicInvoiceSelection(nextRow);
-    nextRow.focus({ preventScroll: true });
-  };
-
   const renderElectronicInvoiceFiles = (files) => {
     if (!electronicInvoiceFiles) {
       return;
@@ -1260,11 +1094,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       row.addEventListener("click", () => setElectronicInvoiceSelection(row));
       row.addEventListener("focus", () => setElectronicInvoiceSelection(row, { ensureVisible: false }));
-      row.addEventListener("mouseenter", () => {
-        setElectronicInvoicePreviewRow(row);
-        showElectronicInvoiceFilePreview(row);
-      });
-      row.addEventListener("mouseleave", hideElectronicInvoiceFilePreview);
       row.addEventListener("dblclick", () => acceptElectronicInvoiceFile());
       row.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
@@ -1279,113 +1108,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setElectronicInvoiceSelection(electronicInvoiceFiles.querySelector("tr[data-full-path]"), {
       ensureVisible: false
     });
-  };
-
-  const positionElectronicInvoicePreview = (row) => {
-    if (!electronicInvoiceDialog || !electronicInvoicePreviewBox) {
-      return;
-    }
-
-    const dialog = electronicInvoiceDialog.querySelector(".purchase-invoice-fe-dialog");
-    if (!dialog) {
-      return;
-    }
-
-    const dialogRect = dialog.getBoundingClientRect();
-    const rowRect = row.getBoundingClientRect();
-    const left = Math.min(Math.max(rowRect.left - dialogRect.left + 215, 10), dialogRect.width - 390);
-    const top = Math.min(Math.max(rowRect.top - dialogRect.top + 18, 10), dialogRect.height - 130);
-
-    electronicInvoicePreviewBox.style.left = `${left}px`;
-    electronicInvoicePreviewBox.style.top = `${top}px`;
-  };
-
-  const setElectronicInvoicePreviewContent = (preview) => {
-    if (!electronicInvoicePreviewBox) {
-      return;
-    }
-
-    if (!preview.success) {
-      electronicInvoicePreviewBox.textContent = preview.message ?? "Anteprima non disponibile.";
-      return;
-    }
-
-    const rows = [
-      ["Fornitore", preview.supplier],
-      ["Cliente", preview.customer],
-      ["Numero", preview.number],
-      ["Data", preview.date],
-      ["Importo", preview.amount]
-    ];
-
-    electronicInvoicePreviewBox.innerHTML = "";
-    rows.forEach(([label, value]) => {
-      const line = document.createElement("div");
-      const labelElement = document.createElement("span");
-      const separatorElement = document.createElement("span");
-      const valueElement = document.createElement("strong");
-
-      labelElement.textContent = label;
-      separatorElement.textContent = ":";
-      valueElement.textContent = value || "";
-      line.append(labelElement, separatorElement, valueElement);
-      electronicInvoicePreviewBox.append(line);
-    });
-  };
-
-  const showElectronicInvoiceFilePreview = async (row) => {
-    if (!electronicInvoicePreviewBox) {
-      return;
-    }
-
-    positionElectronicInvoicePreview(row);
-    electronicInvoicePreviewBox.hidden = false;
-    electronicInvoicePreviewBox.textContent = "Lettura fattura...";
-
-    if (row._electronicInvoiceFile) {
-      electronicInvoicePreviewBox.textContent = "Anteprima disponibile solo per file letti da percorso locale.";
-      return;
-    }
-
-    const fileName = row.dataset.fileName ?? "";
-    if (!fileName) {
-      electronicInvoicePreviewBox.textContent = "Nome file non disponibile.";
-      return;
-    }
-
-    electronicInvoicePreviewAbort?.abort();
-    electronicInvoicePreviewAbort = new AbortController();
-
-    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
-    url.searchParams.set("handler", "ElectronicInvoicePreview");
-    url.searchParams.set("fileName", fileName);
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Accept: "application/json"
-        },
-        signal: electronicInvoicePreviewAbort.signal
-      });
-
-      if (!response.ok) {
-        throw new Error("HTTP " + response.status);
-      }
-
-      setElectronicInvoicePreviewContent(await response.json());
-    } catch (error) {
-      if (error.name !== "AbortError") {
-        electronicInvoicePreviewBox.textContent = "Anteprima non disponibile.";
-      }
-    }
-  };
-
-  const hideElectronicInvoiceFilePreview = () => {
-    electronicInvoicePreviewAbort?.abort();
-    setElectronicInvoicePreviewRow(null);
-    if (electronicInvoicePreviewBox) {
-      electronicInvoicePreviewBox.hidden = true;
-    }
   };
 
   const formatBrowserFileSize = (bytes) => {
@@ -1426,11 +1148,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
+      const responseText = await response.text();
+      let result = null;
+      try { result = JSON.parse(responseText); } catch { /* risposta non JSON */ }
       if (!response.ok) {
-        throw new Error("HTTP " + response.status);
+        throw new Error(result?.message || `Errore del server (${response.status}).`);
       }
-
-      const result = await response.json();
+      if (!result) {
+        throw new Error("Il server non ha restituito un esito valido per la fattura selezionata.");
+      }
       setElectronicInvoicePathValue(result.path ?? electronicInvoicePathValue(), "server");
       electronicInvoiceCount.value = `${result.count ?? 0} file`;
       renderElectronicInvoiceFiles(result.files ?? []);
@@ -1462,6 +1188,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const importFailureMessage = `Non e' stato possibile importare il file:\n${selectedFile.name || "fattura selezionata"}\n\nIl server non ha restituito un motivo specifico. Verificare che il file XML/P7M sia integro e che contenga i dati obbligatori di azienda, fornitore e documento.`;
+
     const url = new URL("/FattureAcquisto/Edit", window.location.origin);
     url.searchParams.set("handler", "ElectronicInvoiceImport");
     url.searchParams.set("fileName", selectedFile.name || selectedFile.fullPath);
@@ -1480,53 +1208,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
       if (!result.success) {
         if (result.reason === "supplierMissing") {
-          showMissingSupplierMessage(result);
+          window.SkyLabElectronicInvoiceDialog?.confirmMissingSupplier(result, () => void acceptElectronicInvoiceFile());
           return;
         }
 
-        showElectronicInvoiceFileMessage(result.message || "Fattura selezionata non importabile.");
+        showElectronicInvoiceFileMessage(result.message || importFailureMessage);
         return;
       }
 
       await applyElectronicInvoiceImport(result, selectedFile);
-    } catch {
-      showElectronicInvoiceFileMessage("Fattura selezionata non importabile.");
+    } catch (error) {
+      showElectronicInvoiceFileMessage(error?.message || importFailureMessage);
     }
-  }
-
-  function viewElectronicInvoiceFile() {
-    const selectedFile = selectedElectronicInvoiceRowFile();
-    if (!selectedFile) {
-      showMessage("Fattura selezionata non disponibile.");
-      return;
-    }
-
-    if (selectedFile.browserFile) {
-      showMessage("La visualizzazione e' disponibile solo per file letti da percorso locale.");
-      return;
-    }
-
-    if (!selectedFile.fullPath) {
-      showMessage("Percorso file non disponibile.");
-      return;
-    }
-
-    if (!electronicInvoiceViewer || !electronicInvoiceViewerFrame) {
-      showMessage("Visualizzatore fattura non disponibile.");
-      return;
-    }
-
-    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
-    url.searchParams.set("handler", "ElectronicInvoiceRaw");
-    url.searchParams.set("fileName", selectedFile.name || selectedFile.fullPath);
-    if (electronicInvoiceViewerTitle) {
-      electronicInvoiceViewerTitle.textContent = selectedFile.name || "Fattura elettronica";
-    }
-
-    electronicInvoiceViewerFrame.src = url.toString();
-    electronicInvoiceViewer.hidden = false;
-    document.body.classList.add("purchase-invoice-xml-open");
-    electronicInvoiceViewerPanel?.focus();
   }
 
   function viewCurrentElectronicInvoiceFile() {
@@ -1559,73 +1252,6 @@ document.addEventListener("DOMContentLoaded", () => {
     electronicInvoiceViewer.hidden = false;
     window.requestAnimationFrame(() => {
       electronicInvoiceViewerPanel?.focus();
-    });
-  }
-
-  async function deleteElectronicInvoiceFile() {
-    const selectedFile = selectedElectronicInvoiceRowFile();
-    if (!selectedFile) {
-      showMessage("Fattura selezionata non disponibile.");
-      return;
-    }
-
-    if (selectedFile.browserFile) {
-      showMessage("L'eliminazione e' disponibile solo per file letti da percorso locale.");
-      return;
-    }
-
-    if (!selectedFile.fullPath) {
-      showMessage("Percorso file non disponibile.");
-      return;
-    }
-
-    const fileName = selectedFile.name || "file selezionato";
-    window.SkyLabMessageBox?.show({
-      title: "Elimina fattura elettronica",
-      message: `Confermi l'eliminazione del file ${fileName}?`,
-      mode: "confirm",
-      variant: "confirm",
-      okText: "Elimina",
-      cancelText: "Annulla",
-      onConfirm: async () => {
-        const url = new URL("/FattureAcquisto/Edit", window.location.origin);
-        url.searchParams.set("handler", "DeleteElectronicInvoiceFile");
-
-        try {
-          const formData = new FormData();
-          formData.append("path", selectedFile.fullPath);
-
-          const token = requestVerificationToken();
-          if (token) {
-            formData.append("__RequestVerificationToken", token);
-          }
-
-          const response = await fetch(url, {
-            method: "POST",
-            body: formData,
-            headers: {
-              Accept: "application/json"
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error("HTTP " + response.status);
-          }
-
-          const result = await response.json();
-          if (!result.success) {
-            showMessage(result.message || "Non e' stato possibile eliminare il file.");
-            return;
-          }
-
-          hideElectronicInvoiceFilePreview();
-          selectedElectronicInvoiceFile = null;
-          selectedElectronicInvoiceBrowserFile = null;
-          await loadElectronicInvoiceFiles();
-        } catch {
-          showMessage("Non e' stato possibile eliminare il file.");
-        }
-      }
     });
   }
 
@@ -1708,7 +1334,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     electronicInvoiceDialog.hidden = true;
     document.body.classList.remove("purchase-invoice-fe-open");
-    hideElectronicInvoiceFilePreview();
     electronicInvoiceOpen?.focus();
   };
 
@@ -1790,17 +1415,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.remove("purchase-invoice-payment-modal-open");
     chartAccountModalFrame?.removeAttribute("src");
     addBankButton?.focus();
-  };
-
-  const closeSupplierModal = () => {
-    if (!supplierModal) {
-      return;
-    }
-
-    supplierModal.hidden = true;
-    document.body.classList.remove("purchase-invoice-payment-modal-open");
-    supplierModalFrame?.removeAttribute("src");
-    electronicInvoiceGrid?.focus();
   };
 
   const closeStockLoadModal = () => {
@@ -2349,61 +1963,6 @@ document.addEventListener("DOMContentLoaded", () => {
     clearDuplicateInvoiceConfirmation();
     void checkDuplicateInvoice();
   });
-  electronicInvoiceGrid?.setAttribute("tabindex", "0");
-  electronicInvoiceGrid?.addEventListener("click", () => electronicInvoiceGrid.focus());
-  electronicInvoiceGrid?.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      moveElectronicInvoiceSelection(1);
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      moveElectronicInvoiceSelection(-1);
-      return;
-    }
-
-    if (event.key === "Enter") {
-      event.preventDefault();
-      acceptElectronicInvoiceFile();
-    }
-  });
-  electronicInvoiceGrid?.addEventListener("scroll", () => {
-    const currentScrollTop = electronicInvoiceGrid.scrollTop;
-    const direction = currentScrollTop >= electronicInvoiceLastScrollTop ? 1 : -1;
-    electronicInvoiceLastScrollTop = currentScrollTop;
-
-    const selectedRow = electronicInvoiceFiles?.querySelector("tr.is-selected[data-full-path]");
-    if (!selectedRow) {
-      selectVisibleElectronicInvoiceRow(direction);
-      return;
-    }
-
-    const visibleRows = visibleElectronicInvoiceRows();
-    if (!visibleRows.includes(selectedRow)) {
-      selectVisibleElectronicInvoiceRow(direction);
-    }
-  });
-  electronicInvoiceGrid?.addEventListener("wheel", (event) => {
-    const direction = event.deltaY < 0 ? -1 : 1;
-
-    if (electronicInvoiceWheelFrame) {
-      window.cancelAnimationFrame(electronicInvoiceWheelFrame);
-    }
-
-    electronicInvoiceWheelFrame = window.requestAnimationFrame(() => {
-      electronicInvoiceWheelFrame = window.requestAnimationFrame(() => {
-        electronicInvoiceWheelFrame = 0;
-        const selectedRow = electronicInvoiceFiles?.querySelector("tr.is-selected[data-full-path]");
-        const visibleRows = visibleElectronicInvoiceRows();
-        if (!selectedRow || !visibleRows.includes(selectedRow)) {
-          selectVisibleElectronicInvoiceRow(direction);
-        }
-        electronicInvoiceLastScrollTop = electronicInvoiceGrid.scrollTop;
-      });
-    });
-  });
   electronicInvoiceSearch?.addEventListener("input", loadElectronicInvoiceFiles);
   electronicInvoiceSearchClear?.addEventListener("click", () => {
     if (!electronicInvoiceSearch) {
@@ -2420,8 +1979,6 @@ document.addEventListener("DOMContentLoaded", () => {
   calculateDueDatesButton?.addEventListener("click", calculateDueDates);
   clearDueDatesButton?.addEventListener("click", clearDueRows);
   electronicInvoiceCurrentPreview?.addEventListener("click", viewCurrentElectronicInvoiceFile);
-  electronicInvoicePreview?.addEventListener("click", viewElectronicInvoiceFile);
-  electronicInvoiceDelete?.addEventListener("click", deleteElectronicInvoiceFile);
   electronicInvoiceViewerCloseButtons.forEach((button) => {
     button.addEventListener("click", closeElectronicInvoiceViewer);
   });
@@ -2550,14 +2107,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  supplierModal?.addEventListener("click", (event) => {
-    if (event.target === supplierModal) {
-      closeSupplierModal();
-    }
-  });
-
-  supplierModalFrame?.addEventListener("load", fillSupplierModalFromXml);
-
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin) {
       return;
@@ -2582,19 +2131,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (event.data?.type === "micronote:chart-account-cancel") {
       closeChartAccountModal();
-      return;
-    }
-
-    if (event.data?.type === "skylab:supplier-saved") {
-      closeSupplierModal();
-      if (selectedElectronicInvoiceRowFile()) {
-        void acceptElectronicInvoiceFile();
-      }
-      return;
-    }
-
-    if (event.data?.type === "skylab:supplier-cancel") {
-      closeSupplierModal();
       return;
     }
 

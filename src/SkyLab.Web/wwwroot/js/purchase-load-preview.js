@@ -120,7 +120,8 @@
     const edit = document.querySelector("[data-purchase-load-edit]");
     if (edit) {
         const lines = Array.from(edit.querySelectorAll("[data-purchase-load-line]"));
-        lines.forEach(line => line.addEventListener("click", () => lines.forEach(item => item.classList.toggle("is-selected", item === line))));
+        const selectLine = line => lines.forEach(item => item.classList.toggle("is-selected", item === line));
+        lines.forEach(line => line.addEventListener("click", () => selectLine(line)));
 
         const navigationFields = Array.from(edit.querySelectorAll("input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])"));
         navigationFields.forEach((field, index) => field.addEventListener("keydown", event => {
@@ -128,5 +129,256 @@
             event.preventDefault();
             navigationFields[(index + 1) % navigationFields.length]?.focus();
         }));
+
+        const showMessage = (message, detail = "") => {
+            if (window.SkyLabMessageBox?.show) {
+                window.SkyLabMessageBox.show({ title: "Carico per acquisti", message, detail });
+                return;
+            }
+            window.alert(message);
+        };
+        const showElectronicInvoiceMessage = (message, variant = "error") => {
+            const messages = window.SkyLabElectronicInvoiceDialog;
+            if (variant === "info") messages?.info?.(message);
+            else messages?.error?.(message);
+            if (!messages) showMessage(message);
+        };
+        const electronicOpen = edit.querySelector("[data-electronic-invoice-open]");
+        const electronicCurrentPreview = edit.querySelector("[data-electronic-invoice-current-preview]");
+        const electronicName = edit.querySelector("[data-electronic-invoice-name]");
+        const electronicPath = edit.querySelector("[data-electronic-invoice-full-path]");
+        const dialog = document.querySelector("[data-electronic-invoice-dialog]");
+        const filesBody = document.querySelector("[data-electronic-invoice-files]");
+        const search = document.querySelector("[data-electronic-invoice-search]");
+        const count = document.querySelector("[data-electronic-invoice-count]");
+        const accept = document.querySelector("[data-electronic-invoice-accept]");
+        const viewer = document.querySelector("[data-electronic-invoice-viewer]");
+        const viewerFrame = document.querySelector("[data-electronic-invoice-viewer-frame]");
+        const viewerTitle = document.querySelector("[data-electronic-invoice-viewer-title]");
+        const documentNumber = edit.querySelector("[data-stock-load-document-number]");
+        const documentDate = edit.querySelector("[data-stock-load-document-date]");
+        const loadType = edit.querySelector("[data-stock-load-type]");
+        const supplierCode = edit.querySelector("[data-stock-load-supplier-code]");
+        const supplierName = edit.querySelector("[data-stock-load-supplier-name]");
+        const store = edit.querySelector("[data-stock-load-store]");
+        const total = edit.querySelector(".purchase-load-total strong");
+        let selectedElectronicFile = null;
+
+        const endpoint = handler => {
+            const url = new URL("/FattureAcquisto/Edit", window.location.origin);
+            url.searchParams.set("handler", handler);
+            return url;
+        };
+        const selectedRow = row => {
+            Array.from(filesBody?.querySelectorAll("tr[data-full-path]") ?? []).forEach(item => item.classList.toggle("is-selected", item === row));
+            selectedElectronicFile = row ? { name: row.dataset.fileName ?? "", fullPath: row.dataset.fullPath ?? "" } : null;
+        };
+        const renderFiles = files => {
+            if (!filesBody) return;
+            filesBody.innerHTML = "";
+            files.forEach(file => {
+                const row = document.createElement("tr");
+                row.dataset.fileName = file.name ?? "";
+                row.dataset.fullPath = file.fullPath ?? "";
+                [file.name, file.type, file.lastModified, file.size].forEach(value => {
+                    const cell = document.createElement("td");
+                    cell.textContent = value ?? "";
+                    row.appendChild(cell);
+                });
+                row.addEventListener("click", () => selectedRow(row));
+                row.addEventListener("dblclick", () => void acceptElectronicInvoice());
+                filesBody.appendChild(row);
+            });
+            const first = filesBody.querySelector("tr[data-full-path]");
+            if (first) selectedRow(first);
+        };
+        const loadFiles = async () => {
+            const url = endpoint("ElectronicInvoiceFiles");
+            url.searchParams.set("search", search?.value ?? "");
+            try {
+                const response = await fetch(url, { headers: { Accept: "application/json" } });
+                const responseText = await response.text();
+                let result = null;
+                try { result = JSON.parse(responseText); } catch { /* risposta non JSON */ }
+                if (!response.ok) throw new Error(result?.message || `Errore del server (${response.status}).`);
+                if (!result) throw new Error("Il server non ha restituito un esito valido per la fattura selezionata.");
+                if (count) count.value = `${result.count ?? 0} file`;
+                renderFiles(result.files ?? []);
+                if (result.error) showElectronicInvoiceMessage(result.error);
+            } catch {
+                if (count) count.value = "0 file";
+                renderFiles([]);
+                showElectronicInvoiceMessage("Non e' stato possibile leggere le fatture elettroniche.");
+            }
+        };
+        const openDialog = () => {
+            if (!dialog) return;
+            dialog.hidden = false;
+            document.body.classList.add("lookup-open");
+            void loadFiles();
+        };
+        const closeDialog = () => {
+            if (!dialog) return;
+            dialog.hidden = true;
+            document.body.classList.remove("lookup-open");
+        };
+        const closeViewer = () => {
+            if (!viewer) return;
+            viewer.hidden = true;
+            if (viewerFrame) viewerFrame.src = "about:blank";
+            document.body.classList.remove("purchase-invoice-xml-open");
+        };
+        const viewFile = file => {
+            if (!file?.name || !viewer || !viewerFrame) {
+                showMessage("Fattura elettronica non disponibile.");
+                return;
+            }
+            const url = endpoint("ElectronicInvoiceRaw");
+            url.searchParams.set("fileName", file.name);
+            if (viewerTitle) viewerTitle.textContent = file.name;
+            viewerFrame.src = url.toString();
+            viewer.hidden = false;
+            document.body.classList.add("purchase-invoice-xml-open");
+        };
+        const setStore = value => {
+            if (!store || value === null || value === undefined) return;
+            const normalized = String(value);
+            if (!Array.from(store.options).some(option => option.value === normalized)) {
+                store.add(new Option(normalized, normalized));
+            }
+            store.value = normalized;
+        };
+        const fillRows = importedRows => {
+            const linesBody = edit.querySelector("[data-stock-load-lines]");
+            while (linesBody && lines.length < importedRows.length) {
+                const row = document.createElement("tr");
+                row.dataset.purchaseLoadLine = "";
+                for (let index = 0; index < 8; index += 1) row.appendChild(document.createElement("td"));
+                row.addEventListener("click", () => selectLine(row));
+                linesBody.appendChild(row);
+                lines.push(row);
+            }
+            lines.forEach(row => {
+                row.classList.remove("is-selected", "is-missing-article");
+                row.removeAttribute("title");
+                Array.from(row.cells).forEach((cell, index) => { cell.textContent = index === 0 ? "\u00a0" : ""; });
+            });
+            importedRows.slice(0, lines.length).forEach((item, index) => {
+                const row = lines[index];
+                const values = [item.articleCode, item.description, item.unitMeasure, item.quantity, item.price, item.discount, item.amount, item.vatRate];
+                values.forEach((value, cellIndex) => { row.cells[cellIndex].textContent = value ?? ""; });
+                row.classList.toggle("is-missing-article", item.articleFound === false);
+                if (item.articleFound === false) row.title = `Codice FE non trovato: ${item.electronicArticleCode ?? ""}`;
+            });
+            const first = lines.find(row => row.cells[0]?.textContent.trim() || row.cells[1]?.textContent.trim());
+            if (first) selectLine(first);
+        };
+        const applyImport = result => {
+            if (electronicName) electronicName.value = result.fileName ?? "";
+            if (electronicPath) electronicPath.value = result.fullPath ?? "";
+            if (documentNumber) documentNumber.value = result.documentNumber ?? "";
+            if (documentDate) documentDate.value = result.documentDate ?? "";
+            if (loadType) loadType.value = result.documentType === "TD04" ? "12" : "10";
+            if (supplierCode) supplierCode.value = result.supplier?.codeDisplay ?? "";
+            if (supplierName) supplierName.value = result.supplier?.name ?? "";
+            setStore(result.supplier?.storeCode ?? 0);
+            if (total) total.textContent = result.total || "0,00";
+            fillRows(result.rows ?? []);
+            closeDialog();
+            if (Number(result.missingArticles ?? 0) > 0) {
+                showElectronicInvoiceMessage(`Articoli non presenti o non associati al fornitore: ${result.missingArticles}.`, "info");
+            }
+        };
+        async function acceptElectronicInvoice() {
+            if (!selectedElectronicFile?.name) {
+                showElectronicInvoiceMessage("Selezionare una fattura elettronica.");
+                return;
+            }
+            const importFailureMessage = `Non e' stato possibile importare il file:\n${selectedElectronicFile.name}\n\nIl server non ha restituito un motivo specifico. Verificare che il file XML/P7M sia integro e che contenga i dati obbligatori di azienda, fornitore e documento.`;
+            const url = endpoint("ElectronicInvoiceImport");
+            url.searchParams.set("fileName", selectedElectronicFile.name);
+            try {
+                const response = await fetch(url, { headers: { Accept: "application/json" } });
+                if (!response.ok) throw new Error();
+                const result = await response.json();
+                if (!result.success) {
+                    if (result.reason === "supplierMissing") {
+                        window.SkyLabElectronicInvoiceDialog?.confirmMissingSupplier(result, () => void acceptElectronicInvoice());
+                        return;
+                    }
+                    showElectronicInvoiceMessage(result.message || importFailureMessage);
+                    return;
+                }
+                applyImport(result);
+            } catch (error) {
+                showElectronicInvoiceMessage(error?.message || importFailureMessage);
+            }
+        }
+
+        electronicOpen?.addEventListener("click", openDialog);
+        electronicCurrentPreview?.addEventListener("click", () => viewFile({ name: electronicName?.value ?? "" }));
+        accept?.addEventListener("click", () => void acceptElectronicInvoice());
+        search?.addEventListener("input", () => void loadFiles());
+        document.querySelector("[data-electronic-invoice-search-clear]")?.addEventListener("click", () => { if (search) search.value = ""; void loadFiles(); });
+        document.querySelectorAll("[data-electronic-invoice-close]").forEach(button => button.addEventListener("click", closeDialog));
+        document.querySelectorAll("[data-electronic-invoice-viewer-close]").forEach(button => button.addEventListener("click", closeViewer));
+    }
+    const resetNewPurchaseLoad = () => {
+        const action = new URLSearchParams(window.location.search).get("azione");
+        if (action !== "2" && action !== "102") {
+            return;
+        }
+
+        const clearValue = (selector) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                if ("value" in element) {
+                    element.value = "";
+                } else {
+                    element.textContent = "";
+                }
+            }
+        };
+
+        clearValue("[data-stock-load-document-number]");
+        clearValue("[data-stock-load-document-date]");
+        clearValue("[data-stock-load-supplier-code]");
+        clearValue("[data-stock-load-supplier-name]");
+        clearValue("[data-electronic-invoice-full-path]");
+
+        const total = document.querySelector("[data-stock-load-total]");
+        if (total) {
+            total.textContent = "0,00";
+        }
+
+        const invoiceName = document.querySelector("[data-electronic-invoice-name]");
+        if (invoiceName) {
+            if ("value" in invoiceName) {
+                invoiceName.value = "Nessun file caricato";
+            } else {
+                invoiceName.textContent = "Nessun file caricato";
+            }
+        }
+
+        const linesBody = document.querySelector("[data-stock-load-lines]");
+        if (linesBody) {
+            linesBody.querySelectorAll("tr").forEach((row) => {
+                row.classList.remove("is-missing-article");
+                row.querySelectorAll("td").forEach((cell) => {
+                    const control = cell.querySelector("input, select, textarea");
+                    if (control) {
+                        control.value = "";
+                    } else {
+                        cell.textContent = "";
+                    }
+                });
+            });
+        }
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", resetNewPurchaseLoad, { once: true });
+    } else {
+        resetNewPurchaseLoad();
     }
 })();

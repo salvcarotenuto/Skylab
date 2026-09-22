@@ -42,11 +42,12 @@
       if (confirmed && typeof options.onConfirm === "function") options.onConfirm();
       else if (!confirmed && typeof options.onCancel === "function") options.onCancel();
       else previousFocus?.focus?.();
+      window.dispatchEvent(new CustomEvent("skylab:messagebox-closed", { detail: { confirmed } }));
     };
     const onOk = () => close(true);
     const onCancel = () => close(false);
     const onKeyDown = (event) => {
-      if (event.key === "Escape") { event.preventDefault(); close(mode !== "confirm"); }
+      if (event.key === "Escape") { event.preventDefault(); event.stopImmediatePropagation(); close(mode !== "confirm"); }
       else if (event.key === "Enter") { event.preventDefault(); close(true); }
       else if (event.key === "Tab" && mode === "confirm") { event.preventDefault(); (document.activeElement === cancelButton ? okButton : cancelButton).focus(); }
     };

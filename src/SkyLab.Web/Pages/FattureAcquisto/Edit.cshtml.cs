@@ -619,6 +619,15 @@ public sealed class EditModel(
                 message = "File XML/P7M non leggibile."
             });
         }
+        catch (Exception ex)
+        {
+            var reason = ex.GetBaseException().Message;
+            return new JsonResult(new
+            {
+                success = false,
+                message = $"Importazione della fattura elettronica non riuscita.\nMotivo: {reason}"
+            });
+        }
     }
 
     public async Task<IActionResult> OnGetElectronicInvoiceImportAsync(string? path, string? fileName, CancellationToken cancellationToken)
@@ -658,10 +667,12 @@ public sealed class EditModel(
             var document = LoadElectronicInvoiceDocument(path);
             var customer = FirstDescendant(document, "CessionarioCommittente");
             var customerData = FirstDescendant(customer, "DatiAnagrafici");
+            var customerName = SubjectName(customer);
             var customerVat = NormalizeFiscalCode(ChildValue(FirstDescendant(customerData, "IdFiscaleIVA"), "IdCodice"));
             var customerFiscalCode = NormalizeFiscalCode(ChildValue(customerData, "CodiceFiscale"));
             var customerFiscalError = ValidateElectronicInvoiceCustomer(
                 companyFiscalData,
+                customerName,
                 customerFiscalCode,
                 customerVat);
             if (!string.IsNullOrWhiteSpace(customerFiscalError))
@@ -783,6 +794,57 @@ public sealed class EditModel(
                 .Select(element => ChildValue(element, "ModalitaPagamento"))
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
             var paymentCode = await FindPaymentCodeByElectronicModeAsync(electronicPaymentMode, cancellationToken);
+            var xmlLines = document.Descendants()
+                .Where(element => element.Name.LocalName.Equals("DettaglioLinee", StringComparison.Ordinal))
+                .ToArray();
+            var rows = new List<object>();
+            var missingArticles = 0;
+
+            for (var index = 0; index < xmlLines.Length; index++)
+            {
+                var element = xmlLines[index];
+                var quantity = ParseXmlDecimal(ChildValue(element, "Quantita"));
+                var price = ParseXmlDecimal(ChildValue(element, "PrezzoUnitario"));
+                var amount = ParseXmlDecimal(ChildValue(element, "PrezzoTotale"));
+                var discountElements = element.Elements()
+                    .Where(child => child.Name.LocalName.Equals("ScontoMaggiorazione", StringComparison.Ordinal))
+                    .Where(child => ChildValue(child, "Tipo").Equals("SC", StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
+                var discount = discountElements
+                    .Select(child => ParseXmlDecimal(ChildValue(child, "Percentuale")))
+                    .FirstOrDefault(value => value is not null);
+
+                if (discountElements.Length > 0 && quantity is not null && price is not null && amount is not null)
+                {
+                    var gross = quantity.Value * price.Value;
+                    if (gross != 0)
+                    {
+                        discount = (gross - amount.Value) * 100 / gross;
+                    }
+                }
+
+                var electronicArticleCode = FirstArticleCode(element);
+                var articleMatch = await ResolveArticleCodeAsync(electronicArticleCode, matchedSupplier.Code, cancellationToken);
+                if (!articleMatch.Found)
+                {
+                    missingArticles++;
+                }
+
+                rows.Add(new
+                {
+                    rowNumber = index + 1,
+                    articleCode = articleMatch.ArticleCode,
+                    electronicArticleCode,
+                    articleFound = articleMatch.Found,
+                    description = ChildValue(element, "Descrizione"),
+                    unitMeasure = ChildValue(element, "UnitaMisura"),
+                    quantity = FormatItalianQuantity(quantity),
+                    price = FormatItalianAmount(price),
+                    discount = FormatItalianPercent(discount),
+                    amount = FormatItalianAmount(amount),
+                    vatRate = FormatItalianPercent(ParseXmlDecimal(ChildValue(element, "AliquotaIVA")) )
+                });
+            }
             var nextCode = await repository.GetNextCodeAsync(applicationState.Esercizio, cancellationToken);
 
             return new JsonResult(new
@@ -817,7 +879,9 @@ public sealed class EditModel(
                     tax = FormatItalianAmount(vatTotal)
                 },
                 paymentCode,
-                dueRows
+                dueRows,
+                missingArticles,
+                rows
             });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Xml.XmlException or InvalidDataException)
@@ -826,6 +890,15 @@ public sealed class EditModel(
             {
                 success = false,
                 message = "File XML/P7M non leggibile."
+            });
+        }
+        catch (Exception ex)
+        {
+            var reason = ex.GetBaseException().Message;
+            return new JsonResult(new
+            {
+                success = false,
+                message = $"Importazione della fattura elettronica non riuscita.\nMotivo: {reason}"
             });
         }
     }
@@ -1047,6 +1120,40 @@ public sealed class EditModel(
             ReadOptionalInt(reader["ULocale"]));
     }
 
+    private async Task<ArticleMatch> ResolveArticleCodeAsync(
+        string electronicArticleCode,
+        int supplierCode,
+        CancellationToken cancellationToken)
+    {
+        var code = (electronicArticleCode ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return new ArticleMatch("", false);
+        }
+
+        await using var connection = await db.OpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand(
+            "SELECT Codice FROM articoli WHERE Codice = @code LIMIT 1;",
+            connection);
+        command.Parameters.AddWithValue("@code", code);
+
+        var directCode = await command.ExecuteScalarAsync(cancellationToken);
+        if (directCode is not null && directCode != DBNull.Value)
+        {
+            return new ArticleMatch(Convert.ToString(directCode) ?? code, true);
+        }
+
+        command.CommandText = "SELECT Codice FROM articoli WHERE Fornitore = @supplierCode AND CodiceFornitore = @code LIMIT 1;";
+        command.Parameters.AddWithValue("@supplierCode", supplierCode);
+        var supplierArticleCode = await command.ExecuteScalarAsync(cancellationToken);
+        if (supplierArticleCode is not null && supplierArticleCode != DBNull.Value)
+        {
+            return new ArticleMatch(Convert.ToString(supplierArticleCode) ?? code, true);
+        }
+
+        return new ArticleMatch(code, false);
+    }
+
     private static int? ReadOptionalInt(object value)
     {
         if (value is null || value == DBNull.Value)
@@ -1152,6 +1259,7 @@ public sealed class EditModel(
 
     private static string ValidateElectronicInvoiceCustomer(
         CompanyFiscalData companyFiscalData,
+        string customerName,
         string customerFiscalCode,
         string customerVat)
     {
@@ -1165,33 +1273,11 @@ public sealed class EditModel(
             return "";
         }
 
-        if (string.IsNullOrWhiteSpace(customerFiscalCode) && string.IsNullOrWhiteSpace(customerVat))
-        {
-            return "La fattura selezionata non sembra intestata all'azienda corrente.\n"
-                + "Nell'XML mancano sia il Codice fiscale sia la Partita IVA del cessionario.";
-        }
-
-        if (string.IsNullOrWhiteSpace(customerFiscalCode))
-        {
-            return "La fattura selezionata non sembra intestata all'azienda corrente.\n"
-                + "Codice fiscale del cessionario assente nell'XML.\n"
-                + $"Partita IVA XML: {FormatFiscalDiagnosticValue(customerVat)}.\n"
-                + $"Partita IVA Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.VatNumber)}.";
-        }
-
-        if (string.IsNullOrWhiteSpace(customerVat))
-        {
-            return "La fattura selezionata non sembra essere intestata all'azienda.\n"
-                + "La Partita IVA del Cessionario non e' presente nel file XML.\n"
-                + $"Il Codice fiscale del Cessionario {FormatFiscalDiagnosticValue(customerFiscalCode)} e' diverso dal Codice fiscale azienda {FormatFiscalDiagnosticValue(companyFiscalData.FiscalCode)}.";
-        }
-
-        return "La fattura selezionata non sembra intestata all'azienda corrente.\n"
-            + "I dati del cessionario presenti nell'XML non corrispondono ai dati azienda salvati nelle Opzioni.\n"
-            + $"Codice fiscale XML: {FormatFiscalDiagnosticValue(customerFiscalCode)}.\n"
-            + $"Codice fiscale Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.FiscalCode)}.\n"
-            + $"Partita IVA XML: {FormatFiscalDiagnosticValue(customerVat)}.\n"
-            + $"Partita IVA Opzioni: {FormatFiscalDiagnosticValue(companyFiscalData.VatNumber)}.";
+        return "La fattura selezionata non sembra intestata all'azienda.\n"
+            + "Dati del Cessionario presenti nel file Xml;\n"
+            + $"Denominazione: {FormatFiscalDiagnosticValue(customerName)}\n"
+            + $"Codice fiscale: {FormatFiscalDiagnosticValue(customerFiscalCode)}\n"
+            + $"Partita iva: {FormatFiscalDiagnosticValue(customerVat)}";
     }
 
     private static string FormatFiscalDiagnosticValue(string value) =>
@@ -1617,6 +1703,22 @@ public sealed class EditModel(
             ? ""
             : value.Value.ToString("#,##0.00", CultureInfo.GetCultureInfo("it-IT"));
 
+    private static string FirstArticleCode(XElement line) =>
+        line.Elements()
+            .Where(child => child.Name.LocalName.Equals("CodiceArticolo", StringComparison.Ordinal))
+            .Select(child => ChildValue(child, "CodiceValore"))
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
+
+    private static string FormatItalianQuantity(decimal? value) =>
+        value is null || value == 0
+            ? ""
+            : value.Value.ToString("#,##0.000", CultureInfo.GetCultureInfo("it-IT"));
+
+    private static string FormatItalianPercent(decimal? value) =>
+        value is null || value == 0
+            ? ""
+            : value.Value.ToString("#,##0.00", CultureInfo.GetCultureInfo("it-IT")) + "%";
+
     private readonly record struct BerElement(
         int TagClass,
         int TagNumber,
@@ -1633,6 +1735,8 @@ public sealed class EditModel(
         string FullPath);
 
     private sealed record SupplierMatch(int Code, string Name, int? AccountCode, int? StoreCode);
+
+    private sealed record ArticleMatch(string ArticleCode, bool Found);
 
     private sealed record CompanyFiscalData(string FiscalCode, string VatNumber);
 }

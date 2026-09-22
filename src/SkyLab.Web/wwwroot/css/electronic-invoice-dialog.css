@@ -1,0 +1,234 @@
+.purchase-invoice-fe-dialog {
+    height: min(460px, calc(100vh - 40px));
+    padding: 20px;
+    width: min(950px, calc(100vw - 40px));
+}
+
+.purchase-invoice-xml-dialog {
+    background: #fff;
+    box-sizing: border-box;
+    display: grid;
+    gap: 8px;
+    grid-template-rows: 30px minmax(0, 1fr) 34px;
+    height: min(760px, calc(100vh - 40px));
+    padding: 20px;
+    width: min(1120px, calc(100vw - 40px));
+}
+
+.purchase-invoice-xml-dialog .purchase-invoice-fe-titlebar {
+    align-items: center;
+    background: #6fa8dc;
+    color: #000;
+    display: flex;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    padding: 0 12px;
+}
+
+.purchase-invoice-xml-frame {
+    background: #fff;
+    border: 1px solid #8799ad;
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+}
+
+.purchase-invoice-xml-actions {
+    align-items: center;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.purchase-invoice-xml-actions .button {
+    height: 32px;
+    min-height: 32px;
+    min-width: 100px;
+}
+
+.electronic-invoice-supplier-modal-overlay {
+    align-items: center;
+    background: rgba(23, 34, 54, .34);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    position: fixed;
+    z-index: 3400;
+}
+
+.electronic-invoice-supplier-modal-overlay[hidden] {
+    display: none;
+}
+
+.electronic-invoice-supplier-modal {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    box-sizing: border-box;
+    height: min(750px, calc(100vh - 30px));
+    overflow: hidden;
+    width: min(1240px, calc(100vw - 40px));
+}
+
+.electronic-invoice-supplier-modal iframe {
+    background: transparent;
+    border: 0;
+    display: block;
+    height: 100%;
+    width: 100%;
+}
+
+.purchase-invoice-fe-titlebar {
+    box-sizing: border-box;
+    color: #000;
+    height: 30px;
+    margin-bottom: 12px;
+    min-height: 30px;
+}
+
+.purchase-invoice-fe-preview {
+    background: #e6e6f6;
+    border: 1px solid #777f8c;
+    box-shadow: 0 8px 18px rgba(15, 28, 48, .18);
+    box-sizing: border-box;
+    color: #0f1f36;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.24;
+    max-height: none;
+    min-height: 104px;
+    overflow: hidden;
+    padding: 11px 13px;
+    position: absolute;
+    width: 374px;
+    z-index: 4;
+}
+
+.purchase-invoice-fe-preview[hidden] {
+    display: none;
+}
+
+.purchase-invoice-fe-preview div {
+    display: grid;
+    grid-template-columns: 82px 13px minmax(0, 1fr);
+    min-height: 17px;
+}
+
+.purchase-invoice-fe-preview span {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.purchase-invoice-fe-preview strong {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.purchase-invoice-fe-actions {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 3px;
+}
+
+.purchase-invoice-fe-grid-frame {
+    height: 326px;
+}
+
+.purchase-invoice-fe-grid thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.purchase-invoice-fe-grid th {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.purchase-invoice-fe-grid th:nth-child(1) {
+    width: 54.6%;
+}
+
+.purchase-invoice-fe-grid th:nth-child(2) {
+    width: 10.3%;
+}
+
+.purchase-invoice-fe-grid th:nth-child(3) {
+    width: 19.6%;
+}
+
+.purchase-invoice-fe-grid th:nth-child(4) {
+    box-sizing: border-box;
+    padding-right: 25px;
+    width: 15.5%;
+}
+
+.purchase-invoice-fe-grid td:nth-child(4) {
+    box-sizing: border-box;
+    padding-right: 25px;
+}
+
+.purchase-invoice-fe-search-inline {
+    align-items: center;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 3px;
+    min-width: 0;
+}
+
+.purchase-invoice-fe-search-inline::after {
+    content: "";
+    flex: 0 0 30px;
+}
+
+.purchase-invoice-fe-search-inline label {
+    align-items: center;
+    background: #b8cbe0;
+    border: 1px solid #8799ad;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #0e1824;
+    display: flex;
+    flex: 0 0 64px;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    height: 30px;
+    padding-left: 8px;
+}
+
+.purchase-invoice-fe-search-inline input {
+    border: 1px solid #8799ad;
+    box-sizing: border-box;
+    color: #000;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    height: 30px;
+    min-width: 0;
+    padding: 3px 8px;
+}
+
+.purchase-invoice-fe-search-inline input[data-electronic-invoice-search] {
+    flex: 1 1 auto;
+}
+
+.purchase-invoice-fe-search-inline .purchase-invoice-fe-clear {
+    flex: 0 0 28px;
+}
+
+.purchase-invoice-fe-search-inline .purchase-invoice-fe-count {
+    flex: 0 0 90px;
+    text-align: center;
+}
