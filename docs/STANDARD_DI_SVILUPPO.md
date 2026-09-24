@@ -137,6 +137,20 @@ Categorie iniziali di pulsanti:
 
 Ogni categoria deve avere una propria disciplina grafica, mantenendo comunque coerenza di font, colore, contrasto, bordo, hover e focus.
 
+#### 02.02.R01 - Pulsanti Disabilitati
+
+Un pulsante disabilitato deve conservare colori, font e aspetto dello stato di riposo.
+
+Al passaggio del mouse non deve cambiare colore, non deve applicare effetti `hover` e non deve mostrare il cursore operativo.
+
+La regola si applica a tutte le categorie di pulsanti dell'applicazione, comprese Schede, Liste, Zoom, lookup, dialoghi e box messaggi.
+
+#### 02.02.R02 - Testo Non Selezionabile Nei Pulsanti
+
+Il testo, le icone e ogni altro contenuto visibile dei pulsanti non devono essere selezionabili con il mouse o mediante trascinamento.
+
+La regola si applica sia agli elementi `button` sia agli altri controlli che svolgono graficamente e funzionalmente il ruolo di pulsante.
+
 Come criterio iniziale, i pulsanti di titolo e navigazione hanno dimensione `140px x 40px` e font `13px / 600`.
 
 Eventuali altri valori ricorrenti, come titoli, testate griglia e messaggi, devono essere registrati nello Standard quando vengono fissati in modo stabile.
@@ -642,6 +656,20 @@ La regola si applica a ogni tipologia di lista, comprese:
 Il contenitore della lista e i suoi elementi informativi devono applicare `user-select: none` e, quando necessario per compatibilita', `-webkit-user-select: none`.
 
 Restano esclusi dal divieto soltanto i controlli realmente editabili, come campi di ricerca, `input`, `textarea` ed elementi `contenteditable`, nei quali la selezione del testo e' funzionale all'immissione o alla modifica dei dati.
+
+#### 05.01.R05 - Righe Vuote Non Selezionabili Nelle Griglie
+
+Le righe vuote visualizzate per completare graficamente una griglia hanno esclusivamente funzione riempitiva.
+
+Una riga priva di dati non deve:
+
+- accettare la selezione tramite mouse o tastiera;
+- assumere lo stato grafico di riga selezionata;
+- ricevere il focus operativo;
+- entrare nella navigazione con Freccia Su, Freccia Giu', Home ed End;
+- attivare comandi associati alla selezione della riga.
+
+La regola si applica alle griglie di Liste, Schede, Zoom, lookup, dialoghi e componenti specializzati.
 
 #### 05.01.R01 - Tasto Esc Per Ritorno Al Menu
 

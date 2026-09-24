@@ -1,28 +1,79 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using MySqlConnector;
+using SkyLab.Web.Data;
 
 namespace SkyLab.Web.Pages.Magazzino.CaricoAcquisti;
 
-public sealed class IndexModel : PageModel
+public sealed class IndexModel(SkyLabDatabaseOptions databaseOptions, SkyLab.Web.Services.ApplicationState applicationState) : PageModel
 {
-    public IReadOnlyList<PurchaseLoadPreview> Documents { get; } =
-    [
-        new(1, 2026, 124, "FT 318", new DateOnly(2026, 9, 12), 27, "Forniture Tecniche Italia", 1840.00m, 404.80m, 2244.80m, "IT027318_001.xml"),
-        new(2, 2026, 123, "874/A", new DateOnly(2026, 9, 8), 14, "Ricambi Industriali Campania", 965.40m, 212.39m, 1177.79m, "IT014874_A.xml.p7m"),
-        new(3, 2026, 122, "DDT 551", new DateOnly(2026, 9, 2), 41, "Componenti e Servizi", 438.00m, 96.36m, 534.36m, string.Empty)
-    ];
+    public int CurrentYear => applicationState.Esercizio;
+    public IReadOnlyList<PurchaseLoadPreview> Documents { get; private set; } = [];
+    public IReadOnlyList<PurchaseLoadDetailPreview> Details { get; private set; } = [];
 
-    public IReadOnlyList<PurchaseLoadDetailPreview> Details { get; } =
-    [
-        new(1, "ADDOLCITORE.CLACK.20", "Addolcitore 20 LT di resina con bombola", "PZ", 2m, 610m, 0m, 1220m, 22m),
-        new(1, "SALE25", "Sale in pastiglie sacco 25 KG", "SC", 20m, 18.50m, 0m, 370m, 22m),
-        new(1, "RACC-34", "Raccordo rapido 3/4", "PZ", 25m, 10m, 0m, 250m, 22m),
-        new(2, "RIC-IND-01", "Ricambio industriale standard", "PZ", 3m, 215m, 0m, 645m, 22m),
-        new(2, "MAN-TEC", "Manutenzione tecnica accessoria", "H", 4m, 80.10m, 0m, 320.40m, 22m),
-        new(3, "COMP-551", "Componente di servizio DDT 551", "PZ", 6m, 73m, 0m, 438m, 22m)
-    ];
+    public async Task OnGetAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new MySqlConnection(databaseOptions.BuildCompanyConnectionString());
+        await connection.OpenAsync(cancellationToken);
+        Details = await LoadDetailsAsync(connection, cancellationToken);
+        var articleSearch = Details
+            .GroupBy(line => line.DocumentId)
+            .ToDictionary(group => group.Key, group => string.Join(' ', group.Select(line => $"{line.Article} {line.Description}")));
+        Documents = await LoadDocumentsAsync(connection, articleSearch, cancellationToken);
+    }
 
-    public void OnGet() { }
+    private static async Task<IReadOnlyList<PurchaseLoadPreview>> LoadDocumentsAsync(MySqlConnection connection, IReadOnlyDictionary<int, string> articleSearch, CancellationToken cancellationToken)
+    {
+        const string statement = """
+            SELECT c.ID, c.Anno, c.Codice, COALESCE(c.NumDoc, ''), c.DataDoc, c.Ditta,
+                   COALESCE(NULLIF(CASE c.CliFor WHEN 'C' THEN cli.Nome WHEN 'F' THEN forn.Nome ELSE '' END, ''),
+                            CONCAT(COALESCE(c.CliFor, ''), ' ', LPAD(c.Ditta, 5, '0'))) AS DittaNome,
+                   COALESCE(SUM(r.Importo), 0) AS Merce,
+                   COALESCE(SUM(ROUND(r.Importo * COALESCE(iva.Aliquota, 0) / 100, 2)), 0) AS Iva,
+                   COALESCE(c.Totale, 0) AS Totale
+            FROM carico c
+            LEFT JOIN caricorg r ON r.ID = c.ID
+            LEFT JOIN articoli a ON a.Codice = r.Articolo
+            LEFT JOIN codiciiva iva ON iva.Codice = a.Codiva
+            LEFT JOIN clienti cli ON c.CliFor = 'C' AND cli.Codice = c.Ditta
+            LEFT JOIN fornitori forn ON c.CliFor = 'F' AND forn.Codice = c.Ditta
+            GROUP BY c.ID, c.Anno, c.Codice, c.NumDoc, c.DataDoc, c.CliFor, c.Ditta, cli.Nome, forn.Nome, c.Totale
+            ORDER BY c.Anno DESC, c.Codice DESC, c.ID DESC;
+            """;
+        var result = new List<PurchaseLoadPreview>();
+        await using var command = new MySqlCommand(statement, connection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var id = reader.GetInt32(0);
+            result.Add(new(id, reader.GetInt32(1), reader.GetInt32(2), reader.GetString(3),
+                reader.IsDBNull(4) ? null : DateOnly.FromDateTime(reader.GetDateTime(4)),
+                reader.GetInt32(5), reader.GetString(6), reader.GetDecimal(7), reader.GetDecimal(8), reader.GetDecimal(9), "",
+                articleSearch.GetValueOrDefault(id, "")));
+        }
+        return result;
+    }
 
-    public sealed record PurchaseLoadPreview(int Id, int Year, int Batch, string Number, DateOnly Date, int SupplierCode, string SupplierName, decimal Goods, decimal Vat, decimal Total, string ElectronicInvoice);
+    private static async Task<IReadOnlyList<PurchaseLoadDetailPreview>> LoadDetailsAsync(MySqlConnection connection, CancellationToken cancellationToken)
+    {
+        const string statement = """
+            SELECT r.ID, r.Articolo, COALESCE(a.Descrizione, ''), COALESCE(r.Um, ''),
+                   r.Quantita, r.Prezzo, r.Sconto, r.Importo, COALESCE(iva.Aliquota, 0)
+            FROM caricorg r
+            LEFT JOIN articoli a ON a.Codice = r.Articolo
+            LEFT JOIN codiciiva iva ON iva.Codice = a.Codiva
+            ORDER BY r.ID, r.Riga;
+            """;
+        var result = new List<PurchaseLoadDetailPreview>();
+        await using var command = new MySqlCommand(statement, connection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result.Add(new(reader.GetInt32(0), reader.GetString(1), reader.GetString(2), reader.GetString(3),
+                reader.GetDecimal(4), reader.GetDecimal(5), reader.GetDecimal(6), reader.GetDecimal(7), reader.GetDecimal(8)));
+        }
+        return result;
+    }
+
+    public sealed record PurchaseLoadPreview(int Id, int Year, int Batch, string Number, DateOnly? Date, int SupplierCode, string SupplierName, decimal Goods, decimal Vat, decimal Total, string ElectronicInvoice, string ArticleSearch);
     public sealed record PurchaseLoadDetailPreview(int DocumentId, string Article, string Description, string Unit, decimal Quantity, decimal Price, decimal Discount, decimal Amount, decimal VatRate);
 }

@@ -5,6 +5,7 @@ artifacts/
 .build-check/
 .deploy/
 .publish/
+publish/
 
 # Visual Studio / Rider / VS Code
 .vs/

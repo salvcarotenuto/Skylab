@@ -25,6 +25,8 @@ public sealed class EditModel(
 
     public bool IsNew => FormAzione.IsInserimento(Azione);
 
+    public int AccountingYear => applicationState.Esercizio;
+
     public string ElectronicInvoiceFolderDefault { get; private set; } = @"C:\";
 
     public string ReturnUrl { get; private set; } = "/FattureAcquisto";
@@ -357,6 +359,7 @@ public sealed class EditModel(
                 return new JsonResult(new
                 {
                     success = false,
+                    fileSystemWarning = true,
                     message = "File XML non trovato per l'archiviazione."
                 });
             }
@@ -367,8 +370,7 @@ public sealed class EditModel(
             {
                 return new JsonResult(new
                 {
-                    success = false,
-                    message = "Nome file XML non valido."
+                    success = true
                 });
             }
 
@@ -395,6 +397,7 @@ public sealed class EditModel(
             return new JsonResult(new
             {
                 success = false,
+                fileSystemWarning = true,
                 message = "Permessi insufficienti per archiviare il file XML."
             });
         }
@@ -403,6 +406,7 @@ public sealed class EditModel(
             return new JsonResult(new
             {
                 success = false,
+                fileSystemWarning = true,
                 message = "Non e' stato possibile archiviare il file XML."
             });
         }

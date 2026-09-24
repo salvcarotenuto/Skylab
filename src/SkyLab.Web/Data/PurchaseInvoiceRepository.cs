@@ -248,7 +248,6 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
                        SUM(COALESCE(Imponibile, 0)) AS Imponibile,
                        SUM(COALESCE(Iva, 0)) AS Iva
                 FROM movivarg
-                WHERE Settore = @sector
                 GROUP BY ID
             ) vat ON vat.ID = mv.ID
             LEFT JOIN fornitori f ON f.Codice = mv.Ditta

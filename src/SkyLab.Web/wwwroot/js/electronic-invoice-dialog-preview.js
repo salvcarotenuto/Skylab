@@ -6,6 +6,7 @@
     const viewButton = dialog?.querySelector("[data-electronic-invoice-preview]");
     const deleteButton = dialog?.querySelector("[data-electronic-invoice-delete]");
     const countBox = dialog?.querySelector("[data-electronic-invoice-count]");
+    const searchBox = dialog?.querySelector("[data-electronic-invoice-search]");
     const viewer = document.querySelector("[data-electronic-invoice-viewer]");
     const viewerFrame = document.querySelector("[data-electronic-invoice-viewer-frame]");
     const viewerTitle = document.querySelector("[data-electronic-invoice-viewer-title]");
@@ -341,6 +342,14 @@
     });
 
     gridFrame.addEventListener("keydown", event => {
+        if (event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey && searchBox) {
+            event.preventDefault();
+            event.stopPropagation();
+            searchBox.focus();
+            searchBox.value += event.key;
+            searchBox.dispatchEvent(new Event("input", { bubbles: true }));
+            return;
+        }
         if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
         event.stopPropagation();
@@ -401,6 +410,17 @@
     });
 
     document.addEventListener("keydown", event => {
+        const target = event.target;
+        const editable = target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || target?.isContentEditable;
+        const listAvailable = !dialog.hidden && (!viewer || viewer.hidden) && (!supplierModal || supplierModal.hidden);
+        if (listAvailable && !editable && event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey && searchBox) {
+            event.preventDefault();
+            event.stopPropagation();
+            searchBox.focus();
+            searchBox.value += event.key;
+            searchBox.dispatchEvent(new Event("input", { bubbles: true }));
+            return;
+        }
         if (event.key !== "Escape") return;
         if (viewer && !viewer.hidden) {
             event.preventDefault();

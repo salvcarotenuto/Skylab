@@ -88,7 +88,7 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
     }
     public async Task SaveArticleAsync(ArticleEditModel m,bool isNew,CancellationToken ct)
     {
-        m.Code=m.Code.Trim().ToUpperInvariant();m.Description=m.Description.Trim();m.PurchaseUnit=(m.PurchaseUnit??"").Trim();m.WorkUnit=(m.WorkUnit??"").Trim();m.SalesUnit=(m.SalesUnit??"").Trim();m.SupplierArticleCode=(m.SupplierArticleCode??"").Trim();m.Location=(m.Location??"").Trim();m.VatCode=m.VatCode.Trim();m.Notes=(m.Notes??"").Trim();
+        m.Code=m.Code.Trim().ToUpperInvariant();m.Description=m.Description.Trim();m.PurchaseUnit=(m.PurchaseUnit??"").Trim();m.WorkUnit=(m.WorkUnit??"").Trim();m.SalesUnit=(m.SalesUnit??"").Trim();m.SupplierArticleCode=(m.SupplierArticleCode??"").Trim();m.Location=(m.Location??"").Trim();m.VatCode=(m.VatCode??"").Trim();m.Notes=(m.Notes??"").Trim();
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
         if(isNew){await using var exists=new MySqlCommand("SELECT COUNT(*) FROM Articoli WHERE Codice=@Code",cn);exists.Parameters.AddWithValue("@Code",m.Code);if(Convert.ToInt32(await exists.ExecuteScalarAsync(ct))>0)throw new InvalidOperationException($"Esiste già un articolo con codice {m.Code}.");}
         const string sql="""
@@ -115,6 +115,15 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
             """;
         var result=new List<ArticleBarcodeItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",articleCode.Trim());await using var r=await cmd.ExecuteReaderAsync(ct);
         while(await r.ReadAsync(ct)){var value=S(r,1);var type=r.GetByte(2);var supplier=r.IsDBNull(3)?(int?)null:r.GetInt32(3);var valid=type==13&&IsValidEan13(value);result.Add(new(r.GetInt32(0),value,type,supplier,S(r,4),valid,type==13&&!valid));}return result;
+    }
+    public async Task ValidateArticleBarcodeAsync(string articleCode,int id,string? value,int? supplierCode,CancellationToken ct)
+    {
+        articleCode=(articleCode??"").Trim().ToUpperInvariant();value=(value??"").Trim();if(articleCode.Length==0)throw new InvalidOperationException("Articolo non valido.");
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
+        int? supplier=supplierCode>0?supplierCode:null;if(supplier.HasValue){await using var supplierCmd=new MySqlCommand("SELECT COUNT(*) FROM Fornitori WHERE Codice=@supplier",cn);supplierCmd.Parameters.AddWithValue("@supplier",supplier.Value);if(Convert.ToInt32(await supplierCmd.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Fornitore non valido.");}
+        if(id>0){await using var old=new MySqlCommand("SELECT COUNT(*) FROM Barcodes WHERE ID=@id AND Articolo=@code",cn);old.Parameters.AddWithValue("@id",id);old.Parameters.AddWithValue("@code",articleCode);if(Convert.ToInt32(await old.ExecuteScalarAsync(ct))!=1)throw new InvalidOperationException("Barcode non trovato.");}
+        if(value.Length==0&&!supplier.HasValue)value=articleCode;if(value.Length==0)throw new InvalidOperationException("Inserire il barcode.");if(value.Length>30)throw new InvalidOperationException("Il barcode non può superare 30 caratteri.");var validEan=IsValidEan13(value);if(!validEan&&value.Any(c=>c<32||c>126))throw new InvalidOperationException("Tipo di barcode non riconosciuto.");
+        await using var duplicate=new MySqlCommand("SELECT COUNT(*) FROM Barcodes WHERE Barcode=@value AND ID<>@id",cn);duplicate.Parameters.AddWithValue("@value",value);duplicate.Parameters.AddWithValue("@id",id);if(Convert.ToInt32(await duplicate.ExecuteScalarAsync(ct))>0)throw new InvalidOperationException("Il barcode è già presente in archivio.");
     }
     public async Task SaveArticleBarcodeAsync(string articleCode,int id,string? value,int? supplierCode,CancellationToken ct)
     {
@@ -399,7 +408,7 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
         const string sql="SELECT Codice,Nome,COALESCE(Citta,''),COALESCE(Provincia,'') FROM Fornitori ORDER BY Nome,Codice";
         var result=new List<SupplierLookupItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(r.GetInt32(0),S(r,1),S(r,2),S(r,3)));return result;
     }
-    public async Task<IReadOnlyList<ArticleChoice>> ArticleChoicesAsync(CancellationToken ct){const string sql="SELECT COALESCE(a.Codice,''),COALESCE(a.Descrizione,''),COALESCE(a.Categoria,0),COALESCE(c.Descrizione,''),COALESCE(a.PrezzoStd,0),COALESCE(a.Durata,0),COALESCE(a.Consumo,0) FROM Articoli a LEFT JOIN Categorie c ON c.Codice=a.Categoria ORDER BY a.Descrizione,a.Codice";var result=new List<ArticleChoice>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(S(r,0),S(r,1),r.GetInt16(2),S(r,3),r.GetDecimal(4),r.GetInt16(5),r.GetDecimal(6)));return result;}
+    public async Task<IReadOnlyList<ArticleChoice>> ArticleChoicesAsync(CancellationToken ct){const string sql="SELECT COALESCE(a.Codice,''),COALESCE(a.Descrizione,''),COALESCE(a.Categoria,0),COALESCE(c.Descrizione,''),COALESCE(a.PrezzoStd,0),COALESCE(a.Durata,0),COALESCE(a.Consumo,0),COALESCE(a.Umv,''),COALESCE(i.Aliquota,0) FROM Articoli a LEFT JOIN Categorie c ON c.Codice=a.Categoria LEFT JOIN Codiciiva i ON i.Codice=a.Codiva ORDER BY a.Descrizione,a.Codice";var result=new List<ArticleChoice>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(S(r,0),S(r,1),r.GetInt16(2),S(r,3),r.GetDecimal(4),r.GetInt16(5),r.GetDecimal(6),S(r,7),r.GetDecimal(8)));return result;}
     public async Task<IReadOnlyList<ArticleListItem>> ArticlesAsync(CancellationToken ct)
     {
         const string sql="""

@@ -1431,49 +1431,56 @@ document.addEventListener("DOMContentLoaded", () => {
   const archiveElectronicInvoiceFile = async () => {
     const xmlPath = (electronicInvoiceFullPath?.value ?? "").trim();
     if (!xmlPath) {
-      return true;
+      return "";
     }
 
-    const url = new URL("/FattureAcquisto/Edit", window.location.origin);
-    url.searchParams.set("handler", "ArchiveElectronicInvoice");
+    try {
+      const url = new URL("/FattureAcquisto/Edit", window.location.origin);
+      url.searchParams.set("handler", "ArchiveElectronicInvoice");
 
-    const formData = new FormData();
-    formData.append("path", xmlPath);
+      const formData = new FormData();
+      formData.append("path", xmlPath);
 
-    const response = await fetch(url, {
-      method: "POST",
-      body: formData,
-      headers: {
-        "Accept": "application/json",
-        "RequestVerificationToken": requestVerificationToken()
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Accept": "application/json",
+          "RequestVerificationToken": requestVerificationToken()
+        }
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        return result?.fileSystemWarning === true
+          ? result.message || "Problema del file system durante l'archiviazione XML."
+          : "";
       }
-    });
-    const result = await response.json();
-    if (!response.ok || !result?.success) {
-      showMessage(result?.message || "Archiviazione file XML non riuscita.", "Fattura di acquisto", "error");
-      saveButton?.focus();
-      return false;
+      if (response.ok && result?.success) {
+        if (result.path && electronicInvoiceFullPath) {
+          electronicInvoiceFullPath.value = result.path;
+        }
+
+        if (result.path && electronicInvoiceName) {
+          electronicInvoiceName.value = String(result.path).split(/[\\/]/).pop() || electronicInvoiceName.value;
+        }
+      }
+    } catch {
+      // La gestione fisica dell'XML non deve bloccare il documento gia' registrato.
     }
 
-    if (result.path && electronicInvoiceFullPath) {
-      electronicInvoiceFullPath.value = result.path;
-    }
-
-    if (result.path && electronicInvoiceName) {
-      electronicInvoiceName.value = String(result.path).split(/[\\/]/).pop() || electronicInvoiceName.value;
-    }
-
-    return true;
+    return "";
   };
 
   const continueAfterStockLoadBridge = async (archiveXml = false) => {
-    if (archiveXml && !(await archiveElectronicInvoiceFile())) {
-      return;
-    }
+    const archiveWarning = archiveXml ? await archiveElectronicInvoiceFile() : "";
 
     const redirectUrl = pendingInvoiceRedirectUrl || "/FattureAcquisto";
     pendingInvoiceRedirectUrl = "";
-    window.location.href = redirectUrl;
+    const completeFlow = () => { window.location.href = redirectUrl; };
+    if (archiveWarning) {
+      window.SkyLabDeferredWarning?.set?.(archiveWarning);
+    }
+    completeFlow();
   };
 
   const requiresStockLoadBridge = async () => {
@@ -1499,19 +1506,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const openStockLoadBridge = () => {
     const xmlPath = (electronicInvoiceFullPath?.value ?? "").trim();
-    if (!xmlPath) {
-      return false;
-    }
-
     if (!stockLoadModal || !stockLoadModalFrame) {
       showMessage("Scheda Carico per acquisti non disponibile.", "Fattura di acquisto", "error");
       return false;
     }
 
-    const url = new URL("/CaricoAcquisti/Edit", window.location.origin);
+    const url = new URL("/Magazzino/CaricoAcquisti/Edit", window.location.origin);
+    url.searchParams.set("azione", "102");
     url.searchParams.set("returnTo", "purchaseInvoice");
     url.searchParams.set("returnUrl", `${window.location.pathname}${window.location.search}`);
-    url.searchParams.set("importXml", xmlPath);
+    url.searchParams.set("documentNumber", (invoiceNumber?.value ?? "").trim());
+    url.searchParams.set("documentDate", toIsoDate(invoiceDate?.value) ?? "");
+    url.searchParams.set("supplierCode", invoiceSupplierCode?.value ?? "");
+    url.searchParams.set("supplierName", invoiceSupplierName?.value ?? "");
+    url.searchParams.set("storeCode", invoiceStore?.value ?? "0");
+    if (xmlPath) {
+      url.searchParams.set("importXml", xmlPath);
+    }
 
     stockLoadModalFrame.src = `${url.pathname}${url.search}`;
     stockLoadModal.hidden = false;
@@ -1647,8 +1658,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
 
-    if (!toIsoDate(invoiceDateText)) {
+    const invoiceDateIso = toIsoDate(invoiceDateText);
+    if (!invoiceDateIso) {
       showSaveError("Data documento non valida.", invoiceDate);
+      return false;
+    }
+
+    const accountingYear = Number.parseInt(page?.dataset.accountingYear || "0", 10) || 0;
+    const documentYear = Number.parseInt(invoiceDateIso.slice(0, 4), 10) || 0;
+    if (accountingYear > 0 && documentYear !== accountingYear) {
+      showSaveError(`La data documento deve appartenere all'esercizio contabile in linea (${accountingYear}).`, invoiceDate);
       return false;
     }
 
@@ -1823,6 +1842,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     originalInvoiceIdentityKey = purchaseInvoiceIdentityKey();
     pendingInvoiceRedirectUrl = result.redirectUrl || "/FattureAcquisto";
+    const savedAction = Math.abs(currentActionValue()) % 100;
+    if (savedAction === 2 || savedAction === 4) {
+      try {
+        if (await requiresStockLoadBridge()) {
+          if (openStockLoadBridge()) {
+            return;
+          }
+
+          warnAndContinueAfterSave("Scheda Carico per acquisti non disponibile.");
+          return;
+        }
+      } catch {
+        warnAndContinueAfterSave("Controllo carico magazzino non riuscito.");
+        return;
+      }
+    }
+
     await continueAfterStockLoadBridge(true);
   };
 
@@ -2149,7 +2185,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       window.SkyLabMessageBox.show({
         title: "Fattura di acquisto",
-        message: "Carico di magazzino non completato.\nIl file XML non verra' archiviato.",
+        message: (electronicInvoiceFullPath?.value ?? "").trim()
+          ? "Carico di magazzino non completato.\nIl file XML non verra' archiviato."
+          : "Carico di magazzino non completato.",
         variant: "error",
         okText: "OK",
         onConfirm: () => {

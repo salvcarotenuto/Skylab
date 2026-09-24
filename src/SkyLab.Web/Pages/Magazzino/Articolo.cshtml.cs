@@ -21,6 +21,7 @@ public sealed class ArticoloModel(CustomerService service,IWebHostEnvironment en
     public int ClienteId { get; private set; }
     public bool IsReadOnly => FormAzione.IsReadonly(Azione);
     public bool IsModal => FormAzione.IsModal(Azione);
+    public bool IsCodeLocked => FormAzione.HasContesto(Azione, FormAzione.CodiceBloccato);
     [BindProperty] public List<ArticlePriceListEditModel> PriceLists { get; set; } = [];
     public decimal VatRate { get; private set; }
     public string ActiveTab { get; private set; } = "anagrafica";
@@ -29,16 +30,21 @@ public sealed class ArticoloModel(CustomerService service,IWebHostEnvironment en
     [TempData] public string? PhotoError { get; set; }
     public string NomeFornitore => Fornitori.FirstOrDefault(x=>x.Code==Articolo.SupplierCode)?.Name ?? "";
 
-    public async Task<IActionResult> OnGetAsync(string? codice,bool nuovo=false,string? tab=null,int clienteId=0,int? azione=null,CancellationToken ct=default)
+    public async Task<IActionResult> OnGetAsync(string? codice,bool nuovo=false,string? tab=null,int clienteId=0,int? azione=null,string? description=null,string? purchaseUnit=null,int? supplierCode=null,CancellationToken ct=default)
     {
         var fallback=nuovo||string.IsNullOrWhiteSpace(codice)?FormAzione.Inserimento:FormAzione.Modifica;Azione=FormAzione.Normalize(azione??0,fallback);IsNew=FormAzione.IsInserimento(Azione);ClienteId=clienteId;
         ActiveTab=!IsNew&&tab is "barcode" or "listini" or "immagini"?tab:"anagrafica";
-        if(!IsNew){var article=await service.ArticleAsync(codice,ct);if(article is null)return NotFound();Articolo=article;}
+        if(!IsNew){var article=await service.ArticleAsync(codice,ct);if(article is null)return NotFound();Articolo=article;}else{Articolo.Code=(codice??"").Trim().ToUpperInvariant();Articolo.Description=(description??"").Trim();Articolo.PurchaseUnit=(purchaseUnit??"").Trim().ToUpperInvariant();Articolo.SupplierCode=supplierCode;}
         await LoadLookupsAsync(ct);if(!IsNew&&ActiveTab=="barcode")Barcodes=await service.ArticleBarcodesAsync(Articolo.Code,ct);if(!IsNew){VatRate=await service.ArticleVatRateAsync(Articolo.Code,ct);PriceLists=(await service.ArticlePriceListsAsync(Articolo.Code,VatRate,ct)).ToList();}if(!IsNew&&ActiveTab=="immagini")Photos=await service.ArticlePhotosAsync(Articolo.Code,ct);return Page();
     }
     public async Task<IActionResult> OnPostSaveBarcodeAsync(string codice,int barcodeId,string? barcodeValue,int? barcodeSupplierCode,CancellationToken ct)
     {
         try{await service.SaveArticleBarcodeAsync(codice,barcodeId,barcodeValue,barcodeSupplierCode,ct);}catch(InvalidOperationException ex){BarcodeError=ex.Message;}return RedirectToPage(new{codice,tab="barcode"});
+    }
+    public async Task<IActionResult> OnPostValidateSaveBarcodeAsync(string codice,int barcodeId,string? barcodeValue,int? barcodeSupplierCode,CancellationToken ct)
+    {
+        try{await service.ValidateArticleBarcodeAsync(codice,barcodeId,barcodeValue,barcodeSupplierCode,ct);return new JsonResult(new{success=true});}
+        catch(InvalidOperationException ex){return new JsonResult(new{success=false,message=ex.Message});}
     }
     public async Task<IActionResult> OnPostDeleteBarcodeAsync(string codice,int barcodeId,CancellationToken ct)
     {
@@ -54,11 +60,31 @@ public sealed class ArticoloModel(CustomerService service,IWebHostEnvironment en
         ActiveTab=!IsNew&&tab is "barcode" or "listini" or "immagini"?tab:"anagrafica";if(!ModelState.IsValid){await LoadLookupsAsync(ct);return Page();}
         try{await service.SaveArticleAsync(Articolo,IsNew,ct);if(PriceLists.Count==6){for(var i=0;i<PriceLists.Count;i++)PriceLists[i].ListNumber=(byte)(i+1);await service.SaveArticlePriceListsAsync(Articolo.Code,PriceLists,ct);}}
         catch(InvalidOperationException ex){ModelState.AddModelError(string.Empty,ex.Message);await LoadLookupsAsync(ct);return Page();}
+        if(IsModal){var payload=System.Text.Json.JsonSerializer.Serialize(new{type="skylab:article-saved",code=Articolo.Code,description=Articolo.Description,unitMeasure=Articolo.PurchaseUnit});return Content($"<!doctype html><html><body><script>parent.postMessage({payload},location.origin);</script></body></html>","text/html");}
+        if(FormAzione.IsInserimentoContinuativo(Azione))return RedirectToPage("/Magazzino/Articolo",new{azione=FormAzione.InserimentoContinuativo});
         return RedirectToPage("/Magazzino/Articoli/Index");
+    }
+    public async Task<IActionResult> OnPostValidateSaveAllAsync(CancellationToken ct)
+    {
+        if(!ModelState.IsValid)
+        {
+            var message=ModelState.Values.SelectMany(value=>value.Errors).Select(error=>error.ErrorMessage).FirstOrDefault(text=>!string.IsNullOrWhiteSpace(text))??"Controllare i dati inseriti.";
+            return new JsonResult(new{success=false,message});
+        }
+        var code=Articolo.Code.Trim().ToUpperInvariant();
+        if(IsNew&&await service.ArticleAsync(code,ct) is not null)return new JsonResult(new{success=false,message=$"Esiste già un articolo con codice {code}."});
+        return new JsonResult(new{success=true});
+    }
+    public async Task<IActionResult> OnPostValidateAddPhotoAsync(string codice,IFormFile? foto,CancellationToken ct)
+    {
+        var error=ValidatePhoto(foto);if(error is not null)return new JsonResult(new{success=false,message=error});
+        if(await service.ArticleAsync(codice,ct) is null)return new JsonResult(new{success=false,message="Articolo non trovato."});
+        return new JsonResult(new{success=true});
     }
     public async Task<IActionResult> OnPostAddPhotoAsync(string codice,IFormFile? foto,string? descrizione,CancellationToken ct)
     {
-        if(foto is null||foto.Length==0)return RedirectToPage(new{codice,tab="immagini"});try{if(foto.Length>15*1024*1024)throw new InvalidOperationException("L'immagine supera 15 MB.");var extension=Path.GetExtension(foto.FileName).ToLowerInvariant();if(extension is not (".jpg" or ".jpeg" or ".png" or ".webp"))throw new InvalidOperationException("Formato immagine non valido.");var folder=Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(codice.Trim()));var directory=Path.Combine(environment.WebRootPath,"uploads","articoli",folder);Directory.CreateDirectory(directory);var fileName=$"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}{extension}";var path=Path.Combine(directory,fileName);await using(var stream=System.IO.File.Create(path))await foto.CopyToAsync(stream,ct);try{await service.AddArticlePhotoAsync(codice,fileName,descrizione??"",ct);}catch{System.IO.File.Delete(path);throw;}}catch(InvalidOperationException ex){PhotoError=ex.Message;}return RedirectToPage(new{codice,tab="immagini"});
+        var validationError=ValidatePhoto(foto);if(validationError is not null){PhotoError=validationError;return RedirectToPage(new{codice,tab="immagini"});}
+        try{var extension=Path.GetExtension(foto!.FileName).ToLowerInvariant();var folder=Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(codice.Trim()));var directory=Path.Combine(environment.WebRootPath,"uploads","articoli",folder);Directory.CreateDirectory(directory);var fileName=$"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}{extension}";var path=Path.Combine(directory,fileName);await using(var stream=System.IO.File.Create(path))await foto.CopyToAsync(stream,ct);try{await service.AddArticlePhotoAsync(codice,fileName,descrizione??"",ct);}catch{System.IO.File.Delete(path);throw;}}catch(InvalidOperationException ex){PhotoError=ex.Message;}return RedirectToPage(new{codice,tab="immagini"});
     }
     public async Task<IActionResult> OnPostDeletePhotoAsync(string codice,string? fileName,CancellationToken ct)
     {
@@ -76,5 +102,11 @@ public sealed class ArticoloModel(CustomerService service,IWebHostEnvironment en
     private async Task LoadLookupsAsync(CancellationToken ct)
     {
         Categorie=await service.ArticleCategoriesAsync(ct);Gruppi=await service.ArticleGroupsAsync(ct);Marche=await service.ArticleBrandsAsync(ct);UnitaMisura=await service.UnitMeasuresAsync(ct);CodiciIva=await service.VatCodesAsync(ct);Fornitori=await service.SuppliersAsync(ct);
+    }
+    private static string? ValidatePhoto(IFormFile? foto)
+    {
+        if(foto is null||foto.Length==0)return "Selezionare un'immagine.";
+        if(foto.Length>15*1024*1024)return "L'immagine supera 15 MB.";
+        var extension=Path.GetExtension(foto.FileName).ToLowerInvariant();return extension is ".jpg" or ".jpeg" or ".png" or ".webp"?null:"Formato immagine non valido.";
     }
 }

@@ -152,7 +152,7 @@ public sealed record OperationalSiteGroup(
 
 public sealed record ArticleChoice(
     string Code, string Description, short CategoryCode, string Category,
-    decimal Price, short DurationDays, decimal DailyConsumption);
+    decimal Price, short DurationDays, decimal DailyConsumption, string UnitMeasure, decimal VatRate);
 public sealed record ArticleListItem(
     string Code, string Description, short CategoryCode, string Category,
     short GroupCode, string Group, short BrandCode, string Brand, string SalesUnit,
@@ -199,6 +199,6 @@ public sealed class ArticleEditModel
     public decimal MinimumStock { get; set; }
     public decimal MaximumStock { get; set; }
     [StringLength(50)] public string? Location { get; set; }
-    [StringLength(12)] public string VatCode { get; set; } = "";
+    [StringLength(12)] public string? VatCode { get; set; }
     [StringLength(255)] public string? Notes { get; set; }
 }

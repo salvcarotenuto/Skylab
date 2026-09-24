@@ -9,6 +9,21 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(event.defaultPrevented)return;
   event.preventDefault();
   if(!form.reportValidity())return;
+  if(window.jQuery&&!window.jQuery(form).valid()){
+   window.SkyLabValidationMessageBox?.show();
+   return;
+  }
+  const showError=message=>window.SkyLabMessageBox?.show({title:"SkyLab - attenzione",message,variant:"error",okText:"OK"});
+  const validationUrl=new URL(form.action||location.href,location.href);
+  validationUrl.searchParams.set("handler","ValidateSaveAll");
+  try{
+   const validationResponse=await fetch(validationUrl,{method:"POST",body:new FormData(form),credentials:"same-origin",headers:{Accept:"application/json"}});
+   const validation=await validationResponse.json();
+   if(!validationResponse.ok||!validation.success){showError(validation.message||"Controllare i dati inseriti.");return;}
+  }catch{
+   showError("Impossibile completare la validazione dei dati.");
+   return;
+  }
   const progress=window.parent!==window&&window.parent.SkyProg?window.parent.SkyProg:window.SkyProg;
   save.disabled=true;
   progress?.Show();
@@ -36,6 +51,20 @@ document.addEventListener("DOMContentLoaded",()=>{
    event.preventDefault();
    if(!childForm.reportValidity())return;
    const button=event.submitter||childForm.querySelector('[type="submit"]');
+   const showError=message=>window.SkyLabMessageBox?.show({title:"SkyLab - attenzione",message,variant:"error",okText:"OK"});
+   const validationUrl=new URL(childForm.action||location.href,location.href);
+   const handler=validationUrl.searchParams.get("handler");
+   if(handler){
+    validationUrl.searchParams.set("handler",`Validate${handler}`);
+    try{
+     const validationResponse=await fetch(validationUrl,{method:"POST",body:new FormData(childForm),credentials:"same-origin",headers:{Accept:"application/json"}});
+     const validation=await validationResponse.json();
+     if(!validationResponse.ok||!validation.success){showError(validation.message||"Controllare i dati inseriti.");return;}
+    }catch{
+     showError("Impossibile completare la validazione dei dati.");
+     return;
+    }
+   }
    const progress=window.parent!==window&&window.parent.SkyProg?window.parent.SkyProg:window.SkyProg;
    if(button)button.disabled=true;
    progress?.Show();

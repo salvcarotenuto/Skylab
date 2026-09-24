@@ -26,8 +26,15 @@ function Stop-SkylabProcess {
         ($_.Name -eq "SkyLab.Web.exe" -and $_.ExecutablePath -and $_.ExecutablePath.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase))
     }
 
+    $listenerProcessIds = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty OwningProcess -Unique
+
     foreach ($item in $processes) {
         Stop-Process -Id $item.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+
+    foreach ($listenerProcessId in $listenerProcessIds) {
+        Stop-Process -Id $listenerProcessId -Force -ErrorAction SilentlyContinue
     }
 
     if (Test-Path -LiteralPath $pidFile) {
@@ -36,6 +43,13 @@ function Stop-SkylabProcess {
             Stop-Process -Id $storedPid -Force -ErrorAction SilentlyContinue
         }
         Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+    }
+
+    foreach ($attempt in 1..20) {
+        if (-not (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)) {
+            break
+        }
+        Start-Sleep -Milliseconds 250
     }
 }
 

@@ -1,0 +1,232 @@
+.article-form-page .module-header {
+  box-sizing: border-box;
+  height: 96px;
+  padding: 0;
+}
+
+.article-form-page .module-title-identity {
+  margin-left: 18px;
+}
+
+.article-form-page .customer-form-toolbar {
+  margin-right: 28px;
+}
+
+.article-form-page .customer-form-toolbar .btn {
+  height: 40px;
+  padding: 0;
+  width: 140px;
+}
+
+.article-form-page .article-form-frame {
+  padding: 0;
+}
+
+.article-form-page .article-fields-grid {
+  margin: 30px 34px 28px 24px;
+}
+
+.article-form-page .article-fields-grid label,
+.article-form-page .article-fields-grid input,
+.article-form-page .article-fields-grid select,
+.article-form-page .article-fields-grid textarea {
+  padding: 0;
+  text-indent: 8px;
+}
+
+.article-form-page .article-tabs a,
+.article-form-page .article-tabs span {
+  padding: 0;
+}
+
+.article-form-page .article-child-panel {
+  padding: 0;
+}
+
+.article-form-page .article-child-toolbar {
+  margin: 20px 24px 12px;
+}
+
+.article-form-page .article-child-toolbar .btn,
+.article-form-page .article-barcode-editor-actions .btn {
+  padding: 0;
+}
+
+.article-form-page .article-child-count {
+  height: 30px;
+  line-height: 30px;
+  min-width: 110px;
+  padding: 0;
+  text-align: center;
+}
+
+.article-form-page .article-barcode-grid-frame {
+  margin: 0 24px;
+}
+
+.article-form-page .article-barcode-grid th,
+.article-form-page .article-barcode-grid td {
+  padding: 0;
+  text-indent: 8px;
+}
+
+.article-form-page .barcode-status {
+  line-height: 20px;
+  min-width: 70px;
+  padding: 0;
+  text-align: center;
+}
+
+.article-form-page .article-child-empty {
+  height: 96px;
+  line-height: 96px;
+  padding: 0;
+}
+
+.article-form-page .article-barcode-editor {
+  margin: 16px 24px 20px;
+  padding: 0;
+}
+
+.article-form-page .article-barcode-editor > * {
+  margin-bottom: 14px;
+  margin-top: 14px;
+}
+
+.article-form-page .article-barcode-editor > :first-child {
+  margin-left: 14px;
+}
+
+.article-form-page .article-barcode-editor > :last-child {
+  margin-right: 14px;
+}
+
+.article-form-page .article-barcode-editor label,
+.article-form-page .article-barcode-editor input,
+.article-form-page .article-barcode-editor select,
+.article-form-page .article-barcode-supplier-check {
+  padding: 0;
+  text-indent: 8px;
+}
+
+.article-form-page .article-price-list-panel {
+  padding: 0;
+}
+
+.article-form-page .article-price-list-summary {
+  margin: 26px auto 28px;
+}
+
+.article-form-page .article-price-list-summary span {
+  padding: 0;
+  text-indent: 8px;
+}
+
+.article-form-page .article-price-list-summary strong {
+  padding: 0;
+}
+
+.article-form-page .article-price-list-summary strong::after {
+  content: "";
+  flex: 0 0 9px;
+}
+
+.article-form-page .article-price-list-table th,
+.article-form-page .article-price-list-table td {
+  padding: 0;
+}
+
+.article-form-page .article-price-list-table input {
+  margin-left: 9px;
+  margin-right: 9px;
+  padding: 0;
+  width: calc(100% - 18px);
+}
+
+.article-form-page .article-price-list-table tbody tr:first-child td {
+  padding: 0;
+  vertical-align: bottom;
+}
+
+.article-form-page .article-price-list-table tbody tr:last-child td {
+  padding: 0;
+  vertical-align: top;
+}
+
+.article-form-page .article-price-list-help {
+  margin-bottom: 26px;
+}
+
+.article-form-page .article-photo-panel {
+  padding: 0;
+}
+
+.article-form-page .article-photo-head {
+  margin: 22px 26px 12px;
+}
+
+.article-form-page .article-photo-body {
+  margin: 0 26px 22px;
+}
+
+.article-form-page .article-photo-table th,
+.article-form-page .article-photo-table td {
+  padding: 0;
+  text-indent: 8px;
+}
+
+.article-form-page .article-photo-delete {
+  height: 24px;
+  min-width: 64px;
+  padding: 0;
+}
+
+.article-form-page .work-photo-dialog-title {
+  height: 40px;
+  line-height: 40px;
+  padding: 0;
+  text-indent: 16px;
+}
+
+.article-form-page .work-photo-dialog-fields {
+  margin: 18px;
+  padding: 0;
+}
+
+.article-form-page .work-photo-dialog-fields input {
+  padding: 0;
+  text-indent: 8px;
+}
+
+.article-form-page .work-photo-dialog-actions {
+  margin: 0 18px 18px;
+  padding: 0;
+}
+
+.article-form-page .article-barcode-grid,
+.article-form-page .article-price-list-table,
+.article-form-page .article-photo-table {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.article-form-page .article-price-list-table input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.article-form-page .article-barcode-grid th,
+.article-form-page .article-price-list-table th,
+.article-form-page .article-photo-table th {
+  background: linear-gradient(#c7d7e8, #b8cbe0 52%, #a9bed6);
+  border-bottom-color: #758aa1;
+  color: #0e1824;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.article-form-page .article-tabs a,
+.article-form-page .article-tabs span {
+  user-select: none;
+  -webkit-user-select: none;
+}

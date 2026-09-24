@@ -124,6 +124,7 @@ body { margin:0; min-height:100vh; background:linear-gradient(rgba(237,242,248,.
 .article-form-page{--article-label-width:150px;max-width:1280px}.article-form-page .module-header{margin-bottom:10px}.article-form-frame{padding:30px 34px 28px 24px}.article-fields-grid{display:grid;gap:10px 28px;grid-template-columns:repeat(3,minmax(0,1fr))}.article-fields-grid .field{align-items:center;display:grid;grid-template-columns:var(--article-label-width) minmax(0,1fr);min-height:30px}.article-fields-grid label{align-items:center;background:#b8cbe0;border:1px solid #8a8f98;border-radius:5px;color:#0e1824;display:flex;font-family:"Microsoft Sans Serif","Segoe UI",Arial,sans-serif;font-size:13px;font-weight:500;height:30px;padding:0 8px;user-select:none}.article-fields-grid input,.article-fields-grid textarea{background:rgb(230,230,240);border:1px solid #8a8f98;border-radius:5px;color:#000;font-family:"Microsoft Sans Serif","Segoe UI",Arial,sans-serif;font-size:13px;font-weight:520;min-height:30px;opacity:1;padding:3px 8px;-webkit-text-fill-color:#000}.article-code-field{grid-column:1}.article-description-field{grid-column:1/-1}.article-notes-field{grid-column:1/-1}.article-notes-field textarea{min-height:64px;resize:none}.article-number-field input{text-align:right}.article-form-page input[readonly],.article-form-page textarea[readonly]{cursor:default;user-select:none}
 .article-form-page .article-fields-grid input:not([readonly]),.article-form-page .article-fields-grid select,.article-form-page .article-fields-grid textarea:not([readonly]){background:#fff;color:#000;-webkit-text-fill-color:#000}.article-form-page .article-fields-grid input[readonly],.article-form-page .article-fields-grid textarea[readonly]{background:rgb(230,230,240)}
 .article-form-page .article-fields-grid{gap:10px}.article-form-page .article-fields-grid .field{column-gap:3px}.article-form-page .article-description-field{margin-bottom:12px}
+.article-form-page .article-vat-field{grid-column:2/-1}
 .article-form-page .article-form-panel,.article-form-page .article-form-frame{background:#fff}
 .user-list-page .list-search-field{flex:1}.user-grid th:nth-child(1){width:70px}.user-grid th:nth-child(2),.user-grid th:nth-child(3){width:160px}.user-grid th:nth-child(4){width:150px}.user-grid th:nth-child(5){width:150px}.user-grid th:nth-child(6){width:130px}.user-grid th:nth-child(7){width:220px}.user-grid th:nth-child(8),.user-grid th:nth-child(9){width:75px}.user-form-page{display:grid;gap:12px;padding-top:18px}.user-form-page .user-form-panel{background:#fff;border:1px solid #aebccc;border-radius:10px;box-shadow:0 10px 24px rgba(23,34,54,.12);padding:14px}.user-form-page .password-control{display:grid;grid-template-columns:minmax(0,1fr) 82px;gap:5px}.user-form-page .password-control button{border:1px solid #8a8f98;border-radius:6px;background:#e6edf6;color:#164f9f;font-weight:700}.user-form-page .field-check{align-self:end}
 .article-form-page .article-fields-grid input:focus,.article-form-page .article-fields-grid select:focus,.article-form-page .article-fields-grid textarea:focus{border-color:#416f9f;box-shadow:0 0 0 2px rgba(31,111,235,.24);outline:none}
@@ -1146,4 +1147,64 @@ body { margin:0; min-height:100vh; background:linear-gradient(rgba(237,242,248,.
 .electronic-invoice-upload-grid .fe-upload-skipped td,
 .electronic-invoice-upload-grid .fe-upload-error td {
   background: #fde7e5;
+}
+button,
+[role="button"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.article-tabs a,
+.article-tabs span {
+  background: linear-gradient(#eef4fa, #d5e2ef);
+  border-color: #8298af;
+  border-radius: 5px 5px 0 0;
+  color: #183653;
+  font-weight: 600;
+  height: 36px;
+}
+
+.article-tabs .active {
+  background: #fff;
+  border-bottom-color: #fff;
+  box-shadow: inset 0 3px 0 #5270cc;
+  color: #102b49;
+  font-weight: 700;
+}
+
+.article-tabs a:hover {
+  background: #e2edf7;
+}
+
+.article-tabs .disabled {
+  color: #7d8996;
+}
+
+.article-form-page .article-tabs {
+  transform: translateY(10px);
+}
+
+.article-price-list-table input:focus {
+  border-color: #416f9f;
+  box-shadow: 0 0 0 2px rgba(31, 111, 235, .24);
+  outline: none;
+}
+
+.article-price-list-table td {
+  height: 38px;
+}
+
+.article-price-list-table tbody tr:first-child td {
+  height: 48px;
+  padding-top: 14px;
+}
+
+.article-price-list-table tbody tr:last-child td {
+  height: 48px;
+  padding-bottom: 14px;
 }
