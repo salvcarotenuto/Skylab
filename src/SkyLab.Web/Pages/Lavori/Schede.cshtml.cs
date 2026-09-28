@@ -38,4 +38,59 @@ public sealed class SchedeModel(WorkService service) : PageModel
         Esiti = await service.OutcomesAsync(cancellationToken);
         Items = await service.SearchAsync(Da.Value, Al.Value, OrdinaPer, Stato, Operatore, Esito, cancellationToken);
     }
+
+    public async Task<JsonResult> OnGetInvoiceCandidatesAsync(int cliente, DateTime? dal, DateTime? al, CancellationToken cancellationToken)
+    {
+        var today=DateTime.Today;
+        var from=(dal??new DateTime(today.Year,1,1)).Date;
+        var to=(al??today).Date;
+        if(to<from)(from,to)=(to,from);
+        var items=await service.InvoiceCandidatesAsync(cliente,from,to,cancellationToken);
+        return new JsonResult(items.Select(x=>new
+        {
+            id=x.Id,
+            year=x.Year,
+            code=x.Code,
+            customerId=x.CustomerId,
+            customer=x.Customer,
+            completedOn=x.CompletedOn.ToString("yyyy-MM-dd"),
+            completedOnText=x.CompletedOn.ToString("dd/MM/yyyy"),
+            workPerformed=x.WorkPerformed,
+            requestedAmount=x.RequestedAmount
+        }));
+    }
+
+    public async Task<IActionResult> OnGetInvoiceCandidateAsync(int id, CancellationToken cancellationToken)
+    {
+        var work=await service.WorkAsync(id,cancellationToken);
+        if(work is null||work.CompletedOn is null||work.InvoiceId is not null)return NotFound();
+        var details=await service.ActualDetailsAsync(id,cancellationToken);
+        var references=await service.WorkReferencesAsync(cancellationToken);
+        var vatRates=await service.ArticleVatRatesAsync(cancellationToken);
+        var services=details.Where(x=>x.Type=="P").ToArray();
+        var materials=details.Where(x=>x.Type=="A").Select(row=>
+        {
+            var reference=references.FirstOrDefault(x=>x.Type=="A"&&string.Equals(x.Reference,row.Reference,StringComparison.OrdinalIgnoreCase));
+            return new
+            {
+                code=row.Reference,
+                description=row.Description,
+                unit=reference?.Unit??"",
+                quantity=row.Quantity,
+                unitPrice=row.UnitPrice,
+                amount=row.Amount,
+                vatRate=vatRates.TryGetValue(row.Reference,out var vatRate)?vatRate:null
+            };
+        }).ToArray();
+        var activity=services.Length==0
+            ? work.WorkPerformed
+            : string.Join(Environment.NewLine,services.Select(x=>x.Description));
+        return new JsonResult(new
+        {
+            activity,
+            serviceTotal=services.Sum(x=>x.Amount),
+            materialTotal=materials.Sum(x=>x.amount),
+            materials
+        });
+    }
 }

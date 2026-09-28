@@ -1,0 +1,35 @@
+@page
+@model SkyLab.Web.Pages.FattureVendita.EditModel
+@{
+    ViewData["Title"] = "Fattura di vendita";
+    ViewData["HideFooter"] = true;
+    var customerLookup = new SkyLab.Web.Models.PartyLookupModel("C", Model.Customers);
+}
+<link rel="stylesheet" href="~/css/purchase-load-edit.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/sales-invoice-edit.css" asp-append-version="true" />
+
+<section class="purchase-load-edit-page sales-invoice-edit-page" data-sales-invoice-edit data-azione="@Model.Azione">
+    <header class="purchase-load-edit-titlebar"><div class="purchase-load-edit-heading"><img src="~/images/skylab-logo.png" alt="SkyLab" /><div><h1>Fattura di vendita</h1><p>SkyLab · Emissione documento di vendita</p></div></div><div class="purchase-load-edit-actions"><button type="button" class="purchase-load-edit-button primary">Salva</button><a class="purchase-load-edit-button" asp-page="Index">Annulla</a></div></header>
+    <form class="purchase-load-form-body sales-invoice-form-body" data-enter-navigation>
+        <section class="purchase-load-document sales-invoice-general"><div class="purchase-load-fields">
+            <div class="purchase-load-field partita"><label>Partita</label><input value="@Model.Partita.ToString("000000")" readonly tabindex="-1" /></div><span class="purchase-load-separator">/</span><div class="purchase-load-field year"><input value="@Model.Anno" aria-label="Anno" readonly tabindex="-1" /></div>
+            <div class="purchase-load-field number"><label>Numero documento</label><input value="@Model.DocumentNumber" autocomplete="off" tabindex="-1" /></div><div class="purchase-load-field type"><label>Tipo documento</label><select><option value="@EditModel.SalesInvoiceCause">Fattura di vendita</option><option value="@EditModel.DebitNoteCause">Nota di addebito</option><option value="@EditModel.CreditNoteCause">Nota di accredito</option></select></div><div class="purchase-load-field date"><label>Data documento</label><span class="micronote-date-control" data-date-control><input name="DocumentDate" type="hidden" value="@Model.DocumentDate?.ToString("yyyy-MM-dd")" data-filter-date-hidden /><input class="micronote-date-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" value="@Model.DocumentDate?.ToString("dd/MM/yyyy")" placeholder="gg/mm/aaaa" data-filter-date-display /><button class="micronote-date-button" type="button" tabindex="-1" aria-label="Seleziona data documento" data-date-picker-button></button></span></div>
+            <div class="purchase-load-supplier-row sales-invoice-customer-row"><div class="purchase-load-field supplier-code"><label>Cliente</label><input id="sales-invoice-edit-customer" name="CustomerCode" maxlength="5" inputmode="numeric" autocomplete="off" autofocus /></div><div class="purchase-load-field supplier-name"><input id="sales-invoice-edit-customer-name" aria-label="Nome cliente" readonly tabindex="-1" onmousedown="event.preventDefault()" /></div><button type="button" class="field-command field-command-search" aria-label="Ricerca cliente" data-party-lookup-open="C" data-party-lookup-target="sales-invoice-edit"></button></div>
+            <div class="purchase-load-field store"><label>Unità locale</label><select><option value=""></option>@foreach (var unitLocation in Model.UnitLocations) { <option value="@unitLocation.Code">@unitLocation.Code - @unitLocation.Label</option> }</select></div><div class="purchase-load-field sales-invoice-agent"><label>Agente</label><select><option value=""></option>@foreach (var agent in Model.Agents) { <option value="@agent.Code">@agent.Code - @agent.Label</option> }</select></div>
+        </div></section>
+        <section class="sales-invoice-work"><div class="sales-invoice-work-layout"><label class="sales-invoice-work-description"><span>Attività svolte</span><textarea rows="4" maxlength="2000" data-sales-invoice-work-description></textarea></label><label class="sales-invoice-work-amount"><span>Importo lavoro</span><input type="text" inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="9" data-decimal-digits="2" /></label><label class="sales-invoice-work-vat"><span>Iva %</span><input type="text" inputmode="decimal" maxlength="6" autocomplete="off" value="@(Model.StandardVatRate.ToString("N2") + " %")" data-percent-field data-decimal-integer-digits="3" data-decimal-digits="2" data-decimal-zero="fixed" data-standard-rate="@Model.StandardVatRate.ToString(System.Globalization.CultureInfo.InvariantCulture)" /></label></div></section>
+        <section class="purchase-load-lines sales-invoice-lines"><div class="purchase-load-lines-layout"><div class="purchase-load-line-actions"><button type="button">aggiungi</button><button type="button">modifica</button><button type="button">cancella</button></div><div class="purchase-load-lines-frame" tabindex="0" data-sales-invoice-lines-grid><table><thead><tr><th>Articolo</th><th>Descrizione</th><th>U.m.</th><th>Quantità</th><th>Prezzo</th><th>Sconto</th><th>Importo</th><th>Iva %</th><th hidden>Stato articolo</th></tr></thead><tbody>@for (var row = 0; row < 9; row++) { <tr class="is-placeholder" aria-hidden="true"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td hidden data-article-state>0</td></tr> }</tbody></table></div></div></section>
+    </form>
+    @await Html.PartialAsync("_ArticleLineEditor", new SkyLab.Web.Models.ArticleLineEditorModel("sales-invoice", Model.UnitMeasures))
+</section>
+<partial name="_PartyLookup" model="customerLookup" />
+
+@section Scripts {
+    <script src="~/js/form-enter-navigation.js" asp-append-version="true"></script>
+    <script src="~/js/decimal-fields.js" asp-append-version="true"></script>
+    <script src="~/js/sales-invoice-customer-edit.js" asp-append-version="true"></script>
+    <script src="~/js/work-sheet-zoom.js" asp-append-version="true"></script>
+    <script src="~/js/sales-invoice-work-sheet.js" asp-append-version="true"></script>
+    <script src="~/js/sales-invoice-lines.js" asp-append-version="true"></script>
+    <script src="~/js/sales-invoice-edit.js" asp-append-version="true"></script>
+}

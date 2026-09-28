@@ -27,6 +27,7 @@ public sealed class EditModel(SkyLabServicePaths servicePaths, SkyLabDatabaseOpt
     public IReadOnlyList<PurchaseLoadLine> Lines { get; private set; } = [];
     public string ElectronicInvoiceFolderDefault { get; private set; } = "";
     public IReadOnlyList<CodeLookupItem> UnitMeasures { get; private set; } = [];
+    public IReadOnlyList<PurchaseInvoiceStoreOption> Stores { get; private set; } = [];
 
     [BindProperty]
     public string StockLoadPayload { get; set; } = "";
@@ -47,6 +48,7 @@ public sealed class EditModel(SkyLabServicePaths servicePaths, SkyLabDatabaseOpt
         servicePaths.EnsureCreated();
         ElectronicInvoiceFolderDefault = servicePaths.FEAcquistiTransito;
         UnitMeasures = await customerService.UnitMeasuresAsync(cancellationToken);
+        Stores = await LoadStoresAsync(cancellationToken);
 
         if (azione is not (2 or 102))
         {
@@ -177,6 +179,22 @@ public sealed class EditModel(SkyLabServicePaths servicePaths, SkyLabDatabaseOpt
         {
             return null;
         }
+    }
+
+    private async Task<IReadOnlyList<PurchaseInvoiceStoreOption>> LoadStoresAsync(CancellationToken cancellationToken)
+    {
+        const string statement = "SELECT Codice, COALESCE(NomeBreve, '') FROM unitalocali ORDER BY Codice;";
+        var result = new List<PurchaseInvoiceStoreOption>();
+        await using var connection = new MySqlConnection(databaseOptions.BuildCompanyConnectionString());
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new MySqlCommand(statement, connection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var code = reader.GetInt32(0);
+            result.Add(new PurchaseInvoiceStoreOption(code, $"{code:000} - {reader.GetString(1)}"));
+        }
+        return result;
     }
 
     private async Task LoadExistingDocumentAsync(int id, CancellationToken ct)

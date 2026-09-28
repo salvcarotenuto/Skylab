@@ -265,6 +265,20 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
         const string sql="SELECT Codice,COALESCE(Descrizione,''),Aliquota,Detrazione,COALESCE(CodiceFE,'') FROM Codiciiva ORDER BY Codice";
         var result=new List<VatCodeListItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(S(r,0),S(r,1),r.GetDecimal(2),r.GetDecimal(3),S(r,4)));return result;
     }
+    public async Task<decimal> StandardSalesVatRateAsync(CancellationToken ct)
+    {
+        const decimal fallback=22m;
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
+        await using(var read=new MySqlCommand("SELECT Valore FROM Opzioni WHERE Chiave='AliqIvaVendite' LIMIT 1",cn))
+        {
+            var raw=Convert.ToString(await read.ExecuteScalarAsync(ct))?.Trim();
+            var normalized=(raw??"").Replace(',','.');
+            if(decimal.TryParse(normalized,System.Globalization.NumberStyles.Number,System.Globalization.CultureInfo.InvariantCulture,out var value)&&value>=0&&value<=100)return value;
+        }
+        await using(var write=new MySqlCommand("INSERT INTO Opzioni(Chiave,Valore) VALUES('AliqIvaVendite',@value) ON DUPLICATE KEY UPDATE Valore=VALUES(Valore)",cn))
+        {write.Parameters.AddWithValue("@value",fallback.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture));await write.ExecuteNonQueryAsync(ct);}
+        return fallback;
+    }
     public async Task<IReadOnlyList<CodeLookupItem>> ElectronicInvoiceVatNaturesAsync(CancellationToken ct)
     {
         const string sql="SELECT Codice,COALESCE(Descrizione,'') FROM fecodiciiva ORDER BY Codice";

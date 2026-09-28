@@ -22,6 +22,16 @@ public sealed record WorkListItem(
     int? InvoiceId,
     bool DispatchedToWork);
 
+public sealed record WorkInvoiceCandidate(
+    int Id,
+    short Year,
+    int Code,
+    int CustomerId,
+    string Customer,
+    DateTime CompletedOn,
+    string WorkPerformed,
+    decimal RequestedAmount);
+
 public sealed record WorkLookupItem(byte Id, string Description);
 
 public sealed class WorkEditModel

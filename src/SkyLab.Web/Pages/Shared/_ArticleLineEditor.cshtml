@@ -1,0 +1,21 @@
+@model SkyLab.Web.Models.ArticleLineEditorModel
+@{
+    var titleId = $"{Model.Context}-line-title";
+}
+<div class="stock-load-line-overlay" hidden data-article-line-editor="@Model.Context" data-stock-load-line-overlay data-sales-line-overlay>
+    <section class="stock-load-line-dialog" role="dialog" aria-modal="true" aria-labelledby="@titleId">
+        <header id="@titleId" data-stock-load-line-title data-sales-line-title>@Model.Title</header>
+        <div class="stock-load-line-body">
+            <div class="stock-load-line-article"><label>Articolo</label><input autocomplete="off" data-line-code /><button type="button" class="lookup-button" aria-label="Seleziona articolo" data-line-lookup></button><input readonly tabindex="-1" data-line-description /></div>
+            <div class="stock-load-line-fields">
+                <label>Unità di misura</label><select data-line-unit><option value=""></option>@foreach (var item in Model.UnitMeasures) { <option value="@item.Code">@item.Code · @item.Label</option> }</select>
+                <label>Prezzo</label><input inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="9" data-decimal-digits="2" data-line-price />
+                <label>Aliquota IVA</label><input inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="3" data-decimal-digits="2" data-line-vat />
+                <label>Quantità</label><input inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="9" data-decimal-digits="3" data-line-quantity />
+                <label>Sconto</label><input inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="3" data-decimal-digits="2" data-line-discount />
+                <label>Importo</label><input readonly tabindex="-1" data-line-amount />
+            </div>
+        </div>
+        <footer><button type="button" class="purchase-load-action-button primary" data-line-confirm>Conferma</button><button type="button" class="purchase-load-action-button" data-line-cancel>Annulla</button></footer>
+    </section>
+</div>

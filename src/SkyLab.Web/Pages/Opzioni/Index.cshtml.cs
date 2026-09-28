@@ -19,6 +19,7 @@ public sealed class IndexModel(CustomerService customerService, SkyLabDatabase d
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
+        await customerService.StandardSalesVatRateAsync(cancellationToken);
         Options = await LoadOptionsAsync(cancellationToken);
     }
 
@@ -117,6 +118,15 @@ private static async Task SaveOptionAsync(
         options.SedeOperativaProvincia = NormalizeLetters(options.SedeOperativaProvincia, 2);
         options.SedeLegaleCap = Digits(options.SedeLegaleCap, 5);
         options.SedeOperativaCap = Digits(options.SedeOperativaCap, 5);
+        options.AliqIvaVendite = NormalizePercentage(options.AliqIvaVendite, 22m);
+    }
+
+    private static string NormalizePercentage(string? value, decimal fallback)
+    {
+        var normalized=(value??"").Trim().Replace(',','.');
+        return decimal.TryParse(normalized,System.Globalization.NumberStyles.Number,System.Globalization.CultureInfo.InvariantCulture,out var parsed)&&parsed>=0&&parsed<=100
+            ? parsed.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture)
+            : fallback.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string NormalizeCode(string? value, int maxLength) =>

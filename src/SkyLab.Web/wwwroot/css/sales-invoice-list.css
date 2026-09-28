@@ -1,0 +1,231 @@
+.sales-invoices-page {
+    box-sizing: border-box;
+    height: 100vh;
+    padding: 0;
+}
+
+.sales-invoices-page label,
+.sales-invoices-page input,
+.sales-invoices-page select,
+.sales-invoices-page option,
+.sales-invoices-page button,
+.sales-invoices-page a,
+.sales-invoices-page .list-records-box {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.sales-invoices-page > .list-titlebar {
+    background: #fff;
+    border: 1px solid #b8c5d6;
+    border-radius: 8px;
+    box-shadow: none;
+    box-sizing: border-box;
+    flex: 0 0 88px;
+    height: 88px;
+    margin: 8px 18px 8px;
+    max-height: 88px;
+    min-height: 88px;
+    padding: 0;
+    width: calc(100% - 36px);
+}
+
+.sales-invoices-page .list-title-identity {
+    margin-left: 18px;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.sales-invoices-page .list-title-layout {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+    height: 72px;
+}
+
+.sales-invoices-page .list-title-identity strong {
+    color: #172236;
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 28px;
+}
+
+.sales-invoices-page .list-title-identity small {
+    color: #40536a;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 18px;
+    margin-top: 3px;
+}
+
+.sales-invoices-page .list-title-actions {
+    gap: 10px;
+    margin-right: 28px;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.sales-invoices-page .list-title-actions .btn,
+.sales-invoices-page .list-title-actions .btn-primary,
+.sales-invoices-page .list-title-actions .customer-menu-button {
+    align-items: center;
+    box-sizing: border-box;
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 600;
+    height: 40px;
+    justify-content: center;
+    line-height: 40px;
+    padding: 0;
+    text-decoration: none;
+    width: 140px;
+}
+
+.sales-invoices-page .purchase-invoices-records {
+    box-sizing: border-box;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    width: 112px;
+}
+
+.sales-invoices-page > .list-panel {
+    box-sizing: border-box;
+    margin-left: 18px;
+    margin-right: 18px;
+    width: calc(100% - 36px);
+}
+
+.sales-invoices-page > .purchase-invoices-filter-panel {
+    background: #fff;
+    border: 1px solid #b8c5d6;
+    border-radius: 8px;
+    box-shadow: none;
+    flex: 0 0 54px;
+    height: 54px;
+    margin-bottom: 8px;
+    max-height: 54px;
+    min-height: 54px;
+    padding: 0;
+}
+
+.sales-invoices-page .purchase-invoices-filters {
+    display: block;
+    height: 30px;
+    margin: 11px 10px;
+    padding: 0;
+    width: calc(100% - 20px);
+}
+
+.sales-invoices-page .purchase-invoices-filter-row {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 140px 190px 260px minmax(330px, 1fr) 250px;
+    height: 30px;
+    width: 100%;
+}
+
+.sales-invoices-page .list-filter-field {
+    display: grid;
+    gap: 3px;
+    grid-template-columns: max-content minmax(0, 1fr);
+    height: 30px;
+    min-width: 0;
+}
+
+.sales-invoices-page .list-filter-field > div {
+    min-width: 0;
+}
+
+.sales-invoices-page .list-filter-field label {
+    background: #b8cbe0;
+    border: 1px solid #8799ad;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #263b55;
+    font-size: 13px;
+    font-weight: 400;
+    height: 30px;
+    line-height: 28px;
+    min-height: 30px;
+    padding: 0;
+    text-indent: 9px;
+}
+
+.sales-invoices-page .list-filter-field label::after {
+    content: "";
+    flex: 0 0 20px;
+    width: 20px;
+}
+
+.sales-invoices-page .list-filter-field input,
+.sales-invoices-page .list-filter-field select {
+    border: 1px solid #8799ad;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 13px;
+    font-weight: 420;
+    height: 30px;
+    min-height: 30px;
+    min-width: 0;
+    padding: 0;
+    text-indent: 8px;
+    vertical-align: middle;
+    width: 100%;
+}
+
+.sales-invoices-page .list-filter-field select {
+    appearance: none;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23172336' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: right 8px center;
+    background-repeat: no-repeat;
+    background-size: 10px 6px;
+    line-height: 28px;
+    text-indent: 4px;
+}
+
+.sales-invoices-page .purchase-invoices-supplier-controls {
+    display: grid;
+    gap: 3px;
+    grid-template-columns: 85px minmax(0, 1fr) 34px;
+    height: 30px;
+}
+
+.sales-invoices-page #sales-invoice-customer {
+    text-align: center;
+    text-indent: 0;
+}
+
+.sales-invoices-page .purchase-invoices-supplier-controls .lookup-button {
+    border-radius: 5px;
+    box-sizing: border-box;
+    height: 30px;
+    padding: 0;
+    width: 34px;
+}
+
+.sales-invoices-page .purchase-invoices-supplier-controls .sales-invoice-customer-name {
+    background: #e3e5ea;
+    color: #000;
+    cursor: default;
+    outline: none;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.sales-invoices-page .purchase-invoices-supplier-controls .sales-invoice-customer-name:focus {
+    border-color: #8799ad;
+    box-shadow: none;
+    outline: none;
+}
+
+.sales-invoices-page input:not([readonly]):focus,
+.sales-invoices-page select:focus,
+.sales-invoices-page button:focus-visible,
+.sales-invoices-page a.btn:focus-visible {
+    border-color: #2f6faa;
+    box-shadow: 0 0 0 1px rgba(47, 111, 170, .28);
+    outline: none;
+}

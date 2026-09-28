@@ -39,3 +39,4 @@ Desktop.ini
 
 # Office temporary files
 ~$*
+appsettings.Secrets.json

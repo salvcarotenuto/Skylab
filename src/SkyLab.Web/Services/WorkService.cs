@@ -151,6 +151,29 @@ public sealed class WorkService(SkyLab.Web.Data.SkyLabDatabaseOptions options)
         };
     }
 
+    public async Task<IReadOnlyList<WorkInvoiceCandidate>> InvoiceCandidatesAsync(int customerId, DateTime from, DateTime to, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT l.ID,l.Anno,l.Codice,l.Cliente,COALESCE(c.Nome,''),l.DataInterventoEffettiva,
+                   COALESCE(l.AttivitaEseguita,''),COALESCE(l.ImportoRichiesto,0)
+            FROM Lavori l
+            LEFT JOIN Clienti c ON c.Codice=l.Cliente
+            WHERE l.DataInterventoEffettiva IS NOT NULL
+              AND l.StatoLavoro_ID=5
+              AND COALESCE(l.Fattura_ID,0)=0
+              AND (@customer=0 OR l.Cliente=@customer)
+              AND l.DataInterventoEffettiva>=@from
+              AND l.DataInterventoEffettiva<@to
+            ORDER BY l.DataInterventoEffettiva DESC,l.Anno DESC,l.Codice DESC
+            """;
+        var result=new List<WorkInvoiceCandidate>();
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
+        await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@customer",customerId);cmd.Parameters.AddWithValue("@from",from.Date);cmd.Parameters.AddWithValue("@to",to.Date.AddDays(1));
+        await using var r=await cmd.ExecuteReaderAsync(ct);
+        while(await r.ReadAsync(ct))result.Add(new(r.GetInt32(0),r.GetInt16(1),r.GetInt32(2),r.GetInt32(3),r.GetString(4),r.GetDateTime(5),r.GetString(6),r.GetDecimal(7)));
+        return result;
+    }
+
     public async Task<IReadOnlyList<WorkSiteLookupItem>> WorkSitesAsync(int customerId,CancellationToken ct)
     {
         const string sql="""
@@ -331,6 +354,16 @@ public sealed class WorkService(SkyLab.Web.Data.SkyLabDatabaseOptions options)
             r.IsDBNull(6)?null:r.GetDecimal(6),r.IsDBNull(7)?null:r.GetDecimal(7),r.IsDBNull(8)?null:r.GetDecimal(8),
             r.IsDBNull(9)?null:r.GetDecimal(9),r.IsDBNull(10)?null:r.GetDecimal(10),r.IsDBNull(11)?null:r.GetDecimal(11),r.GetString(12)));
         return x;
+    }
+
+    public async Task<IReadOnlyDictionary<string,decimal?>> ArticleVatRatesAsync(CancellationToken ct)
+    {
+        var result=new Dictionary<string,decimal?>(StringComparer.OrdinalIgnoreCase);
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
+        await using var cmd=new MySqlCommand("SELECT a.Codice,CASE WHEN i.Codice IS NULL THEN NULL ELSE i.Aliquota END FROM Articoli a LEFT JOIN Codiciiva i ON i.Codice=a.Codiva",cn);
+        await using var r=await cmd.ExecuteReaderAsync(ct);
+        while(await r.ReadAsync(ct))result[r.GetString(0)]=r.IsDBNull(1)?null:r.GetDecimal(1);
+        return result;
     }
 
     public async Task<object> SubmitMobileReportAsync(int workId,string username,MobileReportRequest report,CancellationToken ct)

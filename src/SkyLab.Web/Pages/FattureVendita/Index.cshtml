@@ -1,0 +1,31 @@
+@page
+@model SkyLab.Web.Pages.FattureVendita.IndexModel
+@{
+    ViewData["Title"] = "Lista fatture di vendita";
+    ViewData["BodyClass"] = "sales-invoices-module";
+    ViewData["HideFooter"] = true;
+    var customerLookup = new SkyLab.Web.Models.PartyLookupModel("C", Model.Customers);
+}
+<link rel="stylesheet" href="~/css/sales-invoice-list.css" asp-append-version="true" />
+
+<section class="list-page purchase-invoices-page sales-invoices-page" data-sales-invoices>
+    <header class="list-titlebar">
+        <a class="list-title-identity" asp-page="/Index"><span class="list-title-layout"><span class="skylab-header-brand" aria-hidden="true"><img src="~/images/skylab-logo.png" alt="" /></span><span><strong>Fatture di vendita</strong><small>SkyLab · Lista fatture di vendita</small></span></span></a>
+        <div class="list-title-actions purchase-invoices-actions"><span class="list-records-box purchase-invoices-records"><strong>0</strong><span>record</span></span><a class="btn btn-primary" asp-page="Edit" asp-route-azione="2">Nuova</a><button class="btn customer-menu-button" type="button" disabled>Modifica</button><button class="btn customer-menu-button" type="button" disabled>Cancella</button><button class="btn customer-menu-button" type="button" disabled>Visualizza</button><button class="btn customer-menu-button purchase-invoices-print-button" type="button" disabled>Stampa lista</button><a class="btn customer-menu-button" asp-page="/Index">Esci</a></div>
+    </header>
+    <section class="list-panel purchase-invoices-filter-panel">
+        <form class="list-toolbar purchase-invoices-filters" method="get" data-sales-invoice-filters><div class="purchase-invoices-filter-row">
+            <div class="list-filter-field purchase-invoices-year-filter"><label for="sales-invoice-year">Anno</label><div><select id="sales-invoice-year" name="year" onchange="this.form.submit()"><option value=""></option>@foreach (var year in Model.Years) { <option value="@year" selected="@(year == Model.SelectedYear)">@year</option> }</select></div></div>
+            <div class="list-filter-field purchase-invoices-month-filter"><label for="sales-invoice-month">Mese</label><div><select id="sales-invoice-month" name="month"><option value=""></option><option>Gennaio</option><option>Febbraio</option><option>Marzo</option><option>Aprile</option><option>Maggio</option><option>Giugno</option><option>Luglio</option><option>Agosto</option><option>Settembre</option><option>Ottobre</option><option>Novembre</option><option>Dicembre</option></select></div></div>
+            <div class="list-filter-field purchase-invoices-type-filter"><label for="sales-invoice-type">Tipo</label><div><select id="sales-invoice-type" name="causeCode"><option value=""></option><option value="30">Fatture di vendita</option><option value="31">Note di addebito</option><option value="32">Note di accredito</option></select></div></div>
+            <div class="list-filter-field purchase-invoices-supplier-filter"><label for="sales-invoice-customer">Cliente</label><div class="purchase-invoices-supplier-controls"><input id="sales-invoice-customer" name="customerCode" value="@(Model.SelectedCustomerCode?.ToString("00000") ?? "")" inputmode="numeric" maxlength="5" autocomplete="off" /><input id="sales-invoice-customer-name" class="sales-invoice-customer-name" value="@Model.SelectedCustomerName" aria-label="Nome cliente" readonly tabindex="-1" onmousedown="event.preventDefault()" /><button class="lookup-button" type="button" title="Seleziona cliente" aria-label="Seleziona cliente" data-party-lookup-open="C" data-party-lookup-target="sales-invoices"></button></div></div>
+            <div class="list-filter-field purchase-invoices-store-filter"><label for="sales-invoice-store">Un. locale</label><div><select id="sales-invoice-store" name="storeCode" onchange="this.form.submit()"><option value=""></option>@foreach (var store in Model.Stores) { <option value="@store.Code" selected="@(store.Code == Model.SelectedStoreCode)">@store.Description</option> }</select></div></div>
+        </div></form>
+    </section>
+    <section class="list-panel purchase-invoices-list-panel"><div class="list-grid-frame purchase-invoices-grid-frame"><table class="list-grid purchase-invoices-grid sales-invoices-grid"><thead><tr><th>Partita</th><th>Numero</th><th>Data</th><th>Tipo</th><th>Cliente</th><th>Nome</th><th>Imponibile</th><th>IVA</th><th>Totale</th><th>F.E.</th></tr></thead><tbody></tbody></table><div class="sales-history-empty">Nessuna fattura trovata.</div></div></section>
+</section>
+<partial name="_PartyLookup" model="customerLookup" />
+
+@section Scripts {
+    <script src="~/js/sales-invoice-customer-filter.js" asp-append-version="true"></script>
+}

@@ -17,7 +17,7 @@
             <div class="purchase-load-electronic-row"><div class="purchase-load-file-icon"><img src="~/images/FattEl_01.png" alt="Fattura elettronica" /></div><label>Fattura elettronica</label><input value="@(string.IsNullOrWhiteSpace(Model.ElectronicInvoiceName) ? "Nessun file caricato" : Model.ElectronicInvoiceName)" readonly tabindex="-1" data-electronic-invoice-name /><input type="hidden" value="@Model.ElectronicInvoicePath" data-electronic-invoice-full-path /><button type="button" class="purchase-load-action-button" data-electronic-invoice-open disabled="@(Model.Azione is 2 or 102 ? null : "disabled")">Carica</button><button type="button" class="purchase-load-action-button" data-electronic-invoice-current-preview>Visualizza</button></div>
             <div class="purchase-load-fields">
                 <div class="purchase-load-field partita"><label>Partita</label><input value="@Model.Partita.ToString("000000")" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" readonly tabindex="-1" /></div><span class="purchase-load-separator">/</span><div class="purchase-load-field year"><input value="@Model.Anno" aria-label="Anno" readonly tabindex="-1" /></div><div class="purchase-load-field number"><label>Numero documento</label><input value="@Model.DocumentNumber" data-stock-load-document-number /></div><div class="purchase-load-field type"><label>Tipo carico</label><select data-stock-load-type><option value="10" selected="@(Model.CauseCode == 10 ? "selected" : null)">10 - Carico per acquisti</option><option value="12" selected="@(Model.CauseCode == 12 ? "selected" : null)">12 - Carico per reso</option></select></div><div class="purchase-load-field date"><label>Data documento</label><input type="date" value="@(Model.DocumentDate?.ToString("yyyy-MM-dd") ?? string.Empty)" data-stock-load-document-date /></div>
-                <div class="purchase-load-supplier-row"><div class="purchase-load-field supplier-code"><label data-stock-load-party-label>Fornitore</label><input value="@(Model.SupplierCode == 0 ? string.Empty : Model.SupplierCode.ToString("00000"))" maxlength="5" inputmode="numeric" pattern="[0-9]{5}" oninput="this.value=this.value.replace(/\D/g,'').slice(0,5)" onblur="this.value=this.value.padStart(5,'0')" data-stock-load-supplier-code /></div><div class="purchase-load-field supplier-name"><input value="@Model.SupplierName" aria-label="Denominazione fornitore" readonly tabindex="-1" data-stock-load-supplier-name /></div><button type="button" class="field-command field-command-search" aria-label="Ricerca fornitore" data-stock-load-party-lookup></button></div><div class="purchase-load-field store"><label>Unità locale</label><select data-stock-load-store><option value="0" selected="@(Model.StoreCode == 0 ? "selected" : null)">Spese comuni</option><option value="1" selected="@(Model.StoreCode == 1 ? "selected" : null)">Sede principale</option></select></div>
+                <div class="purchase-load-supplier-row"><div class="purchase-load-field supplier-code"><label data-stock-load-party-label>Fornitore</label><input value="@(Model.SupplierCode == 0 ? string.Empty : Model.SupplierCode.ToString("00000"))" maxlength="5" inputmode="numeric" pattern="[0-9]{5}" oninput="this.value=this.value.replace(/\D/g,'').slice(0,5)" onblur="this.value=this.value.padStart(5,'0')" data-stock-load-supplier-code /></div><div class="purchase-load-field supplier-name"><input value="@Model.SupplierName" aria-label="Denominazione fornitore" readonly tabindex="-1" data-stock-load-supplier-name /></div><button type="button" class="field-command field-command-search" aria-label="Ricerca fornitore" data-stock-load-party-lookup></button></div><div class="purchase-load-field store"><label>Unità locale</label><select data-stock-load-store><option value=""></option>@foreach (var store in Model.Stores) { <option value="@store.Code" selected="@(Model.StoreCode == store.Code ? "selected" : null)">@store.Description</option> }</select></div>
             </div>
         </section>
         <section class="purchase-load-lines">
@@ -36,23 +36,7 @@
             <iframe title="Scheda articolo" data-stock-load-article-modal-frame></iframe>
         </section>
     </div>
-    <div class="stock-load-line-overlay" hidden data-stock-load-line-overlay>
-        <section class="stock-load-line-dialog" role="dialog" aria-modal="true" aria-labelledby="stock-load-line-title">
-            <header id="stock-load-line-title" data-stock-load-line-title>Inserimento articolo</header>
-            <div class="stock-load-line-body">
-                <div class="stock-load-line-article"><label>Articolo</label><input autocomplete="off" data-line-code /><button type="button" class="lookup-button" aria-label="Seleziona articolo" data-line-lookup></button><input readonly tabindex="-1" data-line-description /></div>
-                <div class="stock-load-line-fields">
-                    <label>Unità di misura</label><select data-line-unit><option value=""></option>@foreach(var item in Model.UnitMeasures){<option value="@item.Code">@item.Code · @item.Label</option>}</select>
-                    <label>Prezzo</label><input inputmode="decimal" autocomplete="off" data-line-price />
-                    <label>Aliquota IVA</label><input inputmode="decimal" autocomplete="off" data-line-vat />
-                    <label>Quantità</label><input inputmode="decimal" autocomplete="off" data-line-quantity />
-                    <label>Sconto</label><input inputmode="decimal" autocomplete="off" data-line-discount />
-                    <label>Importo</label><input readonly tabindex="-1" data-line-amount />
-                </div>
-            </div>
-            <footer><button type="button" class="purchase-load-action-button primary" data-line-confirm>Conferma</button><button type="button" class="purchase-load-action-button" data-line-cancel>Annulla</button></footer>
-        </section>
-    </div>
+    @await Html.PartialAsync("_ArticleLineEditor", new SkyLab.Web.Models.ArticleLineEditorModel("stock-load", Model.UnitMeasures))
     @await Html.PartialAsync("_ElectronicInvoiceListDialog", Model.ElectronicInvoiceFolderDefault)
 </section>
 

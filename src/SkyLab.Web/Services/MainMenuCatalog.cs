@@ -52,7 +52,7 @@ public static class MainMenuCatalog
         ]),
         new("vendita", "Vendite", "VN", "accent-sales",
         [
-            Group("Documenti di vendita", "Documento di trasporto", "Fattura di vendita", "Ricevuta fiscale", "Preventivo di vendita"),
+            Group("Documenti di vendita", Pending("Documento di trasporto"), Link("Fattura di vendita", "/FattureVendita/Index"), Pending("Ricevuta fiscale"), Pending("Preventivo di vendita")),
             Group("Statistiche di vendita", "Rendiconto vendite", "Statistiche di vendita")
         ]),
         new("contabilita", "Contabilità", "CN", "accent-accounting",
