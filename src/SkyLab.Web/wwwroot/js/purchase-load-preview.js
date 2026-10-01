@@ -194,7 +194,12 @@
             clearLineDialog();
             if (lineHasData(row)) {
                 const values = Array.from(row.cells).map(cell => cell.textContent.trim());
-                [lineFields.code, lineFields.description, lineFields.unit, lineFields.quantity, lineFields.price, lineFields.discount, lineFields.amount, lineFields.vat].forEach((field, index) => { if (field) field.value = values[index] ?? ""; });
+                [lineFields.code, lineFields.description, lineFields.unit, lineFields.quantity, lineFields.price, lineFields.discount, lineFields.amount].forEach((field, index) => { if (field) field.value = values[index] ?? ""; });
+                if (lineFields.vat) lineFields.vat.value = (values[7] ?? "").replace(/%$/, "");
+                const savedVatCode = values[9] ?? "";
+                const vatOption = Array.from(lineFields.vat?.options ?? []).find(option => option.dataset.vatCode === savedVatCode)
+                    ?? Array.from(lineFields.vat?.options ?? []).find(option => option.value === lineFields.vat?.value);
+                if (vatOption) lineFields.vat.value = vatOption.value;
                 lineArticleFound = values[8] === "1" ? true : values[8] === "-1" ? false : null;
                 if (lineTitle) lineTitle.textContent = "Modifica articolo";
             } else if (lineTitle) lineTitle.textContent = "Inserimento articolo";
@@ -208,7 +213,9 @@
             lineFields.description.value = article.description ?? "";
             lineFields.unit.value = article.unitMeasure ?? "";
             lineFields.price.value = formatLineNumber(article.price, 3);
-            lineFields.vat.value = formatLineNumber(article.vatRate, 2);
+            const vatOption = Array.from(lineFields.vat?.options ?? []).find(option => option.dataset.vatCode === article.vatCode)
+                ?? Array.from(lineFields.vat?.options ?? []).find(option => option.value === formatLineNumber(article.vatRate, 2));
+            if (vatOption) lineFields.vat.value = vatOption.value;
             lineArticleFound = true;
             calculateLineAmount();
         };
@@ -253,7 +260,8 @@
             if (!lineFields.code?.value.trim()) return showMessage("Campo Articolo obbligatorio.");
             if (parseLineNumber(lineFields.quantity?.value) === 0) return showMessage("Campo Quantità obbligatorio.");
             calculateLineAmount();
-            const values = [lineFields.code.value.trim(), lineFields.description.value.trim(), lineFields.unit.value.trim(), formatLineNumber(parseLineNumber(lineFields.quantity.value), 3), formatLineNumber(parseLineNumber(lineFields.price.value), 3), formatLineNumber(parseLineNumber(lineFields.discount.value), 2), formatLineNumber(parseLineNumber(lineFields.amount.value), 2), `${formatLineNumber(parseLineNumber(lineFields.vat.value), 2)}%`, lineArticleFound === true ? "1" : lineArticleFound === false ? "-1" : "0"];
+            if (!lineFields.vat.value) return showMessage("Selezionare il codice IVA.");
+            const values = [lineFields.code.value.trim(), lineFields.description.value.trim(), lineFields.unit.value.trim(), formatLineNumber(parseLineNumber(lineFields.quantity.value), 3), formatLineNumber(parseLineNumber(lineFields.price.value), 3), formatLineNumber(parseLineNumber(lineFields.discount.value), 2), formatLineNumber(parseLineNumber(lineFields.amount.value), 2), `${formatLineNumber(parseLineNumber(lineFields.vat.value), 2)}%`, lineArticleFound === true ? "1" : lineArticleFound === false ? "-1" : "0", lineFields.vat.selectedOptions[0]?.dataset.vatCode ?? ""];
             values.forEach((value, index) => { targetLine.cells[index].textContent = value; });
             targetLine.classList.toggle("is-missing-article", lineArticleFound === false);
             selectLine(targetLine);
@@ -940,6 +948,7 @@
             discount: parseNumber(row.cells[5]?.textContent),
             amount: parseNumber(row.cells[6]?.textContent),
             vatRate: parseNumber(row.cells[7]?.textContent),
+            vatCode: String(row.querySelector('[data-vat-code]')?.textContent ?? '').trim(),
             articleState: Number.parseInt(row.querySelector('[data-article-state]')?.textContent ?? '0', 10) || 0
         }))
         .filter(row => row.articleCode);

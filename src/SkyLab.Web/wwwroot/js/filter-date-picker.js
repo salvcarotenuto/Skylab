@@ -95,11 +95,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const position = () => {
     if (!panel || !activeField) return;
     const rect = activeField.getBoundingClientRect();
+    const gap = 4;
+    const viewportMargin = 8;
+    const panelWidth = panel.offsetWidth;
+    const panelHeight = panel.offsetHeight;
+    const preferredLeft = activeField.closest(".work-sheet-zoom-date") ? rect.left : rect.right - panelWidth;
+    const left = Math.min(
+      window.innerWidth - panelWidth - viewportMargin,
+      Math.max(viewportMargin, preferredLeft));
+    const below = rect.bottom + gap;
+    const above = rect.top - panelHeight - gap;
+    const top = below + panelHeight <= window.innerHeight - viewportMargin
+      ? below
+      : Math.max(viewportMargin, above);
     panel.style.position = "fixed";
     panel.style.inset = "auto";
     panel.style.margin = "0";
-    panel.style.left = `${Math.max(8, rect.right - panel.offsetWidth)}px`;
-    panel.style.top = `${rect.bottom + 4}px`;
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
   };
   const render = () => {
     const box = ensurePanel();
@@ -123,7 +136,9 @@ document.addEventListener("DOMContentLoaded", () => {
     panel.hidden = false;
     position(); field.focus();
   };
-  fields.forEach((field) => {
+  const bindField = (field) => {
+    if (field.dataset.datePickerBound === "true") return;
+    field.dataset.datePickerBound = "true";
     field.addEventListener("input", () => {
       const digits = field.value.replace(/\D/g, "").slice(0, 8);
       field.value = digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}` : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
@@ -143,7 +158,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (event.key === "Enter") { event.preventDefault(); sync(field); }
     });
-  });
+  };
+  fields.forEach(bindField);
+  new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
+      if (!(node instanceof Element)) return;
+      if (node.matches("[data-filter-date-display]")) bindField(node);
+      node.querySelectorAll("[data-filter-date-display]").forEach(bindField);
+    }));
+  }).observe(document.body, { childList: true, subtree: true });
   document.querySelectorAll("form").forEach((form) => {
     form.addEventListener("submit", () => {
       form.querySelectorAll("[data-filter-date-display]").forEach((field) => {

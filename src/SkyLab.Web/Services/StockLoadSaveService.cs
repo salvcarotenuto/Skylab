@@ -120,7 +120,7 @@ public sealed class StockLoadSaveService(SkyLabDatabaseOptions databaseOptions, 
         var price = Math.Round(row.Price, 4, MidpointRounding.AwayFromZero);
         var discount = Math.Round(row.Discount, 4, MidpointRounding.AwayFromZero);
         var amount = Math.Round(quantity * price * (1m - discount / 100m), 2, MidpointRounding.AwayFromZero);
-        return row with { RowNumber = number, ArticleCode = row.ArticleCode.Trim(), UnitMeasure = row.UnitMeasure.Trim(), Quantity = quantity, Price = price, Discount = discount, Amount = amount, VatRate = Math.Round(row.VatRate, 2, MidpointRounding.AwayFromZero) };
+        return row with { RowNumber = number, ArticleCode = row.ArticleCode.Trim(), UnitMeasure = row.UnitMeasure.Trim(), Quantity = quantity, Price = price, Discount = discount, Amount = amount, VatRate = Math.Round(row.VatRate, 2, MidpointRounding.AwayFromZero), VatCode = row.VatCode?.Trim() ?? "" };
     }
 
     private static async Task<ExistingDocument?> ExistingAsync(MySqlConnection connection, MySqlTransaction transaction, int id, CancellationToken ct)
@@ -198,12 +198,12 @@ public sealed class StockLoadSaveService(SkyLabDatabaseOptions databaseOptions, 
     {
         foreach (var row in rows)
         {
-            const string detailStatement = "INSERT INTO caricorg (ID,Anno,Codice,Riga,Articolo,Um,Quantita,Prezzo,Sconto,PrNetto,Importo) VALUES (@id,@year,@code,@row,@article,@unit,@quantity,@price,@discount,@netPrice,@amount);";
+            const string detailStatement = "INSERT INTO caricorg (ID,Anno,Codice,Riga,Articolo,Um,Quantita,Prezzo,Sconto,PrNetto,Importo,CodIva,AliqIva) VALUES (@id,@year,@code,@row,@article,@unit,@quantity,@price,@discount,@netPrice,@amount,@vatCode,@vatRate);";
             await using (var detail = new MySqlCommand(detailStatement, connection, transaction))
             {
                 detail.Parameters.AddWithValue("@id", id); detail.Parameters.AddWithValue("@year", command.Year); detail.Parameters.AddWithValue("@code", code); detail.Parameters.AddWithValue("@row", row.RowNumber);
                 detail.Parameters.AddWithValue("@article", row.ArticleCode); detail.Parameters.AddWithValue("@unit", row.UnitMeasure);
-                detail.Parameters.AddWithValue("@quantity", row.Quantity); detail.Parameters.AddWithValue("@price", row.Price); detail.Parameters.AddWithValue("@discount", row.Discount); detail.Parameters.AddWithValue("@netPrice", row.Price * (1m - row.Discount / 100m)); detail.Parameters.AddWithValue("@amount", row.Amount);
+                detail.Parameters.AddWithValue("@quantity", row.Quantity); detail.Parameters.AddWithValue("@price", row.Price); detail.Parameters.AddWithValue("@discount", row.Discount); detail.Parameters.AddWithValue("@netPrice", row.Price * (1m - row.Discount / 100m)); detail.Parameters.AddWithValue("@amount", row.Amount); detail.Parameters.AddWithValue("@vatCode", string.IsNullOrWhiteSpace(row.VatCode) ? DBNull.Value : row.VatCode); detail.Parameters.AddWithValue("@vatRate", row.VatRate);
                 await detail.ExecuteNonQueryAsync(ct);
             }
             const string movementStatement = "INSERT INTO movimenti (Anno,Settore,Codice,Riga,Causale,DataMov,NumDoc,DataDoc,TipoMov,ULocale,Articolo,CliFor,Ditta,Quantita,Prezzo,Importo) VALUES (@year,@sector,@code,@row,@cause,@date,@number,@date,@movementType,@store,@article,@partyType,@party,@quantity,@netPrice,@amount);";
@@ -236,6 +236,6 @@ public sealed class StockLoadSaveCommand
     public IReadOnlyList<StockLoadSaveRow> Rows { get; set; } = [];
 }
 
-public sealed record StockLoadSaveRow(int RowNumber, string ArticleCode, string Description, string UnitMeasure, decimal Quantity, decimal Price, decimal Discount, decimal Amount, decimal VatRate, int ArticleState);
+public sealed record StockLoadSaveRow(int RowNumber, string ArticleCode, string Description, string UnitMeasure, decimal Quantity, decimal Price, decimal Discount, decimal Amount, decimal VatRate, int ArticleState, string VatCode = "");
 public sealed record StockLoadCheckResult(bool Success, string Message, IReadOnlyList<string> MissingArticles, bool IsDuplicate);
 public sealed record StockLoadSaveResult(bool Success, string Message, int Id, int Code, IReadOnlyList<string> MissingArticles, bool RequiresMissingConfirmation, bool RequiresDuplicateConfirmation);

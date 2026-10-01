@@ -66,7 +66,7 @@ public sealed class SchedeModel(WorkService service) : PageModel
         if(work is null||work.CompletedOn is null||work.InvoiceId is not null)return NotFound();
         var details=await service.ActualDetailsAsync(id,cancellationToken);
         var references=await service.WorkReferencesAsync(cancellationToken);
-        var vatRates=await service.ArticleVatRatesAsync(cancellationToken);
+        var vatDetails=await service.ArticleVatDetailsAsync(cancellationToken);
         var services=details.Where(x=>x.Type=="P").ToArray();
         var materials=details.Where(x=>x.Type=="A").Select(row=>
         {
@@ -79,7 +79,8 @@ public sealed class SchedeModel(WorkService service) : PageModel
                 quantity=row.Quantity,
                 unitPrice=row.UnitPrice,
                 amount=row.Amount,
-                vatRate=vatRates.TryGetValue(row.Reference,out var vatRate)?vatRate:null
+                vatRate=vatDetails.TryGetValue(row.Reference,out var vatDetail)?vatDetail.Rate:null,
+                vatCode=vatDetails.TryGetValue(row.Reference,out vatDetail)?vatDetail.Code:""
             };
         }).ToArray();
         var activity=services.Length==0

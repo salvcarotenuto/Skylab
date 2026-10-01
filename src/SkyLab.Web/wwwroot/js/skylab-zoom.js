@@ -47,6 +47,23 @@
     overlay.querySelector("[data-skylab-zoom-cancel]").addEventListener("click", cancel);
     overlay.addEventListener("cancel", event => { event.preventDefault(); cancel(); });
     overlay.addEventListener("keydown", event => {
+      const editingSearch = event.target === search;
+      if (!editingSearch && !event.altKey && !event.ctrlKey && !event.metaKey && event.key.length === 1) {
+        event.preventDefault();
+        event.stopPropagation();
+        search.value += event.key;
+        search.focus();
+        applyFilter();
+        return;
+      }
+      if (!editingSearch && !event.altKey && !event.ctrlKey && !event.metaKey && event.key === "Backspace" && search.value) {
+        event.preventDefault();
+        event.stopPropagation();
+        search.value = search.value.slice(0, -1);
+        search.focus();
+        applyFilter();
+        return;
+      }
       const action = {
         Escape: cancel,
         ArrowDown: () => move(1),

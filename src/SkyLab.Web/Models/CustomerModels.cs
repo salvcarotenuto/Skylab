@@ -152,7 +152,7 @@ public sealed record OperationalSiteGroup(
 
 public sealed record ArticleChoice(
     string Code, string Description, short CategoryCode, string Category,
-    decimal Price, short DurationDays, decimal DailyConsumption, string UnitMeasure, decimal VatRate);
+    decimal Price, short DurationDays, decimal DailyConsumption, string UnitMeasure, decimal VatRate, string VatCode);
 public sealed record ArticleListItem(
     string Code, string Description, short CategoryCode, string Category,
     short GroupCode, string Group, short BrandCode, string Brand, string SalesUnit,

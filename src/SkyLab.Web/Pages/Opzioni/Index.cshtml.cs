@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using SkyLab.Web.Services;
 using SkyLab.Web.Data;
 using MySqlConnector;
 using System.Reflection;
 namespace SkyLab.Web.Pages.Opzioni;
 
-public sealed class IndexModel(CustomerService customerService, SkyLabDatabase database, SmtpConnectionTester smtpTester) : PageModel
+public sealed class IndexModel(CustomerService customerService, SkyLabDatabase database, SmtpConnectionTester smtpTester, IWebHostEnvironment environment) : PageModel
 {
     private static readonly PropertyInfo[] OptionProperties =
         typeof(OptionsDraftModel).GetProperties(BindingFlags.Instance | BindingFlags.Public);
@@ -16,18 +17,111 @@ public sealed class IndexModel(CustomerService customerService, SkyLabDatabase d
     public OptionsDraftModel Options { get; set; } = new();
     [BindProperty]
     public int ActiveTab { get; set; }
+    [BindProperty]
+    public IFormFile? StampaLogoFile { get; set; }
+    [BindProperty]
+    public bool StampaLogoDelete { get; set; }
+    public string LogoPreviewSource { get; private set; } = "";
+    public IReadOnlyList<SelectListItem> RegimiFiscali { get; private set; } = [];
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await customerService.StandardSalesVatRateAsync(cancellationToken);
         Options = await LoadOptionsAsync(cancellationToken);
+        Options.FeMatriceNomeXml = BuildXmlMatrix(Options);
+        RegimiFiscali = await LoadRegimiFiscaliAsync(cancellationToken);
+        LogoPreviewSource = BuildLogoPreviewSource(Options);
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
         NormalizeOptions(Options);
+        if (!await ApplyCompanyLogoAsync(cancellationToken))
+        {
+            ActiveTab = 7;
+            RegimiFiscali = await LoadRegimiFiscaliAsync(cancellationToken);
+            LogoPreviewSource = BuildLogoPreviewSource(Options);
+            return Page();
+        }
         await SaveOptionsAsync(Options, cancellationToken);
         return RedirectToPage("/Index");
+    }
+
+    private async Task<bool> ApplyCompanyLogoAsync(CancellationToken cancellationToken)
+    {
+        if (StampaLogoDelete)
+        {
+            Options.StampaLogoImg = "";
+            Options.StampaLogoMime = "";
+            Options.StampaLogoNome = "";
+        }
+
+        if (StampaLogoFile is null || StampaLogoFile.Length == 0) return true;
+        if (StampaLogoFile.Length > 2 * 1024 * 1024)
+        {
+            ModelState.AddModelError(nameof(StampaLogoFile), "L'immagine non può superare 2 MB.");
+            return false;
+        }
+
+        await using var stream = new MemoryStream();
+        await StampaLogoFile.CopyToAsync(stream, cancellationToken);
+        var bytes = stream.ToArray();
+        var mime = DetectImageMime(bytes);
+        if (mime is null)
+        {
+            ModelState.AddModelError(nameof(StampaLogoFile), "Selezionare un'immagine PNG, JPG, GIF o WEBP valida.");
+            return false;
+        }
+
+        var directory = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "App_Data", "Company", "Print"));
+        Directory.CreateDirectory(directory);
+        var fileName = Path.GetFileName(StampaLogoFile.FileName);
+        if (string.IsNullOrWhiteSpace(fileName)) fileName = $"LogoAzienda{ImageExtension(mime)}";
+        var fullName = Path.GetFullPath(Path.Combine(directory, fileName));
+        if (!fullName.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(nameof(StampaLogoFile), "Nome del file immagine non valido.");
+            return false;
+        }
+        await System.IO.File.WriteAllBytesAsync(fullName, bytes, cancellationToken);
+
+        Options.StampaLogoImg = fullName;
+        Options.StampaLogoMime = mime;
+        Options.StampaLogoNome = fileName;
+        return true;
+    }
+
+    private static string ImageExtension(string mime) => mime switch
+    {
+        "image/jpeg" => ".jpg",
+        "image/gif" => ".gif",
+        "image/webp" => ".webp",
+        _ => ".png"
+    };
+
+    private static string BuildLogoPreviewSource(OptionsDraftModel options)
+    {
+        var fullName = options.StampaLogoImg?.Trim() ?? "";
+        if (fullName.Length == 0 || !System.IO.File.Exists(fullName)) return "";
+        try
+        {
+            var bytes = System.IO.File.ReadAllBytes(fullName);
+            var mime = DetectImageMime(bytes) ?? options.StampaLogoMime ?? "image/png";
+            return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    private static string? DetectImageMime(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length >= 8 && bytes[..8].SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })) return "image/png";
+        if (bytes.Length >= 3 && bytes[0] == 255 && bytes[1] == 216 && bytes[2] == 255) return "image/jpeg";
+        if (bytes.Length >= 6 && (System.Text.Encoding.ASCII.GetString(bytes[..6]) is "GIF87a" or "GIF89a")) return "image/gif";
+        if (bytes.Length >= 12 && System.Text.Encoding.ASCII.GetString(bytes[..4]) == "RIFF" && System.Text.Encoding.ASCII.GetString(bytes.Slice(8, 4)) == "WEBP") return "image/webp";
+        return null;
     }
 
     public async Task<JsonResult> OnGetCitiesAsync(string? q, CancellationToken cancellationToken) =>
@@ -62,6 +156,25 @@ public sealed class IndexModel(CustomerService customerService, SkyLabDatabase d
         }
 
         return options;
+    }
+
+    private async Task<IReadOnlyList<SelectListItem>> LoadRegimiFiscaliAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand(
+            "SELECT Codice, COALESCE(Descrizione, '') AS Descrizione FROM feregimif ORDER BY Codice;",
+            connection);
+
+        var items = new List<SelectListItem>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(new SelectListItem(
+                $"{reader.GetString("Codice")} - {reader.GetString("Descrizione")}",
+                reader.GetString("Codice")));
+        }
+
+        return items;
     }
 
     private async Task SaveOptionsAsync(OptionsDraftModel options, CancellationToken cancellationToken)
@@ -114,6 +227,10 @@ private static async Task SaveOptionAsync(
         options.CodiceFiscale = NormalizeCode(options.CodiceFiscale, 16);
         options.PartitaIva = Digits(options.PartitaIva, 11);
         options.SiglaStato = NormalizeLetters(options.SiglaStato, 2);
+        options.SedeOperativaNazione = NormalizeLetters(options.SedeOperativaNazione, 2);
+        options.FeMatriceNomeXml = BuildXmlMatrix(options);
+        options.FeUltimoSerialeNomeFile = Digits(options.FeUltimoSerialeNomeFile, 8);
+        options.FeUltimoProgressivoInvioXml = NormalizeCode(options.FeUltimoProgressivoInvioXml, 10);
         options.SedeLegaleProvincia = NormalizeLetters(options.SedeLegaleProvincia, 2);
         options.SedeOperativaProvincia = NormalizeLetters(options.SedeOperativaProvincia, 2);
         options.SedeLegaleCap = Digits(options.SedeLegaleCap, 5);
@@ -128,6 +245,9 @@ private static async Task SaveOptionAsync(
             ? parsed.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture)
             : fallback.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture);
     }
+
+    private static string BuildXmlMatrix(OptionsDraftModel options) =>
+        NormalizeLetters(options.SiglaStato, 2) + Digits(options.PartitaIva, 11);
 
     private static string NormalizeCode(string? value, int maxLength) =>
         new((value ?? "")
@@ -187,6 +307,8 @@ public sealed class OptionsDraftModel
     public string? FeCodiceSdiAzienda { get; set; }
     public string? FePecDestinazioneSdi { get; set; }
     public string? FeMatriceNomeXml { get; set; }
+    public string? FeUltimoSerialeNomeFile { get; set; }
+    public string? FeUltimoProgressivoInvioXml { get; set; }
     public string? FeRegimeFiscale { get; set; }
     public string? FeTipoRitenuta { get; set; }
     public string? FeCausaleRitenuta { get; set; }
@@ -219,7 +341,10 @@ public sealed class OptionsDraftModel
     public string? StampaFontName { get; set; }
     public string? StampaFontSize { get; set; }
     public string? StampaAlign { get; set; }
-    public string? TimbroTxt { get; set; }
+    public string? StampaCorsivo { get; set; }
+    public string? StampaLogoImg { get; set; }
+    public string? StampaLogoMime { get; set; }
+    public string? StampaLogoNome { get; set; }
     public string? PartitaIva { get; set; }
     public string? NumeroRea { get; set; }
     public string? Telefono { get; set; }

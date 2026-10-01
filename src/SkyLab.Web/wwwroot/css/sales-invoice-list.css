@@ -78,7 +78,7 @@
     line-height: 40px;
     padding: 0;
     text-decoration: none;
-    width: 140px;
+    width: 125px;
 }
 
 .sales-invoices-page .purchase-invoices-records {
@@ -227,5 +227,34 @@
 .sales-invoices-page a.btn:focus-visible {
     border-color: #2f6faa;
     box-shadow: 0 0 0 1px rgba(47, 111, 170, .28);
+    outline: none;
+}
+
+.sales-invoices-grid {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.sales-invoices-grid th:nth-child(1) { width: 90px; }
+.sales-invoices-grid th:nth-child(2) { width: 110px; }
+.sales-invoices-grid th:nth-child(3) { width: 100px; }
+.sales-invoices-grid th:nth-child(4) { width: 165px; }
+.sales-invoices-grid th:nth-child(5) { width: 80px; }
+.sales-invoices-grid th:nth-child(7) { width: 110px; }
+.sales-invoices-grid th:nth-child(8) { width: 100px; }
+.sales-invoices-grid th:nth-child(9) { width: 110px; }
+.sales-invoices-grid th:nth-child(10) { width: 180px; }
+.sales-invoice-fe-cell { align-items: center; display: flex; gap: 4px; min-width: 0; padding: 2px 4px !important; white-space: nowrap; }
+.sales-invoice-fe-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sales-invoice-fe-view { align-items: center; display: inline-flex; flex: 0 0 42px; height: 21px; justify-content: center; line-height: 21px; min-width: 42px; padding: 0 5px; vertical-align: middle; }
+
+.sales-invoices-grid tbody tr.selected td,
+.sales-invoices-grid tbody tr.selected-row td {
+    background: #b8cbe0;
+    color: #173b65;
+}
+
+.sales-invoices-grid tbody tr:focus,
+.sales-invoices-grid tbody tr:focus-visible {
     outline: none;
 }

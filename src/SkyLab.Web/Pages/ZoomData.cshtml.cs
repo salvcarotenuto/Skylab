@@ -64,7 +64,7 @@ public sealed class ZoomDataModel(CustomerService customers) : PageModel
             defaultSort = "description",
             columns = new object[]
             {
-                new { key = "code", label = "Codice", width = "180px" },
+                new { key = "code", label = "Codice", width = "180px", align = "left" },
                 new { key = "description", label = "Descrizione" },
                 new { key = "category", label = "Categoria", width = "220px" },
                 new { key = "price", label = "Prezzo", type = "number", width = "120px", align = "right" }
@@ -78,6 +78,7 @@ public sealed class ZoomDataModel(CustomerService customers) : PageModel
                 price = article.Price,
                 unitMeasure = article.UnitMeasure,
                 vatRate = article.VatRate,
+                vatCode = article.VatCode,
                 duration = article.DurationDays,
                 consumption = article.DailyConsumption
             })

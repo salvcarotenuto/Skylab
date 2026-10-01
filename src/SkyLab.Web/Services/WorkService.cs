@@ -155,7 +155,8 @@ public sealed class WorkService(SkyLab.Web.Data.SkyLabDatabaseOptions options)
     {
         const string sql = """
             SELECT l.ID,l.Anno,l.Codice,l.Cliente,COALESCE(c.Nome,''),l.DataInterventoEffettiva,
-                   COALESCE(l.AttivitaEseguita,''),COALESCE(l.ImportoRichiesto,0)
+                   COALESCE(NULLIF(TRIM(l.AttivitaEseguita),''),NULLIF(TRIM(l.DescrizioneSintetica),''),''),
+                   COALESCE(l.ImportoRichiesto,0)
             FROM Lavori l
             LEFT JOIN Clienti c ON c.Codice=l.Cliente
             WHERE l.DataInterventoEffettiva IS NOT NULL
@@ -356,13 +357,13 @@ public sealed class WorkService(SkyLab.Web.Data.SkyLabDatabaseOptions options)
         return x;
     }
 
-    public async Task<IReadOnlyDictionary<string,decimal?>> ArticleVatRatesAsync(CancellationToken ct)
+    public async Task<IReadOnlyDictionary<string,(string Code, decimal? Rate)>> ArticleVatDetailsAsync(CancellationToken ct)
     {
-        var result=new Dictionary<string,decimal?>(StringComparer.OrdinalIgnoreCase);
+        var result=new Dictionary<string,(string Code, decimal? Rate)>(StringComparer.OrdinalIgnoreCase);
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
-        await using var cmd=new MySqlCommand("SELECT a.Codice,CASE WHEN i.Codice IS NULL THEN NULL ELSE i.Aliquota END FROM Articoli a LEFT JOIN Codiciiva i ON i.Codice=a.Codiva",cn);
+        await using var cmd=new MySqlCommand("SELECT a.Codice,COALESCE(a.Codiva,''),CASE WHEN i.Codice IS NULL THEN NULL ELSE i.Aliquota END FROM Articoli a LEFT JOIN Codiciiva i ON i.Codice=a.Codiva",cn);
         await using var r=await cmd.ExecuteReaderAsync(ct);
-        while(await r.ReadAsync(ct))result[r.GetString(0)]=r.IsDBNull(1)?null:r.GetDecimal(1);
+        while(await r.ReadAsync(ct))result[r.GetString(0)]=(r.GetString(1),r.IsDBNull(2)?null:r.GetDecimal(2));
         return result;
     }
 

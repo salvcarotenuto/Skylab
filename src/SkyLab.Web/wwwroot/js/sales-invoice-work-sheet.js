@@ -19,7 +19,7 @@
   const loadDetails=async workId=>{
     const response=await fetch(`/Lavori/Schede?handler=InvoiceCandidate&id=${encodeURIComponent(workId)}`,{headers:{Accept:"application/json"}});if(!response.ok)throw new Error();const detail=await response.json();
     activity.value=detail.activity||"";activity.scrollTop=0;amount.value=window.SkyLabDecimal?.format(detail.serviceTotal,2)??number(detail.serviceTotal);
-    if(!linesBody)return;linesBody.replaceChildren();detail.materials.forEach(material=>{const row=document.createElement("tr");row.dataset.articleCode=material.code;const vatRate=material.vatRate??standardRate;row.innerHTML=`<td>${material.code||""}</td><td>${material.description||""}</td><td>${material.unit||""}</td><td>${number(material.quantity,3)}</td><td>${number(material.unitPrice,2)}</td><td>${number(0,2)}</td><td>${number(material.amount,2)}</td><td>${number(vatRate,2)}%</td><td hidden data-article-state>1</td>`;linesBody.append(row)});recalculate();
+    if(!linesBody)return;linesBody.replaceChildren();detail.materials.forEach(material=>{const row=document.createElement("tr");row.dataset.articleCode=material.code;const vatRate=material.vatRate??standardRate;row.innerHTML=`<td>${material.code||""}</td><td>${material.description||""}</td><td>${material.unit||""}</td><td>${number(material.quantity,3)}</td><td>${number(material.unitPrice,2)}</td><td>${number(0,2)}</td><td>${number(material.amount,2)}</td><td>${number(vatRate,2)}%</td><td hidden data-article-state>1</td><td hidden data-vat-code>${material.vatCode||""}</td>`;linesBody.append(row)});recalculate();
   };
   button.addEventListener("click",async()=>{
     const item=await window.SkyLabWorkSheetZoom?.open({customer:Number.parseInt(customerCode?.value||"0",10)||0});if(!item)return;
@@ -27,6 +27,61 @@
     if(customerCode)customerCode.value=String(item.customerId).padStart(5,"0");if(customerName)customerName.value=item.customer||"";
     try{await loadDetails(item.id)}catch{activity.value=item.workPerformed||"";amount.value=window.SkyLabDecimal?.format(item.requestedAmount,2)??String(item.requestedAmount).replace(".",",")}
   });
-  viewButton.addEventListener("click",()=>{if(viewButton.disabled||!id.value||id.value==="0")return;let viewer=document.querySelector("[data-sales-invoice-work-viewer]");if(!viewer){viewer=document.createElement("dialog");viewer.className="sales-invoice-work-viewer";viewer.dataset.salesInvoiceWorkViewer="";viewer.innerHTML=`<div class="sales-invoice-work-viewer-title"><span>Scheda lavoro</span><button type="button" aria-label="Chiudi">×</button></div><iframe title="Scheda lavoro"></iframe>`;document.body.append(viewer);viewer.querySelector("button").addEventListener("click",()=>viewer.close());viewer.addEventListener("cancel",event=>{event.preventDefault();viewer.close()})}viewer.querySelector("iframe").src=`/Lavori/Scheda?id=${encodeURIComponent(id.value)}&azione=101`;viewer.showModal()});
+  viewButton.addEventListener("click", () => {
+    if (viewButton.disabled || !(Number(id.value) > 0)) return;
+    let viewer = document.querySelector("[data-sales-invoice-work-viewer]");
+    if (!viewer) {
+      viewer = document.createElement("dialog");
+      viewer.dataset.salesInvoiceWorkViewer = "";
+      viewer.setAttribute("aria-label", "Scheda lavoro");
+      viewer.style.cssText = "position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:white";
+      const frame = document.createElement("iframe");
+      frame.title = "Scheda lavoro";
+      frame.style.cssText = "display:block;width:100%;height:100%;border:0";
+      const close = () => { viewer.close(); viewButton.focus(); };
+      frame.addEventListener("load", () => {
+        const doc = frame.contentDocument;
+        if (!doc) return;
+        doc.querySelectorAll("input, select, textarea").forEach(control => {
+          control.disabled = true;
+          control.tabIndex = -1;
+        });
+        doc.querySelectorAll("button").forEach(control => {
+          if (control.matches("[data-work-tab]")) return;
+          control.disabled = true;
+          control.tabIndex = -1;
+        });
+        doc.addEventListener("submit", event => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }, true);
+        doc.addEventListener("click", event => {
+          const exit = event.target.closest(".customer-form-toolbar a, .skylab-header-brand");
+          if (!exit) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          close();
+        }, true);
+        doc.addEventListener("keydown", event => {
+          if (event.key !== "Escape" || doc.querySelector("dialog[open]")) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          close();
+        }, true);
+      });
+      viewer.append(frame);
+      document.body.append(viewer);
+      viewer.addEventListener("cancel", event => { event.preventDefault(); close(); });
+    }
+    viewer.querySelector("iframe").src = `/Lavori/Scheda?id=${encodeURIComponent(id.value)}&azione=101`;
+    viewer.showModal();
+  });
   amount.addEventListener("input",recalculate);amount.addEventListener("change",recalculate);workVat?.addEventListener("input",recalculate);workVat?.addEventListener("change",recalculate);workVat?.addEventListener("blur",()=>{const value=Math.min(100,Math.max(0,parse(workVat.value)));setTimeout(()=>{workVat.value=`${number(value)} %`;recalculate()},0)});linesBody?.addEventListener("input",recalculate);linesBody?.addEventListener("change",recalculate);if(linesBody)new MutationObserver(()=>recalculate()).observe(linesBody,{subtree:true,childList:true,characterData:true});window.SkyLabSalesInvoiceTotals={recalculate};recalculate();
+  const updateViewButton = () => { viewButton.disabled = !(Number(id.value) > 0); };
+  id.addEventListener("change", updateViewButton);
+  window.SkyLabSalesInvoiceTotals.recalculate = (...args) => {
+    updateViewButton();
+    return recalculate(...args);
+  };
+  updateViewButton();
 })();

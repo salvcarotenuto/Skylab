@@ -63,7 +63,7 @@
 }
 
 #options-form .options-fe-grid .field {
-    grid-template-columns: 158px minmax(0, 1fr) !important;
+    grid-template-columns: 198px minmax(0, 1fr) !important;
 }
 #options-form .options-billing-grid {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -207,7 +207,7 @@
         </div>
     </header>
 
-    <form id="options-form" method="post" novalidate data-enter-navigation>
+    <form id="options-form" method="post" enctype="multipart/form-data" novalidate data-enter-navigation>
         <input asp-for="ActiveTab" type="hidden" data-options-active-tab />
         <section class="options-shell">
             <aside class="options-navigation" role="tablist" aria-label="Sezioni opzioni">
@@ -244,7 +244,7 @@
                             <div class="field field-short"><label asp-for="Options.SedeLegaleCap">CAP</label><input asp-for="Options.SedeLegaleCap" maxlength="5" inputmode="numeric" autocomplete="off" data-options-postal-code="legal" /></div>
                             <div class="field"><label asp-for="Options.SedeLegaleIndirizzo">Indirizzo</label><input asp-for="Options.SedeLegaleIndirizzo" maxlength="80" autocomplete="off" /></div>
                             <div class="field options-pec-field"><label asp-for="Options.AzPec">PEC</label><input asp-for="Options.AzPec" maxlength="100" autocomplete="off" /></div>
-                            <div class="field options-country-field"><label asp-for="Options.SiglaStato">Sigla stato</label><input asp-for="Options.SiglaStato" maxlength="2" autocomplete="off" data-options-state-code /></div>
+                            <div class="field options-country-field"><label asp-for="Options.SiglaStato">Sigla stato</label><input asp-for="Options.SiglaStato" maxlength="2" autocomplete="off" autocapitalize="characters" data-options-state-code="legal" /></div>
                         </div>
                     </fieldset>
                     <fieldset class="form-frame compact-frame options-frame">
@@ -255,7 +255,7 @@
                             <div class="field field-short"><label asp-for="Options.SedeOperativaCap">CAP</label><input asp-for="Options.SedeOperativaCap" maxlength="5" inputmode="numeric" autocomplete="off" data-options-postal-code="operational" /></div>
                             <div class="field"><label asp-for="Options.SedeOperativaIndirizzo">Indirizzo</label><input asp-for="Options.SedeOperativaIndirizzo" maxlength="80" autocomplete="off" /></div>
                             <div class="field options-pec-field"><label asp-for="Options.AzEmail">E-mail</label><input asp-for="Options.AzEmail" maxlength="100" autocomplete="off" /></div>
-                            <div class="field options-country-field"><label asp-for="Options.SedeOperativaNazione">Nazione</label><input asp-for="Options.SedeOperativaNazione" maxlength="50" autocomplete="off" /></div>
+                            <div class="field options-country-field"><label asp-for="Options.SedeOperativaNazione">Sigla stato</label><input asp-for="Options.SedeOperativaNazione" maxlength="2" autocomplete="off" autocapitalize="characters" data-options-state-code /></div>
                         </div>
                     </fieldset>
                 </section>
@@ -301,10 +301,12 @@
 
                 <section class="options-tab-panel" role="tabpanel" data-options-panel="4">
                     <fieldset class="form-frame compact-frame options-frame"><legend>Fattura elettronica</legend><div class="options-grid options-fe-grid">
-                        <div class="field"><label asp-for="Options.FeCodiceSdiAzienda">Codice SDI</label><input asp-for="Options.FeCodiceSdiAzienda" maxlength="7" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FeCodiceSdiAzienda">Codice SDI azienda</label><input asp-for="Options.FeCodiceSdiAzienda" maxlength="7" autocomplete="off" /></div>
                         <div class="field"><label asp-for="Options.FePecDestinazioneSdi">PEC SDI</label><input asp-for="Options.FePecDestinazioneSdi" maxlength="100" autocomplete="off" /></div>
-                        <div class="field"><label asp-for="Options.FeMatriceNomeXml">Matrice XML</label><input asp-for="Options.FeMatriceNomeXml" maxlength="40" autocomplete="off" /></div>
-                        <div class="field"><label asp-for="Options.FeRegimeFiscale">Regime fiscale</label><input asp-for="Options.FeRegimeFiscale" maxlength="10" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FeMatriceNomeXml">Matrice XML</label><input asp-for="Options.FeMatriceNomeXml" readonly tabindex="-1" style="background-color:#e6e7eb!important;cursor:default;user-select:none;-webkit-user-select:none" onfocus="this.blur()" onmousedown="return false" data-options-xml-matrix /></div>
+                        <div class="field"><label asp-for="Options.FeUltimoSerialeNomeFile">Ultimo seriale nome file</label><input asp-for="Options.FeUltimoSerialeNomeFile" maxlength="8" inputmode="numeric" autocomplete="off" data-options-file-serial /></div>
+                        <div class="field"><label asp-for="Options.FeUltimoProgressivoInvioXml">Ultimo ProgressivoInvio XML</label><input asp-for="Options.FeUltimoProgressivoInvioXml" maxlength="10" autocomplete="off" /></div>
+                        <div class="field"><label asp-for="Options.FeRegimeFiscale">Regime fiscale</label><select asp-for="Options.FeRegimeFiscale" asp-items="Model.RegimiFiscali"><option value=""></option></select></div>
                         <div class="field"><label asp-for="Options.FeTipoRitenuta">Tipo ritenuta</label><input asp-for="Options.FeTipoRitenuta" maxlength="10" autocomplete="off" /></div>
                         <div class="field"><label asp-for="Options.FeCausaleRitenuta">Causale ritenuta</label><input asp-for="Options.FeCausaleRitenuta" maxlength="10" autocomplete="off" /></div>
                     </div></fieldset>
@@ -319,7 +321,7 @@
                         <div class="field"><label asp-for="Options.MailOrdSicurezza">Sicurezza</label><select asp-for="Options.MailOrdSicurezza"><option value=""></option><option value="1">Nessuna</option><option value="2">STARTTLS</option><option value="3">SSL/TLS</option></select></div>
                         <div class="field"><label asp-for="Options.MailOrdAutenticazione">Autenticazione</label><select asp-for="Options.MailOrdAutenticazione"><option value=""></option><option value="0">No</option><option value="1">Si</option></select></div>
                         <div class="field"><label asp-for="Options.MailOrdUsername">Username</label><input asp-for="Options.MailOrdUsername" maxlength="100" autocomplete="off" /></div>
-                        <div class="field"><label asp-for="Options.MailOrdPassword">Password</label><input asp-for="Options.MailOrdPassword" maxlength="100" autocomplete="off" type="password" /></div><div class="field field-full options-mail-test-row"><span></span><button class="options-mail-test-button" type="button" data-options-mail-test="ord">Test connessione</button></div>
+                        <div class="field"><label for="Options_MailOrdPassword">Password</label><input id="Options_MailOrdPassword" name="Options.MailOrdPassword" value="@Model.Options.MailOrdPassword" maxlength="100" autocomplete="new-password" type="password" /></div><div class="field field-full options-mail-test-row"><span></span><button class="options-mail-test-button" type="button" data-options-mail-test="ord">Test connessione</button></div>
                     </div></fieldset>
                     <fieldset class="form-frame compact-frame options-frame"><legend>Posta elettronica certificata</legend><div class="options-grid options-mail-grid">
                         <div class="field"><label asp-for="Options.MailPecNomeMittente">Nome mittente</label><input asp-for="Options.MailPecNomeMittente" maxlength="100" autocomplete="off" /></div>
@@ -329,7 +331,7 @@
                         <div class="field"><label asp-for="Options.MailPecSicurezza">Sicurezza</label><select asp-for="Options.MailPecSicurezza"><option value=""></option><option value="1">Nessuna</option><option value="2">STARTTLS</option><option value="3">SSL/TLS</option></select></div>
                         <div class="field"><label asp-for="Options.MailPecAutenticazione">Autenticazione</label><select asp-for="Options.MailPecAutenticazione"><option value=""></option><option value="0">No</option><option value="1">Si</option></select></div>
                         <div class="field"><label asp-for="Options.MailPecUsername">Username</label><input asp-for="Options.MailPecUsername" maxlength="100" autocomplete="off" /></div>
-                        <div class="field"><label asp-for="Options.MailPecPassword">Password</label><input asp-for="Options.MailPecPassword" maxlength="100" autocomplete="off" type="password" /></div><div class="field field-full options-mail-test-row"><span></span><button class="options-mail-test-button" type="button" data-options-mail-test="pec">Test connessione</button></div>
+                        <div class="field"><label for="Options_MailPecPassword">Password</label><input id="Options_MailPecPassword" name="Options.MailPecPassword" value="@Model.Options.MailPecPassword" maxlength="100" autocomplete="new-password" type="password" /></div><div class="field field-full options-mail-test-row"><span></span><button class="options-mail-test-button" type="button" data-options-mail-test="pec">Test connessione</button></div>
                     </div></fieldset>
                 </section>
 
@@ -345,11 +347,47 @@
 
                 <section class="options-tab-panel" role="tabpanel" data-options-panel="7">
                     <fieldset class="form-frame compact-frame options-frame"><legend>Parametri di stampa</legend><div class="options-grid options-print-grid">
-                        <div class="field field-full options-textarea-field"><label asp-for="Options.StampaDatiAzienda">Dati azienda</label><textarea asp-for="Options.StampaDatiAzienda" maxlength="500" rows="5"></textarea></div>
-                        <div class="field"><label asp-for="Options.StampaFontName">Font</label><select asp-for="Options.StampaFontName"><option value=""></option><option>Arial</option><option>Calibri</option><option>Consolas</option><option>Courier New</option><option>Microsoft Sans Serif</option><option>Segoe UI</option><option>Times New Roman</option></select></div>
-                        <div class="field field-short"><label asp-for="Options.StampaFontSize">Dimensione</label><select asp-for="Options.StampaFontSize"><option value=""></option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>26</option><option>28</option><option>36</option><option>48</option><option>72</option></select></div>
-                        <div class="field"><label asp-for="Options.StampaAlign">Allineamento</label><select asp-for="Options.StampaAlign"><option value=""></option><option value="0">Sinistra</option><option value="1">Centro</option><option value="2">Destra</option></select></div>
-                        <div class="field field-full options-textarea-field"><label asp-for="Options.TimbroTxt">Timbro</label><textarea asp-for="Options.TimbroTxt" maxlength="500" rows="5"></textarea></div>
+                        <div class="options-print-heading-row" style="display:grid;gap:12px;grid-column:1/-1;grid-template-columns:582px minmax(280px,1fr);align-items:start">
+                            <div class="field options-textarea-field options-company-print-data" style="grid-template-columns:132px 450px!important;justify-content:start"><label asp-for="Options.StampaDatiAzienda" style="height:150px!important;min-height:150px!important">Dati azienda</label><textarea asp-for="Options.StampaDatiAzienda" maxlength="500" rows="5" style="box-sizing:border-box!important;height:150px!important;min-height:150px!important;resize:none!important;width:450px!important"></textarea></div>
+                            <div class="options-print-side-fields" style="display:grid;gap:8px;grid-template-columns:minmax(0,1fr) 70px;align-items:start">
+                                <div class="field" style="grid-template-columns:110px minmax(170px,1fr)!important"><label asp-for="Options.StampaFontName">Font</label><select asp-for="Options.StampaFontName"><option value=""></option><option>Arial</option><option>Calibri</option><option>Consolas</option><option>Courier New</option><option>Microsoft Sans Serif</option><option>Segoe UI</option><option>Times New Roman</option></select></div>
+                                <div class="field" style="display:block;width:70px"><select asp-for="Options.StampaFontSize" aria-label="Dimensione font" style="width:70px!important"><option value=""></option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>26</option><option>28</option><option>36</option><option>48</option><option>72</option></select></div>
+                                <div class="field" style="grid-column:1/-1;grid-template-columns:110px minmax(170px,1fr)!important"><label asp-for="Options.StampaAlign">Allineamento</label><select asp-for="Options.StampaAlign"><option value=""></option><option value="0">Sinistra</option><option value="1">Centro</option><option value="2">Destra</option></select></div>
+                                <div class="check-button-field" style="grid-column:1/-1;grid-template-columns:110px 68px">
+                                    <input id="Options_StampaCorsivo" name="Options.StampaCorsivo" type="checkbox" value="1" checked="@(Model.Options.StampaCorsivo == "1" ? "checked" : null)" />
+                                    <label class="check-text" for="Options_StampaCorsivo">Corsivo</label>
+                                    <label class="check-button-wrap" for="Options_StampaCorsivo" aria-label="Corsivo"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field field-full options-logo-field">
+                            <label for="StampaLogoFile">Logo azienda</label>
+                            <input asp-for="Options.StampaLogoImg" type="hidden" data-options-logo-data />
+                            <input asp-for="Options.StampaLogoMime" type="hidden" data-options-logo-mime />
+                            <input asp-for="StampaLogoDelete" type="hidden" data-options-logo-delete />
+                            <div class="options-image-control" data-options-logo-control>
+                                <div class="options-image-preview" data-options-logo-preview>
+                                    @if (!string.IsNullOrWhiteSpace(Model.LogoPreviewSource))
+                                    {
+                                        <img src="@Model.LogoPreviewSource" alt="Logo azienda" style="display:block!important;height:100%!important;width:100%!important;object-fit:contain!important;object-position:center!important" />
+                                    }
+                                    else
+                                    {
+                                        <span>Nessuna immagine</span>
+                                    }
+                                </div>
+                                <div class="options-image-actions">
+                                    <input asp-for="StampaLogoFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp" data-options-logo-input hidden style="display:none!important" />
+                                    <button class="btn customer-menu-button options-image-button" type="button" data-options-logo-select>Carica</button>
+                                    <button class="btn customer-menu-button options-image-button" type="button" data-options-logo-clear>Rimuovi</button>
+                                    <div class="field options-logo-name-field">
+                                        <label asp-for="Options.StampaLogoNome">Nome file</label>
+                                        <input asp-for="Options.StampaLogoNome" readonly tabindex="-1" data-options-logo-name style="background-color:#e8ebf1!important;pointer-events:none!important;user-select:none!important;caret-color:transparent!important" onfocus="this.blur()" />
+                                    </div>
+                                </div>
+                                <span asp-validation-for="StampaLogoFile" class="field-validation-error"></span>
+                            </div>
+                        </div>
                     </div></fieldset>
                 </section>
             </div>

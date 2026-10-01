@@ -15,14 +15,19 @@ public sealed class IndexModel(
     public int? SelectedCustomerCode { get; private set; }
     public string SelectedCustomerName { get; private set; } = "";
     public int? SelectedStoreCode { get; private set; }
+    public int? SelectedMonth { get; private set; }
+    public int? SelectedCauseCode { get; private set; }
     public IReadOnlyList<int> Years { get; private set; } = [];
     public IReadOnlyList<PartyLookupItem> Customers { get; private set; } = [];
     public IReadOnlyList<PurchaseInvoiceStoreOption> Stores { get; private set; } = [];
+    public IReadOnlyList<SalesInvoiceListRow> Invoices { get; private set; } = [];
 
     public async Task OnGetAsync(
         int? year = null,
         int? customerCode = null,
         int? storeCode = null,
+        int? month = null,
+        int? causeCode = null,
         CancellationToken cancellationToken = default)
     {
         SelectedYear = year ?? applicationState.Esercizio;
@@ -56,5 +61,90 @@ public sealed class IndexModel(
         }
         Stores = stores;
         SelectedStoreCode = Stores.Any(item => item.Code == storeCode) ? storeCode : null;
+        SelectedMonth = month is >= 1 and <= 12 ? month : null;
+        SelectedCauseCode = causeCode is >= 30 and <= 32 ? causeCode : null;
+
+        await reader.DisposeAsync();
+        await using var invoicesCommand = new MySqlCommand(
+            """
+            SELECT f.ID,
+                   f.Anno,
+                   f.Codice,
+                   COALESCE(f.NumDoc, ''),
+                   f.DataDoc,
+                   COALESCE(f.Causale, 0),
+                   COALESCE(f.Cliente, 0),
+                   COALESCE(c.Nome, ''),
+                   COALESCE(f.Imponibile, 0),
+                   COALESCE(f.Iva, 0),
+                   COALESCE(f.Totale, 0),
+                   COALESCE(f.Stato, 0),
+                   COALESCE(f.FeName, '')
+            FROM Fatture f
+            LEFT JOIN Clienti c ON c.Codice = f.Cliente
+            WHERE f.Anno = @year
+              AND (@month = 0 OR MONTH(f.DataDoc) = @month)
+              AND (@cause = 0 OR f.Causale = @cause)
+              AND (@customer = 0 OR f.Cliente = @customer)
+              AND (@store = 0 OR f.ULocale = @store)
+            ORDER BY f.Anno DESC, f.Codice DESC, f.ID DESC;
+            """, connection);
+        invoicesCommand.Parameters.AddWithValue("@year", SelectedYear);
+        invoicesCommand.Parameters.AddWithValue("@month", SelectedMonth ?? 0);
+        invoicesCommand.Parameters.AddWithValue("@cause", SelectedCauseCode ?? 0);
+        invoicesCommand.Parameters.AddWithValue("@customer", SelectedCustomerCode ?? 0);
+        invoicesCommand.Parameters.AddWithValue("@store", SelectedStoreCode ?? 0);
+        var invoices = new List<SalesInvoiceListRow>();
+        await using var invoicesReader = await invoicesCommand.ExecuteReaderAsync(cancellationToken);
+        while (await invoicesReader.ReadAsync(cancellationToken))
+        {
+            invoices.Add(new SalesInvoiceListRow(
+                invoicesReader.GetInt32(0),
+                invoicesReader.GetInt32(1),
+                invoicesReader.GetInt32(2),
+                invoicesReader.GetString(3),
+                invoicesReader.IsDBNull(4) ? null : DateOnly.FromDateTime(invoicesReader.GetDateTime(4)),
+                invoicesReader.GetInt32(5),
+                invoicesReader.GetInt32(6),
+                invoicesReader.GetString(7),
+                invoicesReader.GetDecimal(8),
+                invoicesReader.GetDecimal(9),
+                invoicesReader.GetDecimal(10),
+                invoicesReader.GetInt32(11),
+                invoicesReader.GetString(12)));
+        }
+        Invoices = invoices;
     }
+}
+
+public sealed record SalesInvoiceListRow(
+    int Id,
+    int Year,
+    int Code,
+    string DocumentNumber,
+    DateOnly? DocumentDate,
+    int Cause,
+    int CustomerCode,
+    string CustomerName,
+    decimal Taxable,
+    decimal Vat,
+    decimal Total,
+    int State,
+    string ElectronicInvoiceName)
+{
+    public string ElectronicInvoiceStatus => State switch
+    {
+        0 => "Emessa",
+        1 => "FE elaborata",
+        2 => "FE inviata",
+        3 => "FE rifiutata",
+        _ => "Stato non gestito"
+    };
+
+    public string CauseDescription => Cause switch
+    {
+        31 => "Nota di addebito",
+        32 => "Nota di accredito",
+        _ => "Fattura di vendita"
+    };
 }

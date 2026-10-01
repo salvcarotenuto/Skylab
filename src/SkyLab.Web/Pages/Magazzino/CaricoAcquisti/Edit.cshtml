@@ -23,9 +23,9 @@
         <section class="purchase-load-lines">
             <div class="purchase-load-lines-layout">
                 <div class="purchase-load-line-actions"><button type="button" data-stock-load-line-open>aggiungi</button><button type="button" data-stock-load-line-edit>modifica</button><button type="button" data-stock-load-line-delete>cancella</button></div>
-                <div class="purchase-load-lines-frame" tabindex="0"><table><thead><tr><th>Articolo</th><th>Descrizione</th><th>U.m.</th><th>Quantità</th><th>Prezzo</th><th>Sconto</th><th>Importo</th><th>Iva</th><th hidden>Stato articolo</th></tr></thead><tbody data-stock-load-lines>
-                    @for (var index = 0; index < Model.Lines.Count; index++) { var line = Model.Lines[index]; <tr class="@(index == 0 ? "is-selected" : null)" data-purchase-load-line><td>@line.Article</td><td>@line.Description</td><td>@line.Unit</td><td>@line.Quantity.ToString("N3", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))</td><td>@line.Price.ToString("N3", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))</td><td>@line.Discount.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))</td><td>@line.Amount.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))</td><td>@line.VatRate.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))%</td><td hidden data-article-state>@(line.ArticleExists ? "1" : "0")</td></tr> }
-                    @if (Model.Lines.Count == 0) { for (var index = 0; index < 50; index++) { <tr data-purchase-load-line><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td hidden data-article-state>0</td></tr> } }
+                <div class="purchase-load-lines-frame" tabindex="0"><table><thead><tr><th>Articolo</th><th>Descrizione</th><th>U.m.</th><th>Quantità</th><th>Prezzo</th><th>Sconto</th><th>Importo</th><th>Iva</th><th hidden>Stato articolo</th><th hidden>Codice IVA</th></tr></thead><tbody data-stock-load-lines>
+                    @for (var index = 0; index < Model.Lines.Count; index++) { var line = Model.Lines[index]; <tr class="@(index == 0 ? "is-selected" : null)" data-purchase-load-line><td>@line.Article</td><td>@line.Description</td><td>@line.Unit</td><td>@line.Quantity.ToString("N3", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))</td><td>@line.Price.ToString("N3", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))</td><td>@line.Discount.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))</td><td>@line.Amount.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))</td><td>@line.VatRate.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))%</td><td hidden data-article-state>@(line.ArticleExists ? "1" : "0")</td><td hidden data-vat-code>@line.VatCode</td></tr> }
+                    @if (Model.Lines.Count == 0) { for (var index = 0; index < 50; index++) { <tr data-purchase-load-line><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td hidden data-article-state>0</td><td hidden data-vat-code></td></tr> } }
                 </tbody></table></div>
             </div>
         </section>
@@ -36,7 +36,7 @@
             <iframe title="Scheda articolo" data-stock-load-article-modal-frame></iframe>
         </section>
     </div>
-    @await Html.PartialAsync("_ArticleLineEditor", new SkyLab.Web.Models.ArticleLineEditorModel("stock-load", Model.UnitMeasures))
+    @await Html.PartialAsync("_ArticleLineEditor", new SkyLab.Web.Models.ArticleLineEditorModel("stock-load", Model.UnitMeasures, Model.VatCodes))
     @await Html.PartialAsync("_ElectronicInvoiceListDialog", Model.ElectronicInvoiceFolderDefault)
 </section>
 

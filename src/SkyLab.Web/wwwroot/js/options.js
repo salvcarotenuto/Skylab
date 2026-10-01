@@ -102,7 +102,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const normalizeFiscalValue = (value) => String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   const taxCode = document.querySelector("[data-options-tax-code]");
   const vatNumber = document.querySelector("[data-options-vat-number]");
-  const stateCode = document.querySelector("[data-options-state-code]");
+  const stateCodes = [...document.querySelectorAll("[data-options-state-code]")];
+  const legalStateCode = document.querySelector('[data-options-state-code="legal"]');
+  const xmlMatrix = document.querySelector("[data-options-xml-matrix]");
+  const fileSerial = document.querySelector("[data-options-file-serial]");
+  const updateXmlMatrix = () => {
+    if (!xmlMatrix) return;
+    const state = String(legalStateCode?.value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+    const vat = String(vatNumber?.value || "").replace(/\D/g, "").slice(0, 11);
+    xmlMatrix.value = state + vat;
+  };
 
   const isValidVatNumber = (value) => {
     const vat = normalizeFiscalValue(value);
@@ -170,6 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   vatNumber?.addEventListener("input", () => {
     vatNumber.value = String(vatNumber.value || "").replace(/\D/g, "").slice(0, 11);
+    updateXmlMatrix();
   });
 
   vatNumber?.addEventListener("blur", () => {
@@ -181,15 +191,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  stateCode?.addEventListener("input", () => {
-    stateCode.value = String(stateCode.value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+  stateCodes.forEach(stateCode => {
+    stateCode.addEventListener("input", () => {
+      stateCode.value = String(stateCode.value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+      updateXmlMatrix();
+    });
+
+    stateCode.addEventListener("blur", () => {
+      stateCode.value = String(stateCode.value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+      if (stateCode.value && stateCode.value.length !== 2) {
+        message("Sigla stato non valida.", stateCode);
+      }
+    });
   });
 
-  stateCode?.addEventListener("blur", () => {
-    stateCode.value = String(stateCode.value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
-    if (stateCode.value && stateCode.value.length !== 2) {
-      message("Sigla stato non valida.", stateCode);
-    }
+  updateXmlMatrix();
+
+  fileSerial?.addEventListener("input", () => {
+    fileSerial.value = String(fileSerial.value || "").replace(/\D/g, "").slice(0, 8);
   });
 
 
@@ -208,11 +227,13 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
 
-    const stateValue = String(stateCode?.value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
-    if (stateCode) stateCode.value = stateValue;
-    if (stateValue && stateValue.length !== 2) {
-      message("Sigla stato non valida.", stateCode);
-      return false;
+    for (const stateCode of stateCodes) {
+      const stateValue = String(stateCode.value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
+      stateCode.value = stateValue;
+      if (stateValue && stateValue.length !== 2) {
+        message("Sigla stato non valida.", stateCode);
+        return false;
+      }
     }
 
     document.querySelectorAll("[data-options-percent]").forEach(field => {
@@ -413,14 +434,14 @@ document.addEventListener("DOMContentLoaded", () => {
             message: result.message || result.Message || ((result.ok || result.Ok) ? "Connessione riuscita." : "Connessione non riuscita."),
             variant: (result.ok || result.Ok) ? "success" : "error",
             okText: "OK"
-          }) ?? window.alert(result.message || "Test completato.");
+          });
         } catch {
           window.SkyLabMessageBox?.show?.({
             title: "Test posta elettronica",
             message: "Connessione non riuscita.",
             variant: "error",
             okText: "OK"
-          }) ?? window.alert("Connessione non riuscita.");
+          });
         } finally {
           button.disabled = false;
         }
@@ -428,7 +449,100 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  const wireCompanyLogo = () => {
+    const control = document.querySelector("[data-options-logo-control]");
+    const input = control?.querySelector("[data-options-logo-input]");
+    const preview = control?.querySelector("[data-options-logo-preview]");
+    const selectButton = control?.querySelector("[data-options-logo-select]");
+    const clearButton = control?.querySelector("[data-options-logo-clear]");
+    const deleteInput = document.querySelector("[data-options-logo-delete]");
+    const dataInput = document.querySelector("[data-options-logo-data]");
+    const mimeInput = document.querySelector("[data-options-logo-mime]");
+    const nameInput = document.querySelector("[data-options-logo-name]");
+    if (!control || !input || !preview) return;
+
+    const showEmpty = () => {
+      preview.replaceChildren(Object.assign(document.createElement("span"), { textContent: "Nessuna immagine" }));
+    };
+
+    selectButton?.addEventListener("click", () => input.click());
+    clearButton?.addEventListener("click", () => {
+      input.value = "";
+      if (dataInput) dataInput.value = "";
+      if (mimeInput) mimeInput.value = "";
+      if (nameInput) nameInput.value = "";
+      if (deleteInput) deleteInput.value = "true";
+      showEmpty();
+    });
+
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        input.value = "";
+        showEmpty();
+        return;
+      }
+      if (deleteInput) deleteInput.value = "false";
+      if (nameInput) nameInput.value = file.name || "";
+      const image = document.createElement("img");
+      image.alt = "Logo azienda";
+      image.style.cssText = "display:block!important;height:100%!important;width:100%!important;object-fit:contain!important;object-position:center!important";
+      image.src = URL.createObjectURL(file);
+      image.addEventListener("load", () => URL.revokeObjectURL(image.src), { once: true });
+      preview.replaceChildren(image);
+    });
+  };
+
+  const wirePrintTextStyle = () => {
+    const textarea = document.querySelector('[name="Options.StampaDatiAzienda"]');
+    const font = document.querySelector('[name="Options.StampaFontName"]');
+    const size = document.querySelector('[name="Options.StampaFontSize"]');
+    const alignment = document.querySelector('[name="Options.StampaAlign"]');
+    const italic = document.querySelector('[name="Options.StampaCorsivo"]');
+    if (!textarea) return;
+
+    const apply = () => {
+      textarea.style.setProperty("font-family", font?.value || "Microsoft Sans Serif, Segoe UI, Arial, sans-serif", "important");
+      textarea.style.setProperty("font-size", size?.value ? `${size.value}px` : "13px", "important");
+      textarea.style.textAlign = alignment?.value === "1" ? "center" : alignment?.value === "2" ? "right" : "left";
+      textarea.style.fontStyle = italic?.checked ? "italic" : "normal";
+    };
+
+    [font, size, alignment, italic].forEach(control => control?.addEventListener("change", apply));
+    apply();
+  };
+
   wireMailTestButtons();
+  ["MailOrdPassword", "MailPecPassword"].forEach(name => {
+    const input = form?.querySelector(`[name="Options.${name}"]`);
+    if (!input) return;
+    const field = input.parentElement;
+    field.style.position = "relative";
+    input.style.setProperty("padding-right", "38px", "important");
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.style.cssText = "position:absolute;right:1px;top:1px;width:32px;min-width:32px;height:28px;min-height:28px;padding:4px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:4px;color:#164f9f;cursor:pointer";
+    toggle.setAttribute("aria-controls", input.id);
+    const render = () => {
+      const visible = input.type === "text";
+      const label = visible ? "Nascondi password" : "Mostra password";
+      toggle.setAttribute("aria-label", label);
+      toggle.setAttribute("aria-pressed", String(visible));
+      toggle.title = label;
+      toggle.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>${visible ? '<path d="M3 3l18 18"/>' : ''}</svg>`;
+    };
+    toggle.addEventListener("click", () => {
+      input.type = input.type === "password" ? "text" : "password";
+      render();
+    });
+    toggle.addEventListener("focus", () => { toggle.style.outline = "2px solid #1f6feb"; });
+    toggle.addEventListener("blur", () => { toggle.style.outline = "none"; });
+    render();
+    field.append(toggle);
+  });
+  wireCompanyLogo();
+  wirePrintTextStyle();
 
 
   wirePercentFields();

@@ -186,6 +186,10 @@
     grid-template-columns: 86px minmax(0, 1fr);
 }
 
+.options-country-field input {
+    text-transform: uppercase;
+}
+
 .options-grid label,
 .options-grid input,
 .options-grid select,
@@ -441,4 +445,201 @@
 #options-form .options-grid .field > input,
 #options-form .options-grid .field > select {
     height: 30px !important;
+}
+
+.options-logo-field {
+    align-items: start;
+}
+
+#options-form .options-company-print-data > label {
+    align-self: stretch;
+    height: auto !important;
+    min-height: 150px;
+}
+
+#options-form .options-company-print-data {
+    grid-template-columns: 132px 450px !important;
+    justify-content: start;
+}
+
+#options-form .options-company-print-data > textarea {
+    height: 150px !important;
+    min-height: 150px !important;
+    resize: none;
+    width: 450px !important;
+}
+
+#options-form .options-logo-field > label {
+    align-self: stretch;
+    height: auto !important;
+    min-height: 140px;
+}
+
+.options-image-control {
+    align-items: stretch;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 220px minmax(360px, 1fr);
+    min-width: 0;
+}
+
+.options-image-preview {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #9aa5b5;
+    border-radius: 5px;
+    color: #647084;
+    display: flex;
+    height: 140px;
+    justify-content: center;
+    overflow: hidden;
+    padding: 8px;
+    width: 220px;
+}
+
+.options-image-preview img {
+    display: block;
+    height: auto !important;
+    max-height: 100% !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    width: auto !important;
+}
+
+.options-image-actions {
+    align-content: start;
+    display: grid;
+    gap: 8px;
+}
+
+#options-form .options-logo-name-field {
+    align-self: start;
+    grid-template-columns: 140px 250px !important;
+    width: 398px;
+}
+
+#options-form .options-logo-name-field > input[readonly] {
+    background: #e8ebf1 !important;
+    caret-color: transparent;
+    color: #22384e !important;
+    pointer-events: none;
+    user-select: none;
+    width: 250px !important;
+}
+
+.options-image-actions input[type="file"] {
+    display: none !important;
+}
+
+.options-image-button {
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--BlueButton);
+    border-radius: 6px;
+    color: #000;
+    cursor: pointer;
+    display: inline-flex;
+    height: 36px !important;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    width: 140px;
+}
+
+.options-image-button:hover {
+    background: var(--BlueButton);
+    color: #fff;
+}
+
+.options-image-button:focus-visible {
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, .18);
+    outline: none;
+}
+
+.options-image-control .field-validation-error {
+    grid-column: 1 / -1;
+}
+
+.options-print-side-fields .check-button-field {
+    align-items: stretch;
+    display: grid;
+    gap: 6px;
+    grid-template-columns: 110px 68px !important;
+    height: 30px;
+    position: relative;
+}
+
+.options-print-side-fields .check-button-field > input {
+    height: 1px !important;
+    opacity: 0;
+    position: absolute;
+    width: 1px !important;
+}
+
+.options-print-side-fields .check-text {
+    align-items: center;
+    background: #b8cbe0;
+    border: 1px solid #8a8f98;
+    border-radius: 5px;
+    color: #22384e;
+    display: flex;
+    font-family: "Microsoft Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    height: 30px;
+    margin: 0;
+    padding: 0 9px;
+    user-select: none;
+}
+
+.options-print-side-fields .check-button-wrap {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #8a8f98;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    height: 30px;
+    justify-content: center;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    position: relative;
+}
+
+.options-print-side-fields .check-button-wrap::before {
+    background: #d2d2d2;
+    border: 1px solid #c2ccda;
+    border-radius: 999px;
+    content: "";
+    display: block;
+    height: 22px;
+    transition: .15s ease;
+    width: 42px;
+}
+
+.options-print-side-fields .check-button-wrap::after {
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(23, 32, 51, .28);
+    content: "";
+    height: 16px;
+    left: 15px;
+    position: absolute;
+    top: 6px;
+    transition: transform .15s ease;
+    width: 16px;
+}
+
+.options-print-side-fields .check-button-field > input:checked ~ .check-button-wrap::before {
+    background: var(--BlueButton);
+    border-color: var(--BlueButton);
+}
+
+.options-print-side-fields .check-button-field > input:checked ~ .check-button-wrap::after {
+    transform: translateX(20px);
+}
+
+.options-print-side-fields .check-button-field > input:focus-visible ~ .check-button-wrap {
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, .18);
 }

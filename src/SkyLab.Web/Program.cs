@@ -4,6 +4,7 @@ using System.Globalization;
 using SkyLab.Web.Models;
 using SkyLab.Web.Data;
 using Microsoft.AspNetCore.HttpOverrides;
+using MySqlConnector;
 using System.Threading.RateLimiting;
 
 namespace SkyLab.Web;
@@ -50,6 +51,8 @@ public class Program
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
         });
         builder.Services.AddScoped<PurchaseInvoiceRepository>();
+        builder.Services.AddScoped<SalesInvoiceRepository>();
+        builder.Services.AddScoped<SkyLab.Web.Services.SalesElectronicInvoiceService>();
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();
         builder.Services.AddScoped<SkyLab.Web.Services.CustomerService>();
@@ -108,6 +111,98 @@ public class Program
         app.MapStaticAssets();
         app.MapRazorPages()
            .WithStaticAssets();
+
+        app.MapPost("/api/sales-invoices", async (
+            SalesInvoiceSaveRequest request,
+            SalesInvoiceRepository repository,
+            SkyLab.Web.Services.ApplicationState applicationState,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var saved = await repository.SaveAsync(request, applicationState.Esercizio, cancellationToken);
+                return Results.Ok(new { success = true, saved.Id, saved.Year, saved.Code });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Results.BadRequest(new { success = false, message = exception.Message });
+            }
+            catch (MySqlException exception)
+            {
+                return Results.BadRequest(new
+                {
+                    success = false,
+                    message = $"Registrazione della fattura non riuscita. Motivo: {exception.Message}"
+                });
+            }
+            catch (Exception exception)
+            {
+                return Results.BadRequest(new
+                {
+                    success = false,
+                    message = $"Registrazione della fattura non riuscita. Motivo: {exception.Message}"
+                });
+            }
+        });
+
+        app.MapGet("/api/sales-invoices/{id:int}", async (int id, SalesInvoiceRepository repository, CancellationToken cancellationToken) =>
+            await repository.FindAsync(id, cancellationToken) is { } invoice ? Results.Ok(invoice) : Results.NotFound());
+        app.MapPut("/api/sales-invoices/{id:int}", async (int id, SalesInvoiceSaveRequest request, SalesInvoiceRepository repository, SkyLab.Web.Services.ApplicationState applicationState, CancellationToken cancellationToken) =>
+        {
+            try { await repository.UpdateAsync(id, request, applicationState.Esercizio, cancellationToken); return Results.Ok(new { success=true,id }); }
+            catch(Exception exception){ return Results.BadRequest(new { success=false,message=$"Aggiornamento della fattura non riuscito. Motivo: {exception.Message}" }); }
+        });
+        app.MapDelete("/api/sales-invoices/{id:int}", async (int id, SalesInvoiceRepository repository, CancellationToken cancellationToken) =>
+        {
+            try { await repository.DeleteAsync(id,cancellationToken); return Results.Ok(new { success=true }); }
+            catch(Exception exception){ return Results.BadRequest(new { success=false,message=$"Cancellazione della fattura non riuscita. Motivo: {exception.Message}" }); }
+        });
+        app.MapPost("/api/sales-invoices/{id:int}/electronic-prepare", async (int id, SkyLab.Web.Services.SalesElectronicInvoiceService service, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var prepared = await service.PrepareAsync(id, cancellationToken);
+                return Results.Ok(new { success = true, prepared.FileName, prepared.AlreadyPrepared });
+            }
+            catch (InvalidOperationException exception) { return Results.BadRequest(new { success = false, message = exception.Message }); }
+            catch (Exception) { return Results.BadRequest(new { success = false, message = "Preparazione della fattura elettronica non riuscita." }); }
+        });
+        app.MapPost("/api/sales-invoices/{id:int}/electronic-send", async (int id, SkyLab.Web.Services.SalesElectronicInvoiceService service, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var fileName = await service.SendAsync(id, cancellationToken);
+                return Results.Ok(new { success = true, fileName });
+            }
+            catch (InvalidOperationException exception) { return Results.BadRequest(new { success = false, message = exception.Message }); }
+            catch (Exception) { return Results.BadRequest(new { success = false, message = "Invio della fattura elettronica tramite PEC non riuscito." }); }
+        });
+
+        app.MapGet("/api/sales-invoices/{id:int}/electronic-view", async (int id, SkyLab.Web.Services.SalesElectronicInvoiceService service, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var html = await service.ReadArchivedHtmlAsync(id, cancellationToken);
+                return Results.Text(html, "text/html", System.Text.Encoding.UTF8);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+        });
+
+        app.MapPost("/api/sales-invoices/{id:int}/electronic-rejection", async (int id, SkyLab.Web.Services.SalesElectronicInvoiceService service, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                await service.MarkRejectedAsync(id, cancellationToken);
+                return Results.Ok(new { success = true });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Results.BadRequest(new { success = false, message = exception.Message });
+            }
+        });
 
         if (builder.Configuration.GetValue("SkyLab:Mobile:Enabled", app.Environment.IsDevelopment()))
         {

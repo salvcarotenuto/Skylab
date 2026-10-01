@@ -27,6 +27,7 @@ public sealed class EditModel(SkyLabServicePaths servicePaths, SkyLabDatabaseOpt
     public IReadOnlyList<PurchaseLoadLine> Lines { get; private set; } = [];
     public string ElectronicInvoiceFolderDefault { get; private set; } = "";
     public IReadOnlyList<CodeLookupItem> UnitMeasures { get; private set; } = [];
+    public IReadOnlyList<VatCodeListItem> VatCodes { get; private set; } = [];
     public IReadOnlyList<PurchaseInvoiceStoreOption> Stores { get; private set; } = [];
 
     [BindProperty]
@@ -48,6 +49,7 @@ public sealed class EditModel(SkyLabServicePaths servicePaths, SkyLabDatabaseOpt
         servicePaths.EnsureCreated();
         ElectronicInvoiceFolderDefault = servicePaths.FEAcquistiTransito;
         UnitMeasures = await customerService.UnitMeasuresAsync(cancellationToken);
+        VatCodes = await customerService.VatCodeListAsync(cancellationToken);
         Stores = await LoadStoresAsync(cancellationToken);
 
         if (azione is not (2 or 102))
@@ -230,10 +232,9 @@ public sealed class EditModel(SkyLabServicePaths servicePaths, SkyLabDatabaseOpt
 
         const string rowsStatement = """
             SELECT r.Articolo,COALESCE(a.Descrizione,''),COALESCE(r.Um,''),r.Quantita,r.Prezzo,
-                   r.Sconto,r.Importo,COALESCE(iva.Aliquota,0),CASE WHEN a.Codice IS NULL THEN 0 ELSE 1 END
+                   r.Sconto,r.Importo,COALESCE(r.AliqIva,0),CASE WHEN a.Codice IS NULL THEN 0 ELSE 1 END,COALESCE(r.CodIva,'')
             FROM caricorg r
             LEFT JOIN articoli a ON a.Codice=r.Articolo
-            LEFT JOIN codiciiva iva ON iva.Codice=a.Codiva
             WHERE r.ID=@id
             ORDER BY r.Riga;
             """;
@@ -243,10 +244,10 @@ public sealed class EditModel(SkyLabServicePaths servicePaths, SkyLabDatabaseOpt
             rows.Parameters.AddWithValue("@id", id);
             await using var reader = await rows.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
-                lines.Add(new(reader.GetString(0),reader.GetString(1),reader.GetString(2),reader.GetDecimal(3),reader.GetDecimal(4),reader.GetDecimal(5),reader.GetDecimal(6),reader.GetDecimal(7),reader.GetInt32(8)==1));
+                lines.Add(new(reader.GetString(0),reader.GetString(1),reader.GetString(2),reader.GetDecimal(3),reader.GetDecimal(4),reader.GetDecimal(5),reader.GetDecimal(6),reader.GetDecimal(7),reader.GetInt32(8)==1,reader.GetString(9)));
         }
         Lines = lines;
     }
 
-    public sealed record PurchaseLoadLine(string Article, string Description, string Unit, decimal Quantity, decimal Price, decimal Discount, decimal Amount, decimal VatRate, bool ArticleExists);
+    public sealed record PurchaseLoadLine(string Article, string Description, string Unit, decimal Quantity, decimal Price, decimal Discount, decimal Amount, decimal VatRate, bool ArticleExists, string VatCode);
 }

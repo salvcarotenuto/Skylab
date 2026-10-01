@@ -10,7 +10,7 @@
             <div class="stock-load-line-fields">
                 <label>Unità di misura</label><select data-line-unit><option value=""></option>@foreach (var item in Model.UnitMeasures) { <option value="@item.Code">@item.Code · @item.Label</option> }</select>
                 <label>Prezzo</label><input inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="9" data-decimal-digits="2" data-line-price />
-                <label>Aliquota IVA</label><input inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="3" data-decimal-digits="2" data-line-vat />
+                <label>Aliquota IVA</label><select data-line-vat><option value=""></option>@foreach (var item in Model.VatCodes) { <option value="@item.Rate.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))" data-vat-code="@item.Code">@item.Code · @item.Description (@item.Rate.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("it-IT"))%)</option> }</select>
                 <label>Quantità</label><input inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="9" data-decimal-digits="3" data-line-quantity />
                 <label>Sconto</label><input inputmode="decimal" autocomplete="off" data-decimal-field data-decimal-integer-digits="3" data-decimal-digits="2" data-line-discount />
                 <label>Importo</label><input readonly tabindex="-1" data-line-amount />

@@ -1,3 +1,18 @@
+.purchase-invoice-xml-overlay {
+    align-items: center;
+    background: rgba(23, 34, 54, .34);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 24px;
+    position: fixed;
+    z-index: 3000;
+}
+
+.purchase-invoice-xml-overlay[hidden] {
+    display: none !important;
+}
+
 .purchase-invoice-fe-dialog {
     height: min(460px, calc(100vh - 40px));
     padding: 20px;
@@ -5,12 +20,17 @@
 }
 
 .purchase-invoice-xml-dialog {
+    border: 1px solid #8799ad;
+    border-radius: 8px;
+    box-shadow: 0 18px 42px rgba(23, 34, 54, .28);
+    color: #172236;
     background: #fff;
     box-sizing: border-box;
     display: grid;
     gap: 8px;
     grid-template-rows: 30px minmax(0, 1fr) 34px;
     height: min(760px, calc(100vh - 40px));
+    overflow: hidden;
     padding: 20px;
     width: min(1120px, calc(100vw - 40px));
 }
