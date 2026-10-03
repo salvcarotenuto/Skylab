@@ -15,7 +15,7 @@ public sealed class UserEditModel
  [StringLength(30),Display(Name="Telefono")] public string? Phone{get;set;}
  [StringLength(50),EmailAddress(ErrorMessage="Indirizzo e-mail non valido."),Display(Name="E-mail")] public string? Email{get;set;}
  [Required(ErrorMessage="Campo Username obbligatorio"),StringLength(50),Display(Name="Username")] public string UserName{get;set;}="";
- [Required(ErrorMessage="Campo Password obbligatorio"),StringLength(50),Display(Name="Password")] public string Password{get;set;}="";
+ [StringLength(50),Display(Name="Password")] public string Password{get;set;}="";
  [Required(ErrorMessage="Campo Tipo utente obbligatorio"),Range(1,4,ErrorMessage="Selezionare il tipo utente."),Display(Name="Tipo utente")] public int? TypeCode{get;set;}
  [Display(Name="Qualifica")] public int? QualificationCode{get;set;}
  [Display(Name="Unità locale")] public int? LocationCode{get;set;}

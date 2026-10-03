@@ -5,11 +5,12 @@ using SkyLab.Web.Services;
 
 namespace SkyLab.Web.Pages.Tabelle.CausaliContabili;
 
-public sealed class EditModel(CustomerService service) : PageModel
+public sealed class EditModel(CustomerService service, UserService users) : PageModel
 {
     public IReadOnlyList<AccountListItem> Accounts { get; private set; } = [];
     [BindProperty] public AccountingCauseEditModel Causale { get; set; } = new();
     [BindProperty] public bool IsNew { get; set; }
+    [BindProperty] public string AssistancePassword { get; set; } = "";
     [TempData] public string? Message { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int? code, CancellationToken ct)
@@ -30,6 +31,18 @@ public sealed class EditModel(CustomerService service) : PageModel
         return Page();
     }
 
+    public async Task<IActionResult> OnPostValidateAssistanceAsync(CancellationToken ct)
+    {
+        if (IsNew || Causale.Code <= 0) return BadRequest(new { ok = false, message = "Causale non valida." });
+
+        var current = await service.AccountingCauseAsync(Causale.Code, ct);
+        if (current is null) return NotFound(new { ok = false, message = "Causale non trovata." });
+        if (!current.Locked || await users.VerifyAssistancePasswordAsync(AssistancePassword, ct))
+            return new JsonResult(new { ok = true });
+
+        return StatusCode(403, new { ok = false, message = "Password non corretta." });
+    }
+
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
         Accounts = await service.AccountsAsync(ct);
@@ -48,7 +61,14 @@ public sealed class EditModel(CustomerService service) : PageModel
         }
         try
         {
-            await service.SaveAccountingCauseAsync(Causale, IsNew, ct);
+            var assistanceAuthorized = IsNew;
+            if (!IsNew)
+            {
+                var current = await service.AccountingCauseAsync(Causale.Code, ct);
+                assistanceAuthorized = current is { Locked: false } || await users.VerifyAssistancePasswordAsync(AssistancePassword, ct);
+                if (!assistanceAuthorized) throw new InvalidOperationException("Password non corretta.");
+            }
+            await service.SaveAccountingCauseAsync(Causale, IsNew, assistanceAuthorized, ct);
             if (ajax)
             {
                 return new JsonResult(new { ok = true, url = Url.Page("/Tabelle/CausaliContabili/Index") ?? "/Tabelle/CausaliContabili/Index" });
@@ -57,10 +77,11 @@ public sealed class EditModel(CustomerService service) : PageModel
         }
         catch (InvalidOperationException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
+            var message = ex.Message == "Causale bloccata" ? "Password non corretta." : ex.Message;
+            ModelState.AddModelError(string.Empty, message);
             if (ajax)
             {
-                return BadRequest(new { ok = false, message = ex.Message });
+                return BadRequest(new { ok = false, message });
             }
             return Page();
         }

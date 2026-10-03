@@ -57,9 +57,9 @@ public static class MainMenuCatalog
         ]),
         new("contabilita", "Contabilità", "CN", "accent-accounting",
         [
-            Group("Prima nota contabile", "Movimenti di prima nota", "Scadenze passive", "Saldi iniziali clienti e fornitori", "Apertura conti patrimoniali"),
-            Group("Situazione economica", "Estratto conto fornitori", "Estratto conto clienti", "Scheda contabile", "Saldi clienti e fornitori", "Liquidazione periodica IVA", "Bilancio di verifica"),
-            Group("Banche e titoli", "Titoli di credito", "Estratto conto banca")
+            Group("Prima nota contabile", Link("Movimenti di prima nota", "/PrimaNota/Index"), Pending("Scadenze passive"), Link("Saldi iniziali clienti e fornitori", "/SaldoInizialeClientiFornitori/Index"), Link("Apertura conti patrimoniali", "/AperturaContiPatrimoniali/Index")),
+            Group("Situazione economica", Link("Estratto conto fornitori", "/EstrattoContoClientiFornitori/Index"), Link("Estratto conto clienti", "/EstrattoContoClientiFornitori/Index"), Link("Scheda contabile", "/SchedaContabile/Index"), Link("Saldi clienti e fornitori", "/SaldiClientiFornitori/Index"), Pending("Liquidazione periodica IVA"), Link("Bilancio di verifica", "/BilancioVerifica/Index"), Link("Rendiconto cassa", "/RendicontoCassa/Index"), Link("Riepilogo movimenti contabili", "/RiepilogoMovimentiContabili/Index"), Link("Riepilogo movimenti per punto vendita", "/RiepilogoMovimentiPuntiVendita/Index")),
+            Group("Banche e titoli", Link("Movimenti di banca", "/MovimentiBanca/Index"), Pending("Titoli di credito"), Pending("Estratto conto banca"))
         ]),
         new("strumenti", "Strumenti", "ST", "accent-tools",
         [

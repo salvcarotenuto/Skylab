@@ -8,6 +8,7 @@ public sealed class ApplicationAuthService(IHttpContextAccessor accessor, SkyLab
 {
     public const string UserCodeKey = "skylab_user_code";
     private const string LastSeenKey = "skylab_last_seen";
+    public int? CurrentUserCode => accessor.HttpContext?.Session.GetInt32(UserCodeKey);
     public bool IsLoggedIn()
     {
         var session = accessor.HttpContext?.Session;

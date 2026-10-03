@@ -116,7 +116,7 @@
             <footer><button type="button" data-account-zoom-ok>OK</button><button type="button" data-account-zoom-cancel>Annulla</button></footer>
         </div>
     </dialog>
-    <form method="post" asp-page-handler="Delete" data-cause-delete-form hidden><input name="code" data-cause-delete-code /></form>
+    <form method="post" asp-page-handler="Delete" data-cause-delete-form hidden><input name="code" data-cause-delete-code /><input name="assistancePassword" /></form>
     @if (!string.IsNullOrWhiteSpace(Model.Message)) { <span hidden data-page-message data-message-text="@Model.Message"></span> }
 </section>
 @section Scripts { <partial name="_ValidationScriptsPartial" /><script src="~/js/accounting-causes-list.js" asp-append-version="true"></script> }

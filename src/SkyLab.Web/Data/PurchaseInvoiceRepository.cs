@@ -6,8 +6,7 @@ namespace SkyLab.Web.Data;
 public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
 {
     private const int PurchaseInvoiceSector = 10;
-    private const int SupplierAccountCode = 81;
-    private const int PurchaseVatAccountCode = 83;
+    private const int PurchaseAccountingCause = 10;
     private const string SupplierSubjectType = "F";
 
     private static int? LegacyCauseCodeFromVatType(string? value)
@@ -130,44 +129,41 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         try
         {
             var movement = await ExistingAccountingMovementAsync(connection, transaction, id, cancellationToken);
-            if (movement is not null)
+            await UnlinkAccountingMovementAsync(connection, transaction, id, movement.Id, cancellationToken);
+            await DeleteAccountingRowsAsync(
+                connection,
+                transaction,
+                movement.Id,
+                movement.Year,
+                PurchaseInvoiceSector,
+                movement.Code,
+                cancellationToken);
+            await using (var linkedCommand = new MySqlCommand(
+                "DELETE FROM movcontdc WHERE Mov_Id = @id;",
+                connection,
+                transaction))
             {
-                await DeleteAccountingRowsAsync(
-                    connection,
-                    transaction,
-                    movement.Id,
-                    movement.Year,
-                    PurchaseInvoiceSector,
-                    movement.Code,
-                    cancellationToken);
-                await using (var linkedCommand = new MySqlCommand(
-                    "DELETE FROM movcontdc WHERE Mov_Id = @id;",
-                    connection,
-                    transaction))
-                {
-                    linkedCommand.Parameters.AddWithValue("@id", movement.Id);
-                    await linkedCommand.ExecuteNonQueryAsync(cancellationToken);
-                }
-
-                await using (var movementCommand = new MySqlCommand(
-                    """
-                    DELETE FROM movcont
-                    WHERE ID = @id
-                      AND Anno = @year
-                      AND Settore = @sector
-                      AND Codice = @code
-                      AND Documento = @document;
-                    """,
-                    connection,
-                    transaction))
-                {
-                    movementCommand.Parameters.AddWithValue("@id", movement.Id);
-                    movementCommand.Parameters.AddWithValue("@year", movement.Year);
-                    movementCommand.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
-                    movementCommand.Parameters.AddWithValue("@code", movement.Code);
-                    movementCommand.Parameters.AddWithValue("@document", id);
-                    await movementCommand.ExecuteNonQueryAsync(cancellationToken);
-                }
+                linkedCommand.Parameters.AddWithValue("@id", movement.Id);
+                await linkedCommand.ExecuteNonQueryAsync(cancellationToken);
+            }
+            await using (var movementCommand = new MySqlCommand(
+                """
+                DELETE FROM movcont
+                WHERE ID = @id
+                  AND Anno = @year
+                  AND Settore = @sector
+                  AND Codice = @code
+                  AND Documento = @document;
+                """,
+                connection,
+                transaction))
+            {
+                movementCommand.Parameters.AddWithValue("@id", movement.Id);
+                movementCommand.Parameters.AddWithValue("@year", movement.Year);
+                movementCommand.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
+                movementCommand.Parameters.AddWithValue("@code", movement.Code);
+                movementCommand.Parameters.AddWithValue("@document", id);
+                await movementCommand.ExecuteNonQueryAsync(cancellationToken);
             }
 
             await DeleteVatRowsAsync(connection, transaction, id, invoice.Year, invoice.Code, cancellationToken);
@@ -228,7 +224,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             SELECT mv.ID,
                    mv.Anno,
                    mv.Codice,
-                   COALESCE(mv.Causale, 0) AS Causale,
+                   COALESCE(mv.TipoDoc, 0) AS Causale,
                    COALESCE(mv.NumDoc, '') AS NumDoc,
                    mv.DataDoc,
                    COALESCE(mv.Ditta, 0) AS Ditta,
@@ -419,6 +415,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
                 transaction,
                 invoice,
                 id,
+                targetInvoice is not null,
                 taxableTotal,
                 vatTotal,
                 invoiceTotal,
@@ -631,11 +628,11 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         await using var command = new MySqlCommand(
             """
             INSERT INTO moviva
-                (Anno, Settore, Codice, Causale, NumDoc, DataDoc, Ditta, CtPartita, ULocale,
-                 Pagamento, Banca, FeName, Note)
+                (Anno, Settore, Codice, TipoDoc, NumDoc, DataDoc, Ditta, CtPartita, ULocale,
+                 Imponibile, Iva, Totale, Pagamento, Banca, FeName, Note)
             VALUES
                 (@year, @sector, @code, @cause, @documentNumber, @documentDate, @supplierCode, @contraAccountCode,
-                 @storeCode, @paymentCode, @bankCode, @fileName, @notes);
+                 @storeCode, @taxableTotal, @vatTotal, @invoiceTotal, @paymentCode, @bankCode, @fileName, @notes);
             """,
             connection,
             transaction);
@@ -667,12 +664,15 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             SET Anno = @year,
                 Settore = @sector,
                 Codice = @code,
-                Causale = @cause,
+                TipoDoc = @cause,
                 NumDoc = @documentNumber,
                 DataDoc = @documentDate,
                 Ditta = @supplierCode,
                 CtPartita = @contraAccountCode,
                 ULocale = @storeCode,
+                Imponibile = @taxableTotal,
+                Iva = @vatTotal,
+                Totale = @invoiceTotal,
                 Pagamento = @paymentCode,
                 Banca = @bankCode,
                 FeName = @fileName,
@@ -765,8 +765,9 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
     }
 
     private sealed record ExistingAccountingMovement(int Id, int Year, int Code);
+    private sealed record PurchaseAccountingMapping(int VatAccountCode, int SupplierAccountCode);
 
-    private static async Task<ExistingAccountingMovement?> ExistingAccountingMovementAsync(
+    private static async Task<ExistingAccountingMovement> ExistingAccountingMovementAsync(
         MySqlConnection connection,
         MySqlTransaction transaction,
         int invoiceId,
@@ -774,24 +775,27 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
     {
         await using var command = new MySqlCommand(
             """
-            SELECT ID, Anno, Codice
-            FROM movcont
-            WHERE Settore = @sector
-              AND Documento = @document
+            SELECT m.ID, m.Anno, m.Codice
+            FROM moviva v
+            JOIN movcont m ON m.ID = v.MovCont_Id
+            WHERE v.ID = @invoiceId
+              AND m.Settore = @sector
+              AND m.Documento = v.ID
             LIMIT 1;
             """,
             connection,
             transaction);
+        command.Parameters.AddWithValue("@invoiceId", invoiceId);
         command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
-        command.Parameters.AddWithValue("@document", invoiceId);
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        return await reader.ReadAsync(cancellationToken)
-            ? new ExistingAccountingMovement(
-                Convert.ToInt32(reader["ID"]),
-                Convert.ToInt32(reader["Anno"]),
-                Convert.ToInt32(reader["Codice"]))
-            : null;
+        if (!await reader.ReadAsync(cancellationToken))
+            throw new InvalidOperationException(
+                $"Il collegamento Moviva.MovCont_Id della fattura (ID {invoiceId}) è assente o non coerente con il movimento contabile.");
+        return new ExistingAccountingMovement(
+            Convert.ToInt32(reader["ID"]),
+            Convert.ToInt32(reader["Anno"]),
+            Convert.ToInt32(reader["Codice"]));
     }
 
     private static async Task<int> NextAccountingCodeAsync(
@@ -813,52 +817,113 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         MySqlTransaction transaction,
         PurchaseInvoiceSaveCommand invoice,
         int invoiceId,
+        bool replacingExisting,
         decimal taxableTotal,
         decimal vatTotal,
         decimal invoiceTotal,
         CancellationToken cancellationToken)
     {
-        var existingMovement = await ExistingAccountingMovementAsync(
-            connection,
-            transaction,
-            invoiceId,
-            cancellationToken);
+        var existingMovement = replacingExisting
+            ? await ExistingAccountingMovementAsync(connection, transaction, invoiceId, cancellationToken)
+            : null;
         var accountingCode = existingMovement?.Code
             ?? await NextAccountingCodeAsync(connection, transaction, invoice.Year, cancellationToken);
-        var movementId = existingMovement?.Id
-            ?? await InsertAccountingMovementAsync(
-                connection,
-                transaction,
-                invoice,
-                invoiceId,
-                accountingCode,
-                invoiceTotal,
-                cancellationToken);
-
         if (existingMovement is not null)
         {
-            await UpdateAccountingMovementAsync(
+            await UnlinkAccountingMovementAsync(connection, transaction, invoiceId, existingMovement.Id, cancellationToken);
+            await using (var linkedCommand = new MySqlCommand(
+                "DELETE FROM movcontdc WHERE Mov_Id = @id;",
                 connection,
-                transaction,
-                invoice,
-                invoiceId,
-                movementId,
-                accountingCode,
-                invoiceTotal,
-                cancellationToken);
+                transaction))
+            {
+                linkedCommand.Parameters.AddWithValue("@id", existingMovement.Id);
+                await linkedCommand.ExecuteNonQueryAsync(cancellationToken);
+            }
+            await DeleteAccountingRowsAsync(connection, transaction, existingMovement.Id, null, null, null, cancellationToken);
+            await using var deleteMovement = new MySqlCommand(
+                "DELETE FROM movcont WHERE ID = @id AND Settore = @sector AND Documento = @document;",
+                connection,
+                transaction);
+            deleteMovement.Parameters.AddWithValue("@id", existingMovement.Id);
+            deleteMovement.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
+            deleteMovement.Parameters.AddWithValue("@document", invoiceId);
+            if (await deleteMovement.ExecuteNonQueryAsync(cancellationToken) != 1)
+                throw new InvalidOperationException("Il movimento contabile collegato non è stato eliminato.");
         }
 
-        await DeleteAccountingRowsAsync(connection, transaction, movementId, null, null, null, cancellationToken);
+        var mapping = await LoadPurchaseAccountingMappingAsync(connection, transaction, invoice, cancellationToken);
+        var movementId = await InsertAccountingMovementAsync(
+            connection,
+            transaction,
+            invoice,
+            invoiceId,
+            accountingCode,
+            invoiceTotal,
+            cancellationToken);
         await InsertPurchaseAccountingRowsAsync(
             connection,
             transaction,
             invoice,
             movementId,
             accountingCode,
+            mapping,
             taxableTotal,
             vatTotal,
             invoiceTotal,
             cancellationToken);
+        await LinkAccountingMovementAsync(connection, transaction, invoiceId, movementId, cancellationToken);
+    }
+
+    private static async Task<PurchaseAccountingMapping> LoadPurchaseAccountingMappingAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        PurchaseInvoiceSaveCommand invoice,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT COALESCE(Dare1, 0), COALESCE(Dare2, 0), COALESCE(Dare3, 0),
+                   COALESCE(Dare4, 0), COALESCE(Dare5, 0), COALESCE(Dare6, 0),
+                   COALESCE(Avere1, 0), COALESCE(Avere2, 0), COALESCE(Avere3, 0),
+                   COALESCE(Avere4, 0), COALESCE(Avere5, 0), COALESCE(Avere6, 0)
+            FROM causalicont
+            WHERE Codice = @code
+            LIMIT 1;
+            """;
+        await using var command = new MySqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("@code", PurchaseAccountingCause);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+            throw new InvalidOperationException("Causale contabile 010 non trovata.");
+
+        var debit = new int[6];
+        var credit = new int[6];
+        for (var index = 0; index < 6; index++)
+        {
+            debit[index] = Convert.ToInt32(reader.GetValue(index));
+            credit[index] = Convert.ToInt32(reader.GetValue(index + 6));
+        }
+        await reader.DisposeAsync();
+
+        if (debit[0] <= 0 || debit[1] <= 0 || debit.Skip(2).Any(code => code > 0)
+            || credit[0] <= 0 || credit.Skip(1).Any(code => code > 0))
+            throw new InvalidOperationException(
+                "La causale contabile 010 deve mappare Dare1 contropartita, Dare2 IVA e Avere1 fornitori.");
+
+        var mappedAccounts = new[] { invoice.ContraAccountCode, debit[1], credit[0] };
+        if (mappedAccounts.Distinct().Count() != mappedAccounts.Length)
+            throw new InvalidOperationException("La causale contabile 010 deve indicare conti distinti per contropartita, IVA e fornitore.");
+
+        var parameters = mappedAccounts.Select((_, index) => $"@account{index}").ToArray();
+        await using var accountCommand = new MySqlCommand(
+            $"SELECT COUNT(DISTINCT Codice) FROM conti WHERE Codice IN ({string.Join(",", parameters)});",
+            connection,
+            transaction);
+        for (var index = 0; index < mappedAccounts.Length; index++)
+            accountCommand.Parameters.AddWithValue(parameters[index], mappedAccounts[index]);
+        if (Convert.ToInt32(await accountCommand.ExecuteScalarAsync(cancellationToken)) != mappedAccounts.Length)
+            throw new InvalidOperationException("Uno o più conti della causale contabile 010 non esistono nel Piano dei conti.");
+
+        return new PurchaseAccountingMapping(debit[1], credit[0]);
     }
 
     private static async Task<int> InsertAccountingMovementAsync(
@@ -886,40 +951,6 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         return Convert.ToInt32(command.LastInsertedId);
     }
 
-    private static async Task UpdateAccountingMovementAsync(
-        MySqlConnection connection,
-        MySqlTransaction transaction,
-        PurchaseInvoiceSaveCommand invoice,
-        int invoiceId,
-        int movementId,
-        int accountingCode,
-        decimal invoiceTotal,
-        CancellationToken cancellationToken)
-    {
-        await using var command = new MySqlCommand(
-            """
-            UPDATE movcont
-             SET Anno = @year,
-                 Settore = @sector,
-                 Codice = @code,
-                 Causale = @cause,
-                 DataMov = @movementDate,
-                 CliFor = @subjectType,
-                 Ditta = @supplierCode,
-                 NumDoc = @documentNumber,
-                 Documento = @document,
-                 Importo = @amount,
-                 ULocale = @storeCode,
-                 Descrizione = @notes
-             WHERE ID = @id;
-            """,
-            connection,
-            transaction);
-        AddAccountingMovementParameters(command, invoice, invoiceId, accountingCode, invoiceTotal);
-        command.Parameters.AddWithValue("@id", movementId);
-        await command.ExecuteNonQueryAsync(cancellationToken);
-    }
-
     private static void AddAccountingMovementParameters(
         MySqlCommand command,
         PurchaseInvoiceSaveCommand invoice,
@@ -930,7 +961,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         command.Parameters.AddWithValue("@year", invoice.Year);
         command.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
         command.Parameters.AddWithValue("@code", accountingCode);
-        command.Parameters.AddWithValue("@cause", invoice.CauseCode);
+        command.Parameters.AddWithValue("@cause", PurchaseAccountingCause);
         command.Parameters.Add("@movementDate", MySqlDbType.Date).Value = invoice.DocumentDate!.Value.ToDateTime(TimeOnly.MinValue);
         command.Parameters.AddWithValue("@subjectType", SupplierSubjectType);
         command.Parameters.AddWithValue("@supplierCode", invoice.SupplierCode);
@@ -964,6 +995,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         PurchaseInvoiceSaveCommand invoice,
         int movementId,
         int accountingCode,
+        PurchaseAccountingMapping mapping,
         decimal taxableTotal,
         decimal vatTotal,
         decimal invoiceTotal,
@@ -992,7 +1024,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             movementId,
             accountingCode,
             rowNumber,
-            PurchaseVatAccountCode,
+            mapping.VatAccountCode,
             vatTotal,
             debitSign,
             cancellationToken);
@@ -1004,10 +1036,44 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             movementId,
             accountingCode,
             rowNumber,
-            SupplierAccountCode,
+            mapping.SupplierAccountCode,
             invoiceTotal,
             creditSign,
             cancellationToken);
+    }
+
+    private static async Task UnlinkAccountingMovementAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int invoiceId,
+        int movementId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = new MySqlCommand(
+            "UPDATE moviva SET MovCont_Id = NULL WHERE ID = @invoiceId AND MovCont_Id = @movementId;",
+            connection,
+            transaction);
+        command.Parameters.AddWithValue("@invoiceId", invoiceId);
+        command.Parameters.AddWithValue("@movementId", movementId);
+        if (await command.ExecuteNonQueryAsync(cancellationToken) != 1)
+            throw new InvalidOperationException("Non è stato possibile scollegare il movimento contabile dalla fattura.");
+    }
+
+    private static async Task LinkAccountingMovementAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int invoiceId,
+        int movementId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = new MySqlCommand(
+            "UPDATE moviva SET MovCont_Id = @movementId WHERE ID = @invoiceId;",
+            connection,
+            transaction);
+        command.Parameters.AddWithValue("@invoiceId", invoiceId);
+        command.Parameters.AddWithValue("@movementId", movementId);
+        if (await command.ExecuteNonQueryAsync(cancellationToken) != 1)
+            throw new InvalidOperationException("Non è stato possibile collegare la fattura al movimento contabile.");
     }
 
     private static async Task<int> InsertAccountingRowIfNotZeroAsync(
@@ -1294,8 +1360,8 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
                    mv.Codice,
                    COALESCE(mv.NumDoc, '') AS NumDoc,
                    mv.DataDoc,
-                   COALESCE(mv.Causale, 0) AS Causale,
-                   CASE COALESCE(mv.Causale, 0)
+                   COALESCE(mv.TipoDoc, 0) AS Causale,
+                   CASE COALESCE(mv.TipoDoc, 0)
                        WHEN 10 THEN 'Fattura acquisto'
                        WHEN 11 THEN 'Nota debito acquisti'
                        WHEN 12 THEN 'Nota credito acquisti'
@@ -1322,7 +1388,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             WHERE mv.Settore = @sector
               AND mv.Anno = @year
               AND (@month IS NULL OR MONTH(mv.DataDoc) = @month)
-              AND (@causeCode IS NULL OR mv.Causale = @causeCode)
+              AND (@causeCode IS NULL OR mv.TipoDoc = @causeCode)
               AND (@supplierCode IS NULL OR mv.Ditta = @supplierCode)
               AND (
                   @storeCode IS NULL

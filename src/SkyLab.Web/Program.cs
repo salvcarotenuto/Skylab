@@ -52,7 +52,20 @@ public class Program
         });
         builder.Services.AddScoped<PurchaseInvoiceRepository>();
         builder.Services.AddScoped<SalesInvoiceRepository>();
+        builder.Services.AddScoped<AccountingCauseRepository>();
+        builder.Services.AddScoped<AccountingMovementRepository>();
+        builder.Services.AddScoped<AccountingMovementSummaryRepository>();
+        builder.Services.AddScoped<AccountingStatementRepository>();
+        builder.Services.AddScoped<CashStatementRepository>();
+        builder.Services.AddScoped<CustomerSupplierBalanceSummaryRepository>();
+        builder.Services.AddScoped<InitialCustomerSupplierBalanceRepository>();
+        builder.Services.AddScoped<LookupRepository>();
+        builder.Services.AddScoped<OpeningBalanceRepository>();
+        builder.Services.AddScoped<StoreMovementSummaryRepository>();
+        builder.Services.AddScoped<TrialBalanceRepository>();
         builder.Services.AddScoped<SkyLab.Web.Services.SalesElectronicInvoiceService>();
+        builder.Services.AddScoped<SkyLab.Web.Services.TrialBalancePdfService>();
+        builder.Services.AddScoped<SkyLab.Web.Services.StoreMovementSummaryPdfService>();
         builder.Services.AddSingleton<SkyLab.Web.Services.InterventionService>();
         builder.Services.AddScoped<SkyLab.Web.Services.PlanningService>();
         builder.Services.AddScoped<SkyLab.Web.Services.CustomerService>();
@@ -111,6 +124,21 @@ public class Program
         app.MapStaticAssets();
         app.MapRazorPages()
            .WithStaticAssets();
+
+        app.MapGet("/api/lookup_anagrafiche", async (
+            string? type,
+            string? q,
+            int? code,
+            LookupRepository repository,
+            CancellationToken cancellationToken) =>
+        {
+            if (code is not null)
+            {
+                return Results.Json(new { row = await repository.FindAnagraficaAsync(type, code.Value, cancellationToken) });
+            }
+
+            return Results.Json(new { rows = await repository.SearchAnagraficheAsync(type, q, cancellationToken) });
+        });
 
         app.MapPost("/api/sales-invoices", async (
             SalesInvoiceSaveRequest request,

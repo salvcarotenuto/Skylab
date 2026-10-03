@@ -14,7 +14,7 @@
     var creditRows = new[] { Model.Causale.Credit1, Model.Causale.Credit2, Model.Causale.Credit3, Model.Causale.Credit4, Model.Causale.Credit5, Model.Causale.Credit6 };
 }
 <link rel="stylesheet" href="~/css/accounting-causes.css" asp-append-version="true" />
-<section class="cause-edit-page accounting-cause-form-page data-form-skin" data-cause-edit-page>
+<section class="cause-edit-page accounting-cause-form-page data-form-skin" data-cause-edit-page data-cause-locked="@(!Model.IsNew && Model.Causale.Locked ? "true" : "false")">
     <header class="module-header cause-edit-header">
         <div class="module-title-identity">
             <a class="module-title-logo" asp-page="./Index" aria-label="Torna alla lista">
@@ -33,6 +33,7 @@
     <form id="cause-edit-form" method="post" class="cause-edit-form" data-cause-edit-form>
         <input asp-for="IsNew" type="hidden" />
         <input asp-for="Causale.Code" type="hidden" />
+        <input asp-for="AssistancePassword" type="hidden" />
         <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
         <fieldset class="form-frame compact-frame cause-edit-main-frame">
             <legend>Causale contabile</legend>

@@ -314,14 +314,14 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
         const string sql="SELECT Codice,COALESCE(Descrizione,''),COALESCE(Tipo,''),COALESCE(Locked,0) FROM mastri ORDER BY Codice";
         var result=new List<AccountMasterListItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(r.GetInt16(0),S(r,1),S(r,2),r.GetBoolean(3)));return result;
     }
-    public async Task SaveAccountMasterAsync(AccountMasterEditModel model,bool isNew,CancellationToken ct)
+    public async Task SaveAccountMasterAsync(AccountMasterEditModel model,bool isNew,bool assistanceAuthorized,CancellationToken ct)
     {
         model.Description=model.Description.Trim();model.Type=(model.Type??"").Trim().ToUpperInvariant();if(model.Description.Length==0)throw new InvalidOperationException("Inserire la descrizione del mastro.");if(model.Type is not ("P" or "C" or "R"))throw new InvalidOperationException("Tipo mastro non valido.");
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
         if(isNew&&model.Code<=0)model.Code=await NextAccountMasterCodeAsync(cn,ct);
         if(model.Code<1||model.Code>999)throw new InvalidOperationException("Il codice mastro deve essere compreso tra 001 e 999.");
         if(isNew){await using var exists=new MySqlCommand("SELECT COUNT(*) FROM mastri WHERE Codice=@code",cn);exists.Parameters.AddWithValue("@code",model.Code);if(Convert.ToInt32(await exists.ExecuteScalarAsync(ct))>0)throw new InvalidOperationException($"Esiste già il mastro {model.Code:000}.");}
-        else{await using var locked=new MySqlCommand("SELECT Locked FROM mastri WHERE Codice=@code",cn);locked.Parameters.AddWithValue("@code",model.Code);var value=await locked.ExecuteScalarAsync(ct);if(value is not null&&value is not DBNull&&Convert.ToBoolean(value))throw new InvalidOperationException("Il mastro è bloccato e non può essere modificato.");}
+        else{await using var locked=new MySqlCommand("SELECT Locked FROM mastri WHERE Codice=@code",cn);locked.Parameters.AddWithValue("@code",model.Code);var value=await locked.ExecuteScalarAsync(ct);if(value is null||value is DBNull)throw new InvalidOperationException("Mastro non trovato.");if(Convert.ToBoolean(value)&&!assistanceAuthorized)throw new InvalidOperationException("Mastro bloccato");}
         const string sql="INSERT INTO mastri(Codice,Descrizione,Tipo,Locked) VALUES(@code,@description,@type,0) ON DUPLICATE KEY UPDATE Descrizione=VALUES(Descrizione),Tipo=VALUES(Tipo)";
         await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",model.Code);cmd.Parameters.AddWithValue("@description",model.Description);cmd.Parameters.AddWithValue("@type",model.Type);await cmd.ExecuteNonQueryAsync(ct);
     }
@@ -329,11 +329,20 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
     {
         var used=new HashSet<short>();await using var cmd=new MySqlCommand("SELECT Codice FROM mastri WHERE Codice BETWEEN 1 AND 999 ORDER BY Codice",cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))used.Add(r.GetInt16(0));for(short i=1;i<=999;i++)if(!used.Contains(i))return i;throw new InvalidOperationException("Non ci sono codici mastro disponibili.");
     }
-    public async Task<string?> DeleteAccountMasterAsync(short code,CancellationToken ct)
+    public async Task<bool> AccountMasterInUseAsync(short code,CancellationToken ct)
     {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var used=new MySqlCommand("SELECT COUNT(*) FROM conti WHERE Mastro=@code",cn);used.Parameters.AddWithValue("@code",code);return Convert.ToInt32(await used.ExecuteScalarAsync(ct))>0;
+    }
+    public async Task<bool> AccountMasterLockedAsync(short code,CancellationToken ct)
+    {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand("SELECT Locked FROM mastri WHERE Codice=@code",cn);cmd.Parameters.AddWithValue("@code",code);var value=await cmd.ExecuteScalarAsync(ct);return value is not null&&value is not DBNull&&Convert.ToBoolean(value);
+    }
+    public async Task<string?> DeleteAccountMasterAsync(short code,Func<CancellationToken,Task<bool>> authorizeAssistance,CancellationToken ct)
+    {
+        if(await AccountMasterInUseAsync(code,ct))return "Il mastro è utilizzato nel piano dei conti e non può essere eliminato.";
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
-        await using(var locked=new MySqlCommand("SELECT Locked FROM mastri WHERE Codice=@code",cn)){locked.Parameters.AddWithValue("@code",code);var value=await locked.ExecuteScalarAsync(ct);if(value is not null&&value is not DBNull&&Convert.ToBoolean(value))return "Il mastro è bloccato e non può essere eliminato.";}
-        await using(var used=new MySqlCommand("SELECT COUNT(*) FROM conti WHERE Mastro=@code",cn)){used.Parameters.AddWithValue("@code",code);if(Convert.ToInt32(await used.ExecuteScalarAsync(ct))>0)return "Il mastro è utilizzato nel piano dei conti e non può essere eliminato.";}
+        await using(var locked=new MySqlCommand("SELECT Locked FROM mastri WHERE Codice=@code",cn)){locked.Parameters.AddWithValue("@code",code);var value=await locked.ExecuteScalarAsync(ct);if(value is null||value is DBNull)return "Mastro non trovato.";if(Convert.ToBoolean(value)&&!await authorizeAssistance(ct))return "Mastro bloccato";}
+        if(await AccountMasterInUseAsync(code,ct))return "Il mastro è utilizzato nel piano dei conti e non può essere eliminato.";
         try{await using var cmd=new MySqlCommand("DELETE FROM mastri WHERE Codice=@code",cn);cmd.Parameters.AddWithValue("@code",code);await cmd.ExecuteNonQueryAsync(ct);return null;}
         catch(MySqlException ex) when(ex.Number==1451){return "Il mastro è utilizzato e non può essere eliminato.";}
     }
@@ -345,7 +354,7 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
             """;
         var result=new List<AccountListItem>();await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))result.Add(new(r.GetInt16(0),S(r,1),S(r,2),r.GetInt16(3),S(r,4),S(r,5),r.GetBoolean(6),r.GetBoolean(7)));return result;
     }
-    public async Task SaveAccountAsync(AccountEditModel model,bool isNew,CancellationToken ct)
+    public async Task SaveAccountAsync(AccountEditModel model,bool isNew,bool assistanceAuthorized,CancellationToken ct)
     {
         model.Description=model.Description.Trim();model.PartyKind=(model.PartyKind??"").Trim().ToUpperInvariant();if(model.Description.Length==0)throw new InvalidOperationException("Inserire la descrizione del conto.");if(model.PartyKind is not ("" or "C" or "F" or "D" or "B"))throw new InvalidOperationException("Tipo soggetto non valido.");
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
@@ -354,7 +363,7 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
         await using(var master=new MySqlCommand("SELECT Tipo FROM mastri WHERE Codice=@master",cn)){master.Parameters.AddWithValue("@master",model.Master);var masterType=await master.ExecuteScalarAsync(ct);if(masterType is null||masterType is DBNull)throw new InvalidOperationException("Selezionare il mastro.");model.Type=Convert.ToString(masterType)?.Trim().ToUpperInvariant()??"";}
         if(model.Type is not ("P" or "C" or "R"))throw new InvalidOperationException("Tipo mastro non valido.");
         if(isNew){await using var exists=new MySqlCommand("SELECT COUNT(*) FROM conti WHERE Codice=@code",cn);exists.Parameters.AddWithValue("@code",model.Code);if(Convert.ToInt32(await exists.ExecuteScalarAsync(ct))>0)throw new InvalidOperationException($"Esiste già il conto {model.Code:000}.");}
-        else{await using var locked=new MySqlCommand("SELECT Locked FROM conti WHERE Codice=@code",cn);locked.Parameters.AddWithValue("@code",model.Code);var value=await locked.ExecuteScalarAsync(ct);if(value is not null&&value is not DBNull&&Convert.ToBoolean(value))throw new InvalidOperationException("Il conto è bloccato e non può essere modificato.");}
+        else{await using var locked=new MySqlCommand("SELECT Locked FROM conti WHERE Codice=@code",cn);locked.Parameters.AddWithValue("@code",model.Code);var value=await locked.ExecuteScalarAsync(ct);if(value is null||value is DBNull)throw new InvalidOperationException("Conto non trovato.");if(Convert.ToBoolean(value)&&!assistanceAuthorized)throw new InvalidOperationException("Conto bloccato");}
         const string sql="INSERT INTO conti(Codice,Descrizione,Tipo,Mastro,Ditta,Locked,Carico) VALUES(@code,@description,@type,@master,NULLIF(@party,''),0,@load) ON DUPLICATE KEY UPDATE Descrizione=VALUES(Descrizione),Tipo=VALUES(Tipo),Mastro=VALUES(Mastro),Ditta=VALUES(Ditta),Carico=VALUES(Carico)";
         await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",model.Code);cmd.Parameters.AddWithValue("@description",model.Description);cmd.Parameters.AddWithValue("@type",model.Type);cmd.Parameters.AddWithValue("@master",model.Master);cmd.Parameters.AddWithValue("@party",model.PartyKind);cmd.Parameters.AddWithValue("@load",model.Load);await cmd.ExecuteNonQueryAsync(ct);
     }
@@ -362,11 +371,26 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
     {
         var used=new HashSet<short>();await using var cmd=new MySqlCommand("SELECT Codice FROM conti WHERE Codice BETWEEN 1 AND 999 ORDER BY Codice",cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))used.Add(r.GetInt16(0));for(short i=1;i<=999;i++)if(!used.Contains(i))return i;throw new InvalidOperationException("Non ci sono codici conto disponibili.");
     }
-    public async Task<string?> DeleteAccountAsync(short code,CancellationToken ct)
+    public async Task<bool> AccountInUseAsync(short code,CancellationToken ct)
     {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);const string sql="""
+            SELECT SUM(UsedCount) FROM (
+                SELECT COUNT(*) UsedCount FROM movcontrg WHERE Conto=@code
+                UNION ALL SELECT COUNT(*) FROM banche WHERE Conto=@code
+                UNION ALL SELECT COUNT(*) FROM causalicont WHERE Dare1=@code OR Dare2=@code OR Dare3=@code OR Dare4=@code OR Dare5=@code OR Dare6=@code OR Avere1=@code OR Avere2=@code OR Avere3=@code OR Avere4=@code OR Avere5=@code OR Avere6=@code
+            ) x
+            """;await using var used=new MySqlCommand(sql,cn);used.Parameters.AddWithValue("@code",code);return Convert.ToInt32(await used.ExecuteScalarAsync(ct)??0)>0;
+    }
+    public async Task<bool> AccountLockedAsync(short code,CancellationToken ct)
+    {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand("SELECT Locked FROM conti WHERE Codice=@code",cn);cmd.Parameters.AddWithValue("@code",code);var value=await cmd.ExecuteScalarAsync(ct);return value is not null&&value is not DBNull&&Convert.ToBoolean(value);
+    }
+    public async Task<string?> DeleteAccountAsync(short code,Func<CancellationToken,Task<bool>> authorizeAssistance,CancellationToken ct)
+    {
+        if(await AccountInUseAsync(code,ct))return "Il conto è utilizzato e non può essere eliminato.";
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
-        await using(var locked=new MySqlCommand("SELECT Locked FROM conti WHERE Codice=@code",cn)){locked.Parameters.AddWithValue("@code",code);var value=await locked.ExecuteScalarAsync(ct);if(value is not null&&value is not DBNull&&Convert.ToBoolean(value))return "Il conto è bloccato e non può essere eliminato.";}
-        await using(var used=new MySqlCommand("SELECT SUM(UsedCount) FROM (SELECT COUNT(*) UsedCount FROM movcontrg WHERE Conto=@code UNION ALL SELECT COUNT(*) FROM banche WHERE Conto=@code) x",cn)){used.Parameters.AddWithValue("@code",code);if(Convert.ToInt32(await used.ExecuteScalarAsync(ct)??0)>0)return "Il conto è utilizzato e non può essere eliminato.";}
+        await using(var locked=new MySqlCommand("SELECT Locked FROM conti WHERE Codice=@code",cn)){locked.Parameters.AddWithValue("@code",code);var value=await locked.ExecuteScalarAsync(ct);if(value is null||value is DBNull)return "Conto non trovato.";if(Convert.ToBoolean(value)&&!await authorizeAssistance(ct))return "Conto bloccato";}
+        if(await AccountInUseAsync(code,ct))return "Il conto è utilizzato e non può essere eliminato.";
         try{await using var cmd=new MySqlCommand("DELETE FROM conti WHERE Codice=@code",cn);cmd.Parameters.AddWithValue("@code",code);await cmd.ExecuteNonQueryAsync(ct);return null;}
         catch(MySqlException ex) when(ex.Number==1451){return "Il conto è utilizzato e non può essere eliminato.";}
     }
@@ -390,14 +414,14 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
             """;
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);await using var cmd=new MySqlCommand(sql,cn);cmd.Parameters.AddWithValue("@code",code);await using var r=await cmd.ExecuteReaderAsync(ct);if(!await r.ReadAsync(ct))return null;return new(){Code=r.GetInt16(0),Description=S(r,1),MovementType=S(r,2),PartyKind=S(r,3),Sign=S(r,4),InOut=S(r,5),CauseType=S(r,6),PaymentType=S(r,7),Cash=r.GetBoolean(8),Invoice=r.GetBoolean(9),DueDate=r.GetBoolean(10),Title=r.GetBoolean(11),Salary=r.GetBoolean(12),Print=r.GetBoolean(13),Locked=r.GetBoolean(14),Debit1=r.GetInt16(15),Debit2=r.GetInt16(16),Debit3=r.GetInt16(17),Debit4=r.GetInt16(18),Debit5=r.GetInt16(19),Debit6=r.GetInt16(20),Credit1=r.GetInt16(21),Credit2=r.GetInt16(22),Credit3=r.GetInt16(23),Credit4=r.GetInt16(24),Credit5=r.GetInt16(25),Credit6=r.GetInt16(26)};
     }
-    public async Task SaveAccountingCauseAsync(AccountingCauseEditModel model,bool isNew,CancellationToken ct)
+    public async Task SaveAccountingCauseAsync(AccountingCauseEditModel model,bool isNew,bool assistanceAuthorized,CancellationToken ct)
     {
         model.Description=model.Description.Trim();model.MovementType=(model.MovementType??"").Trim().ToUpperInvariant();model.PartyKind=(model.PartyKind??"").Trim().ToUpperInvariant();model.Sign=(model.Sign??"").Trim().ToUpperInvariant();model.InOut=(model.InOut??"").Trim().ToUpperInvariant();model.CauseType=(model.CauseType??"").Trim().ToUpperInvariant();model.PaymentType=(model.PaymentType??"").Trim().ToUpperInvariant();
         if(model.Description.Length==0)throw new InvalidOperationException("Inserire la descrizione della causale.");if(model.MovementType.Length==0)throw new InvalidOperationException("Selezionare il tipo movimento.");if(model.MovementType is not ("C" or "B" or "V"))throw new InvalidOperationException("Tipo movimento non valido.");
         if(model.PartyKind is not ("" or "C" or "F" or "B" or "D"))throw new InvalidOperationException("Soggetto non valido.");if(model.Sign is not ("" or "A" or "D"))throw new InvalidOperationException("Segno non valido.");if(model.InOut is not ("" or "E" or "U"))throw new InvalidOperationException("Entrata/Uscita non valida.");if(model.CauseType is not ("" or "C" or "P" or "N"))throw new InvalidOperationException("Tipo causale non valido.");if(model.PaymentType is not ("" or "C" or "D" or "E" or "N"))throw new InvalidOperationException("Tipo pagamento non valido.");
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);if(isNew&&model.Code<=0)model.Code=await NextAccountingCauseCodeAsync(cn,ct);if(model.Code<1||model.Code>999)throw new InvalidOperationException("Il codice causale deve essere compreso tra 001 e 999.");
         if(isNew){await using var exists=new MySqlCommand("SELECT COUNT(*) FROM causalicont WHERE Codice=@code",cn);exists.Parameters.AddWithValue("@code",model.Code);if(Convert.ToInt32(await exists.ExecuteScalarAsync(ct))>0)throw new InvalidOperationException($"Esiste già la causale {model.Code:000}.");}
-        else{await using var locked=new MySqlCommand("SELECT Locked FROM causalicont WHERE Codice=@code",cn);locked.Parameters.AddWithValue("@code",model.Code);var value=await locked.ExecuteScalarAsync(ct);if(value is not null&&value is not DBNull&&Convert.ToBoolean(value))throw new InvalidOperationException("La causale è bloccata e non può essere modificata.");}
+        else{await using var locked=new MySqlCommand("SELECT Locked FROM causalicont WHERE Codice=@code",cn);locked.Parameters.AddWithValue("@code",model.Code);var value=await locked.ExecuteScalarAsync(ct);if(value is null||value is DBNull)throw new InvalidOperationException("Causale non trovata.");model.Locked=Convert.ToBoolean(value);if(model.Locked&&!assistanceAuthorized)throw new InvalidOperationException("Causale bloccata");}
         const string sql="""
             INSERT INTO causalicont(Codice,Descrizione,TipoMov,CliFor,Segno,EnUs,TipoCau,TipoPag,Cassa,Fattura,Scadenza,Titolo,Stipendio,Stampa,Locked,Dare1,Dare2,Dare3,Dare4,Dare5,Dare6,Avere1,Avere2,Avere3,Avere4,Avere5,Avere6)
             VALUES(@code,@description,@movement,@party,@sign,@inout,@cause,@payment,@cash,@invoice,@due,@title,@salary,@print,@locked,@d1,@d2,@d3,@d4,@d5,@d6,@c1,@c2,@c3,@c4,@c5,@c6)
@@ -409,13 +433,21 @@ public sealed class CustomerService(SkyLab.Web.Data.SkyLabDatabaseOptions option
     {
         var used=new HashSet<short>();await using var cmd=new MySqlCommand("SELECT Codice FROM causalicont WHERE Codice BETWEEN 1 AND 999 ORDER BY Codice",cn);await using var r=await cmd.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))used.Add(r.GetInt16(0));for(short i=1;i<=999;i++)if(!used.Contains(i))return i;throw new InvalidOperationException("Non ci sono codici causale disponibili.");
     }
-    public async Task<string?> DeleteAccountingCauseAsync(short code,CancellationToken ct)
+    public async Task<string?> DeleteAccountingCauseAsync(short code,Func<CancellationToken,Task<bool>> authorizeAssistance,CancellationToken ct)
     {
         await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);
-        await using(var locked=new MySqlCommand("SELECT Locked FROM causalicont WHERE Codice=@code",cn)){locked.Parameters.AddWithValue("@code",code);var value=await locked.ExecuteScalarAsync(ct);if(value is not null&&value is not DBNull&&Convert.ToBoolean(value))return "La causale è bloccata e non può essere eliminata.";}
-        await using(var used=new MySqlCommand("SELECT COUNT(*) FROM movcont WHERE Causale=@code",cn)){used.Parameters.AddWithValue("@code",code);if(Convert.ToInt32(await used.ExecuteScalarAsync(ct))>0)return "La causale è utilizzata nei movimenti contabili e non può essere eliminata.";}
+        if(await AccountingCauseInUseAsync(cn,code,ct))return "La causale è utilizzata nei movimenti contabili e non può essere eliminata.";
+        await using(var locked=new MySqlCommand("SELECT Locked FROM causalicont WHERE Codice=@code",cn)){locked.Parameters.AddWithValue("@code",code);var value=await locked.ExecuteScalarAsync(ct);if(value is null||value is DBNull)return "Causale non trovata.";if(Convert.ToBoolean(value)&&!await authorizeAssistance(ct))return "Causale bloccata";}
         try{await using var cmd=new MySqlCommand("DELETE FROM causalicont WHERE Codice=@code",cn);cmd.Parameters.AddWithValue("@code",code);await cmd.ExecuteNonQueryAsync(ct);return null;}
         catch(MySqlException ex) when(ex.Number==1451){return "La causale è utilizzata e non può essere eliminata.";}
+    }
+    public async Task<bool> AccountingCauseInUseAsync(short code,CancellationToken ct)
+    {
+        await using var cn=new MySqlConnection(ConnectionString);await cn.OpenAsync(ct);return await AccountingCauseInUseAsync(cn,code,ct);
+    }
+    private static async Task<bool> AccountingCauseInUseAsync(MySqlConnection cn,short code,CancellationToken ct)
+    {
+        await using var used=new MySqlCommand("SELECT EXISTS(SELECT 1 FROM Movcont WHERE Causale=@code LIMIT 1)",cn);used.Parameters.AddWithValue("@code",code);return Convert.ToInt32(await used.ExecuteScalarAsync(ct))!=0;
     }
     public async Task<IReadOnlyList<SupplierLookupItem>> SuppliersAsync(CancellationToken ct)
     {
