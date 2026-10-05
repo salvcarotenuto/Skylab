@@ -179,7 +179,7 @@
                 </div>
 
                 <div class="field accounting-movement-store-field">
-                    <label>Punto vendita</label>
+                    <label>Unità locale</label>
                     <select asp-for="Movement.StoreCode">
                         <option value=""></option>
                         @foreach (var store in Model.StoreOptions)
@@ -306,6 +306,7 @@
             {
                 <option value="@cause.Code"
                         data-description="@cause.Description"
+                        data-movement-type="@cause.MovementType"
                         data-subject="@cause.Subject"
                         data-invoice="@(cause.Invoice ? "true" : "false")"
                         data-due-date="@(cause.DueDate ? "true" : "false")"

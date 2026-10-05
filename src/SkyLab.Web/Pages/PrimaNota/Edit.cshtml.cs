@@ -85,7 +85,7 @@ public sealed class EditModel(
             cancellationToken);
         if (string.Equals(ReturnTo, "menu", StringComparison.OrdinalIgnoreCase))
         {
-            return RedirectToPage("./Edit", new { returnTo = "menu" });
+            return RedirectToPage("./Edit", new { returnTo = "menu", azione = Azione });
         }
 
         if (!string.IsNullOrWhiteSpace(ReturnTo))
@@ -142,6 +142,7 @@ public sealed class EditModel(
     public async Task<IActionResult> OnGetLinkedDocumentsAsync(
         string kind,
         int year,
+        int sector,
         string subjectType,
         int subjectCode,
         CancellationToken cancellationToken)
@@ -149,6 +150,7 @@ public sealed class EditModel(
         var documents = await movementRepository.ListLinkedDocumentsAsync(
             kind,
             year <= 0 ? applicationState.Esercizio : year,
+            sector,
             subjectType,
             subjectCode,
             cancellationToken);
@@ -160,6 +162,7 @@ public sealed class EditModel(
             sector = document.Sector,
             code = document.Code,
             protocol = $"{document.Code:000000} / {document.Year}",
+            documentType = document.DocumentType,
             number = document.Number,
             date = document.Date?.ToString("dd-MM-yyyy") ?? "",
             amount = document.Amount
@@ -221,6 +224,23 @@ public sealed class EditModel(
         {
             Movement.CauseDescription = cause.Description;
             Movement.SubjectType = cause.Subject;
+
+            if (!cause.Invoice)
+            {
+                Movement.LinkedInvoiceDocumentId = null;
+                Movement.LinkedInvoiceDocumentSector = null;
+                Movement.LinkedInvoiceDocumentType = null;
+                Movement.LinkedInvoiceDocumentNumber = "";
+                Movement.LinkedInvoiceDocumentDate = null;
+            }
+
+            if (!cause.DueDate)
+            {
+                Movement.LinkedDueDateDocumentId = null;
+                Movement.LinkedDueDateDocumentSector = null;
+                Movement.LinkedDueDateDocumentNumber = "";
+                Movement.LinkedDueDateDocumentDate = null;
+            }
         }
     }
 
@@ -269,6 +289,23 @@ public sealed class EditModel(
         else if (CauseTemplates.All(row => row.Code != Movement.CauseCode.Value))
         {
             ModelState.AddModelError("", "Causale non valida.");
+        }
+        else if (IsNew && CauseTemplates.First(row => row.Code == Movement.CauseCode.Value).MovementType.Trim().Equals("V", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError("", "Le causali di tipo movimento IVA sono riservate alla registrazione dei documenti fiscali.");
+        }
+
+        var cause = Movement.CauseCode is int code
+            ? CauseTemplates.FirstOrDefault(row => row.Code == code)
+            : null;
+        var mappedSubject = cause?.Subject.Trim().ToUpperInvariant() ?? "";
+        if ((mappedSubject is "C" or "F" or "B" or "D" or "A") && Movement.SubjectCode.GetValueOrDefault() <= 0)
+        {
+            ModelState.AddModelError("", $"Selezionare il soggetto previsto dalla causale ({mappedSubject}).");
+        }
+        else if (!string.IsNullOrWhiteSpace(mappedSubject) && mappedSubject is not ("C" or "F" or "B" or "D" or "A"))
+        {
+            ModelState.AddModelError("", "La causale indica un tipo soggetto non gestito.");
         }
 
         if (Movement.Amount <= 0)

@@ -76,7 +76,8 @@ public sealed class LookupRepository(SkyLabDatabase database)
         string.Equals(type, "fornitori", StringComparison.OrdinalIgnoreCase)
         || string.Equals(type, "clienti", StringComparison.OrdinalIgnoreCase)
         || string.Equals(type, "dipendenti", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(type, "banche", StringComparison.OrdinalIgnoreCase);
+        || string.Equals(type, "banche", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(type, "agenti", StringComparison.OrdinalIgnoreCase);
 
     private static string LookupSource(string? type) => type?.Trim().ToLowerInvariant() switch
     {
@@ -98,15 +99,23 @@ public sealed class LookupRepository(SkyLabDatabase database)
                    TRIM(CONCAT_WS(' ', NULLIF(COALESCE(Agenzia, ''), ''), NULLIF(COALESCE(Iban, ''), ''))) AS Dettaglio
             FROM banche
             """,
+        "agenti" => """
+            SELECT Codice,
+                   COALESCE(Nome, '') AS Nome,
+                   NULL AS Contropartita,
+                   NULL AS PuntoV,
+                   '' AS Dettaglio
+            FROM agenti
+            """,
         _ => throw new ArgumentOutOfRangeException(nameof(type))
     };
 
     private static string AnagraficaSource(string table) => $"""
         SELECT Codice,
                COALESCE(Nome, '') AS Nome,
-               Contropartita,
-               PuntoV,
-               TRIM(CONCAT_WS(' ', NULLIF(COALESCE(Citta, ''), ''), NULLIF(COALESCE(Prov, ''), ''))) AS Dettaglio
+               NULL AS Contropartita,
+               NULL AS PuntoV,
+               TRIM(CONCAT_WS(' ', NULLIF(COALESCE(Citta, ''), ''), NULLIF(COALESCE(Provincia, ''), ''))) AS Dettaglio
         FROM {table}
         """;
 

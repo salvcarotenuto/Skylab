@@ -43,6 +43,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
                        WHEN m.CliFor = 'F' THEN COALESCE(forn.Nome, '')
                        WHEN m.CliFor = 'D' THEN TRIM(CONCAT(COALESCE(dip.Cognome, ''), ' ', COALESCE(dip.Nome, '')))
                        WHEN m.CliFor = 'B' THEN COALESCE(ct.Descrizione, '')
+                       WHEN m.CliFor = 'A' THEN COALESCE(ag.Nome, '')
                        ELSE ''
                    END AS Nome,
                    COALESCE(m.NumDoc, '') AS NumDoc,
@@ -55,6 +56,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             LEFT JOIN fornitori forn ON forn.Codice = m.Ditta
             LEFT JOIN dipendenti dip ON dip.Codice = m.Ditta
             LEFT JOIN conti ct ON ct.Codice = m.Ditta
+            LEFT JOIN agenti ag ON ag.Codice = m.Ditta
             WHERE m.ID = @id
             LIMIT 1;
             """;
@@ -127,7 +129,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
 
 
 
-    public async Task<bool> DeleteMovementAsync(
+    public async Task<AccountingMovementDeleteResult> DeleteMovementAsync(
         int id,
         CancellationToken cancellationToken = default)
     {
@@ -136,6 +138,27 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
 
         try
         {
+            await using (var checkCommand = new MySqlCommand(
+                "SELECT Settore FROM movcont WHERE ID = @id FOR UPDATE;",
+                connection,
+                transaction))
+            {
+                checkCommand.Parameters.AddWithValue("@id", id);
+                var sectorValue = await checkCommand.ExecuteScalarAsync(cancellationToken);
+                if (sectorValue is null or DBNull)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return AccountingMovementDeleteResult.NotFound;
+                }
+
+                var sector = Convert.ToInt32(sectorValue);
+                if (sector is 10 or 20 or 30)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return AccountingMovementDeleteResult.FiscalDocumentMovement;
+                }
+            }
+
             await using (var linkedCommand = new MySqlCommand(
                 "DELETE FROM movcontdc WHERE Mov_Id = @id;",
                 connection,
@@ -162,7 +185,9 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             var affected = await movementCommand.ExecuteNonQueryAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
-            return affected > 0;
+            return affected > 0
+                ? AccountingMovementDeleteResult.Deleted
+                : AccountingMovementDeleteResult.NotFound;
         }
         catch
         {
@@ -234,6 +259,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
                        WHEN m.CliFor = 'F' THEN COALESCE(forn.Nome, '')
                        WHEN m.CliFor = 'D' THEN TRIM(CONCAT(COALESCE(dip.Cognome, ''), ' ', COALESCE(dip.Nome, '')))
                        WHEN m.CliFor = 'B' THEN COALESCE(ct.Descrizione, '')
+                       WHEN m.CliFor = 'A' THEN COALESCE(ag.Nome, '')
                        ELSE ''
                    END AS Nome,
                    COALESCE(m.NumDoc, '') AS NumDoc,
@@ -244,6 +270,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             LEFT JOIN fornitori forn ON forn.Codice = m.Ditta
             LEFT JOIN dipendenti dip ON dip.Codice = m.Ditta
             LEFT JOIN conti ct ON ct.Codice = m.Ditta
+            LEFT JOIN agenti ag ON ag.Codice = m.Ditta
             WHERE m.ID = @id
             LIMIT 1;
             """;
@@ -488,6 +515,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
     public async Task<IReadOnlyList<AccountingLinkedDocumentOption>> ListLinkedDocumentsAsync(
         string kind,
         int year,
+        int sector,
         string subjectType,
         int subjectCode,
         CancellationToken cancellationToken = default)
@@ -499,8 +527,8 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             return [];
         }
 
-        var sector = LinkedDocumentSector(normalizedKind, normalizedSubject);
-        if (sector <= 0)
+        var expectedSector = LinkedDocumentSector(normalizedKind, normalizedSubject);
+        if (expectedSector <= 0 || sector != expectedSector)
         {
             return [];
         }
@@ -512,7 +540,6 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
                 connection,
                 year,
                 sector,
-                normalizedSubject,
                 subjectCode,
                 cancellationToken),
             "due-date" => await ListLinkedDueDatesAsync(
@@ -975,6 +1002,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             "F" => "Fornitore",
             "D" => "Dipendente",
             "B" => "Banca",
+            "A" => "Agente",
             _ => "Ditta"
         };
     private static bool IsDebitSign(string sign) =>
@@ -1186,6 +1214,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
                        WHEN m.CliFor = 'F' THEN COALESCE(forn.Nome, '')
                        WHEN m.CliFor = 'D' THEN TRIM(CONCAT(COALESCE(dip.Cognome, ''), ' ', COALESCE(dip.Nome, '')))
                        WHEN m.CliFor = 'B' THEN COALESCE(ct.Descrizione, '')
+                       WHEN m.CliFor = 'A' THEN COALESCE(ag.Nome, '')
                        ELSE ''
                    END AS Nome,
                    COALESCE(m.Descrizione, '') AS Note
@@ -1195,11 +1224,11 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             LEFT JOIN fornitori forn ON forn.Codice = m.Ditta
             LEFT JOIN dipendenti dip ON dip.Codice = m.Ditta
             LEFT JOIN conti ct ON ct.Codice = m.Ditta
+            LEFT JOIN agenti ag ON ag.Codice = m.Ditta
             WHERE m.DataMov BETWEEN @dateFrom AND @dateTo
               AND (@sector IS NULL OR m.Settore = @sector)
               AND (@causeCode IS NULL OR m.Causale = @causeCode)
               AND (@movementType = '' OR c.TipoMov = @movementType)
-              AND (@subjectType = '' OR m.CliFor = @subjectType)
               AND (@dittaCode IS NULL OR (m.CliFor = @subjectType AND m.Ditta = @dittaCode))
             ORDER BY m.DataMov DESC, m.Codice DESC;
             """;
@@ -1297,7 +1326,6 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
         MySqlConnection connection,
         int year,
         int sector,
-        string subjectType,
         int subjectCode,
         CancellationToken cancellationToken)
     {
@@ -1313,7 +1341,6 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             FROM moviva
             WHERE Anno = @year
               AND Settore = @sector
-              AND CliFor = @subjectType
               AND Ditta = @subjectCode
             ORDER BY DataDoc DESC, NumDoc DESC, Codice DESC;
             """;
@@ -1321,7 +1348,6 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
         await using var command = new MySqlCommand(sql, connection);
         command.Parameters.AddWithValue("@year", year);
         command.Parameters.AddWithValue("@sector", sector);
-        command.Parameters.AddWithValue("@subjectType", subjectType);
         command.Parameters.AddWithValue("@subjectCode", subjectCode);
 
         var rows = new List<AccountingLinkedDocumentOption>();
@@ -1395,9 +1421,17 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
         string subjectType,
         CancellationToken cancellationToken)
     {
-        var table = subjectType == "C" ? "clienti" : "fornitori";
+        var sql = subjectType switch
+        {
+            "C" => "SELECT COALESCE(Nome, '') FROM clienti WHERE Codice = @code LIMIT 1;",
+            "F" => "SELECT COALESCE(Nome, '') FROM fornitori WHERE Codice = @code LIMIT 1;",
+            "B" => "SELECT COALESCE(Nome, '') FROM banche WHERE Codice = @code LIMIT 1;",
+            "A" => "SELECT COALESCE(Nome, '') FROM agenti WHERE Codice = @code LIMIT 1;",
+            "D" => "SELECT TRIM(CONCAT(COALESCE(Cognome, ''), ' ', COALESCE(Nome, ''))) FROM dipendenti WHERE Codice = @code LIMIT 1;",
+            _ => "SELECT ''"
+        };
         await using var command = new MySqlCommand(
-            $"SELECT COALESCE(Nome, '') FROM `{table}` WHERE Codice = @code LIMIT 1;",
+            sql,
             connection);
         command.Parameters.AddWithValue("@code", code);
         return Convert.ToString(await command.ExecuteScalarAsync(cancellationToken)) ?? "";
@@ -1406,7 +1440,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
     private static string? NormalizeSubjectType(string? value)
     {
         var normalized = value?.Trim().ToUpperInvariant();
-        return normalized is "C" or "F" ? normalized : null;
+        return normalized is "C" or "F" or "B" or "A" or "D" ? normalized : null;
     }
 
     private static string? NormalizeType(string? value) =>

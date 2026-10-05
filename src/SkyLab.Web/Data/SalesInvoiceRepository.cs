@@ -239,7 +239,51 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
     public async Task DeleteAsync(int id,CancellationToken cancellationToken=default)
     {
         await using var connection=new MySqlConnection(databaseOptions.BuildCompanyConnectionString());await connection.OpenAsync(cancellationToken);await using var transaction=await connection.BeginTransactionAsync(cancellationToken);
-        try{int year,code;await using(var find=new MySqlCommand("SELECT Anno,Codice FROM Fatture WHERE ID=@id LIMIT 1",connection,transaction)){find.Parameters.AddWithValue("@id",id);await using var reader=await find.ExecuteReaderAsync(cancellationToken);if(!await reader.ReadAsync(cancellationToken))throw new InvalidOperationException("Fattura non trovata.");year=reader.GetInt32(0);code=reader.GetInt32(1);}var vatId=await FindVatMovementIdAsync(connection,transaction,year,code,cancellationToken);var accountingMovement=await FindAccountingMovementAsync(connection,transaction,vatId,cancellationToken);await using(var unlink=new MySqlCommand("UPDATE Lavori SET Fattura_ID=NULL WHERE Fattura_ID=@id",connection,transaction)){unlink.Parameters.AddWithValue("@id",id);await unlink.ExecuteNonQueryAsync(cancellationToken);}await DeleteMovementsAsync(connection,transaction,vatId,accountingMovement.Id,year,code,cancellationToken);await using(var deleteRows=new MySqlCommand("DELETE FROM FattureRg WHERE ID=@id",connection,transaction)){deleteRows.Parameters.AddWithValue("@id",id);await deleteRows.ExecuteNonQueryAsync(cancellationToken);}await using(var delete=new MySqlCommand("DELETE FROM Fatture WHERE ID=@id",connection,transaction)){delete.Parameters.AddWithValue("@id",id);await delete.ExecuteNonQueryAsync(cancellationToken);}await transaction.CommitAsync(cancellationToken);}catch{await transaction.RollbackAsync(cancellationToken);throw;}
+        try
+        {
+            int year,code;
+            await using(var find=new MySqlCommand("SELECT Anno,Codice FROM Fatture WHERE ID=@id LIMIT 1",connection,transaction))
+            {
+                find.Parameters.AddWithValue("@id",id);
+                await using var reader=await find.ExecuteReaderAsync(cancellationToken);
+                if(!await reader.ReadAsync(cancellationToken)) throw new InvalidOperationException("Fattura non trovata.");
+                year=reader.GetInt32(0);
+                code=reader.GetInt32(1);
+            }
+
+            var vatId=await FindVatMovementIdAsync(connection,transaction,year,code,cancellationToken);
+            if(vatId<=0) throw new InvalidOperationException("Movimento IVA collegato alla fattura non trovato. La fattura non è stata cancellata.");
+            var accountingMovement=await FindAccountingMovementAsync(connection,transaction,vatId,cancellationToken);
+            if(accountingMovement is null) throw new InvalidOperationException("Movimento contabile collegato alla fattura non trovato. La fattura non è stata cancellata.");
+
+            await using(var unlink=new MySqlCommand("UPDATE Lavori SET Fattura_ID=NULL WHERE Fattura_ID=@id",connection,transaction))
+            {
+                unlink.Parameters.AddWithValue("@id",id);
+                await unlink.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await DeleteMovementsAsync(connection,transaction,vatId,accountingMovement.Id,year,code,cancellationToken);
+
+            await using(var deleteRows=new MySqlCommand("DELETE FROM FattureRg WHERE ID=@id",connection,transaction))
+            {
+                deleteRows.Parameters.AddWithValue("@id",id);
+                await deleteRows.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await using(var delete=new MySqlCommand("DELETE FROM Fatture WHERE ID=@id",connection,transaction))
+            {
+                delete.Parameters.AddWithValue("@id",id);
+                if(await delete.ExecuteNonQueryAsync(cancellationToken)!=1)
+                    throw new InvalidOperationException("La fattura non è stata cancellata; operazione annullata.");
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     private static async Task<decimal> WorkVatRateAsync(MySqlConnection connection,int invoiceId,decimal workAmount,CancellationToken ct)
@@ -275,7 +319,10 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
             command.Parameters.AddWithValue("@code", code);
             command.Parameters.AddWithValue("@vatId", vatMovementId);
             command.Parameters.AddWithValue("@accountingId", accountingMovementId);
-            await command.ExecuteNonQueryAsync(ct);
+            var affected = await command.ExecuteNonQueryAsync(ct);
+            if (sql == "DELETE FROM movcont WHERE ID=@accountingId AND Settore=30 AND Documento=@vatId"
+                && affected != 1)
+                throw new InvalidOperationException("Il movimento contabile non corrisponde alla fattura; operazione annullata.");
         }
     }
 

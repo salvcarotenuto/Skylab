@@ -351,8 +351,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (saveButton) {
       saveButton.disabled = false;
     }
-    window.MicronoteProgress?.hide?.();
-    window.MicronoteValidationMessageBox?.enableSubmitters?.();
+    window.SkyProg?.Hide?.();
     if (window.SkyLabMessageBox?.show) {
       window.SkyLabMessageBox.show({
         title: "Prima nota",
@@ -404,6 +403,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!Number(String(causeCode?.value ?? "").replace(/\D/g, ""))) {
       showValidationError("Campo Causale obbligatorio.");
+      causeCode?.focus();
+      return false;
+    }
+
+    if (form?.dataset.isNew === "true" && isVatMovementCause(causeOption())) {
+      showValidationError("Le causali di tipo movimento IVA sono riservate alla registrazione dei documenti fiscali.");
       causeCode?.focus();
       return false;
     }
@@ -472,7 +477,13 @@ document.addEventListener("DOMContentLoaded", () => {
       .find((option) => Number(option.value) === code) ?? null;
   };
 
-  const hasSelectedCause = () => causeOption() !== null;
+  const isVatMovementCause = (option) =>
+    String(option?.dataset.movementType || "").trim().toUpperCase() === "V";
+
+  const hasSelectedCause = () => {
+    const option = causeOption();
+    return option !== null && !(form?.dataset.isNew === "true" && isVatMovementCause(option));
+  };
 
   const showForeignKeyError = (title, message, focusTarget) => {
     window.SkyLabMessageBox?.show({
@@ -497,7 +508,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const validateTypedCauseCode = () => {
     const code = String(causeCode?.value || "").replace(/\D/g, "");
-    if (Number(code) <= 0 || causeOption()) {
+    const option = causeOption();
+    if (Number(code) <= 0 || (option && !(form?.dataset.isNew === "true" && isVatMovementCause(option)))) {
       return true;
     }
 
@@ -507,7 +519,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     setSubjectLabel("");
     updateAccessoryFields(null);
-    showForeignKeyError("Causale", "Causale inesistente.", causeCode);
+    showForeignKeyError(
+      "Causale",
+      option ? "Le causali di tipo movimento IVA sono riservate alla registrazione dei documenti fiscali." : "Causale inesistente.",
+      causeCode);
     return false;
   };
 
@@ -518,13 +533,55 @@ document.addEventListener("DOMContentLoaded", () => {
   let causeLookupScrollFrame = 0;
   let causeLookupWheelFrame = 0;
 
-  const causeRows = () =>
-    Array.from(causeSource?.options ?? [])
-      .filter((option) => Number(option.value) > 0)
+  const causeMovementTypeLabel = (type) => ({
+    C: "C - Movimento contabile",
+    B: "B - Movimento bancario",
+    V: "V - Movimento IVA",
+    D: "D - Movimento dipendenti"
+  }[type] || type);
+
+  const causeMovementTypeShortLabel = (type) => ({
+    C: "Contabile",
+    B: "Banca",
+    V: "IVA",
+    D: "Dipendenti"
+  }[type] || type);
+
+  const causeSubjectLabel = (subject) => ({
+    C: "Cliente",
+    F: "Fornitore",
+    B: "Banca",
+    D: "Dipendente",
+    A: "Agente"
+  }[subject] || "");
+
+  const causeMovementTypes = () => {
+    const preferredOrder = ["C", "B", "V", "D"];
+    const types = [...new Set(Array.from(causeSource?.options ?? [])
+      .map((option) => String(option.dataset.movementType || "").trim().toUpperCase())
+      .filter(Boolean))];
+    return types.sort((left, right) => {
+      const leftIndex = preferredOrder.indexOf(left);
+      const rightIndex = preferredOrder.indexOf(right);
+      return (leftIndex < 0 ? preferredOrder.length : leftIndex) -
+        (rightIndex < 0 ? preferredOrder.length : rightIndex) || left.localeCompare(right);
+    });
+  };
+
+  const causeRows = () => {
+    const selectedType = causeLookup?.querySelector("[data-cause-lookup-type-filter]")?.value || "";
+    const descriptionFilter = normalize(causeLookup?.querySelector("[data-cause-lookup-search]")?.value || "").trim();
+    return Array.from(causeSource?.options ?? [])
+      .filter((option) => Number(option.value) > 0 && !isVatMovementCause(option) &&
+        (!selectedType || String(option.dataset.movementType || "").trim().toUpperCase() === selectedType) &&
+        (!descriptionFilter || normalize(option.dataset.description || option.textContent).includes(descriptionFilter)))
       .map((option) => ({
         code: Number(option.value),
+        movementType: String(option.dataset.movementType || "").trim().toUpperCase(),
+        subject: String(option.dataset.subject || "").trim().toUpperCase(),
         description: option.dataset.description || option.textContent.replace(/^\s*\d+\s*-\s*/, "").trim()
       }));
+  };
 
   const causeLookupFrame = () => causeLookup?.querySelector(".accounting-movement-cause-lookup-frame");
   const causeLookupTable = () => causeLookup?.querySelector(".accounting-movement-cause-lookup-table");
@@ -588,10 +645,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     causeLookup?.querySelectorAll("[data-cause-lookup-row]").forEach((candidate) => {
-      candidate.classList.remove("selected-row");
+      candidate.classList.remove("selected");
       candidate.removeAttribute("aria-selected");
     });
-    row.classList.add("selected-row");
+    row.classList.add("selected");
     row.setAttribute("aria-selected", "true");
     selectedCauseRow = row;
 
@@ -632,9 +689,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const closeCauseLookup = () => {
-    causeLookup?.classList.remove("is-open");
+    if (causeLookup?.open) causeLookup.close();
     document.body.classList.remove("lookup-open");
     selectedCauseRow = null;
+    causeCode?.focus();
   };
 
   const chooseCauseRow = () => {
@@ -652,8 +710,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const sortedCauseRows = () => {
     const direction = causeLookupSort.direction === "desc" ? -1 : 1;
     return causeRows().sort((left, right) => {
-      if (causeLookupSort.key === "description") {
-        return left.description.localeCompare(right.description, "it", { sensitivity: "base" }) * direction;
+      const leftValue = causeLookupSort.key === "description"
+        ? left.description
+        : causeLookupSort.key === "movementType"
+          ? causeMovementTypeShortLabel(left.movementType)
+          : causeLookupSort.key === "subject"
+            ? causeSubjectLabel(left.subject)
+            : null;
+      const rightValue = causeLookupSort.key === "description"
+        ? right.description
+        : causeLookupSort.key === "movementType"
+          ? causeMovementTypeShortLabel(right.movementType)
+          : causeLookupSort.key === "subject"
+            ? causeSubjectLabel(right.subject)
+            : null;
+
+      if (leftValue !== null && rightValue !== null) {
+        return leftValue.localeCompare(rightValue, "it", { sensitivity: "base" }) * direction;
       }
 
       return (left.code - right.code) * direction;
@@ -678,6 +751,8 @@ document.addEventListener("DOMContentLoaded", () => {
       <tr tabindex="0" data-cause-lookup-row data-cause-code="${row.code}">
         <td class="accounting-movement-cause-lookup-code">${formatCode(row.code, 3)}</td>
         <td>${escapeHtml(row.description)}</td>
+        <td>${escapeHtml(causeMovementTypeShortLabel(row.movementType))}</td>
+        <td>${escapeHtml(causeSubjectLabel(row.subject))}</td>
       </tr>`).join("");
 
     body.querySelectorAll("[data-cause-lookup-row]").forEach((row) => {
@@ -712,16 +787,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return causeLookup;
     }
 
-    causeLookup = document.createElement("div");
-    causeLookup.className = "accounting-movement-cause-lookup";
+    causeLookup = document.createElement("dialog");
+    causeLookup.className = "customer-lookup-dialog skylab-zoom-dialog accounting-movement-cause-lookup";
+    const movementTypeOptions = causeMovementTypes().map((type) =>
+      `<option value="${escapeHtml(type)}"${type === "V" ? " disabled" : ""}>${escapeHtml(causeMovementTypeLabel(type))}</option>`).join("");
     causeLookup.innerHTML = `
-      <div class="accounting-movement-cause-lookup-dialog" role="dialog" aria-modal="true" aria-labelledby="movement-cause-lookup-title">
-        <div class="accounting-movement-cause-lookup-titlebar">
-          <h2 id="movement-cause-lookup-title">Causali contabili</h2>
-          <button class="accounting-movement-cause-lookup-close" type="button" aria-label="Chiudi" data-cause-lookup-close></button>
-        </div>
-        <div class="accounting-movement-cause-lookup-frame">
-          <table class="accounting-movement-cause-lookup-table">
+        <div class="customer-lookup-title"><h2 id="movement-cause-lookup-title">Causali contabili</h2></div>
+        <div class="skylab-zoom-frame accounting-movement-cause-lookup-frame" tabindex="0">
+          <table class="skylab-zoom-grid accounting-movement-cause-lookup-table">
             <thead>
               <tr>
                 <th class="accounting-movement-cause-lookup-code">
@@ -730,26 +803,50 @@ document.addEventListener("DOMContentLoaded", () => {
                 <th>
                   <button type="button" data-cause-lookup-sort="description">Descrizione</button>
                 </th>
+                <th class="accounting-movement-cause-lookup-type">
+                  <button type="button" data-cause-lookup-sort="movementType">Tipo</button>
+                </th>
+                <th class="accounting-movement-cause-lookup-subject">
+                  <button type="button" data-cause-lookup-sort="subject">Soggetto</button>
+                </th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
-        <div class="accounting-movement-cause-lookup-actions">
-          <button class="accounting-movement-cause-lookup-command" type="button" data-cause-lookup-ok>OK</button>
-          <button class="accounting-movement-cause-lookup-command" type="button" data-cause-lookup-cancel>Annulla</button>
+        <div class="skylab-zoom-tools accounting-movement-cause-lookup-tools">
+            <label for="movement-cause-lookup-search">Cerca</label>
+            <input id="movement-cause-lookup-search" type="search" autocomplete="off" placeholder="Descrizione causale" data-cause-lookup-search />
+            <label for="movement-cause-lookup-type-filter">Tipo movimento</label>
+            <select id="movement-cause-lookup-type-filter" data-cause-lookup-type-filter>
+              <option value="">Tutti i tipi</option>
+              ${movementTypeOptions}
+            </select>
+            <div class="customer-lookup-actions">
+              <button class="btn btn-primary" type="button" data-cause-lookup-ok>OK</button>
+              <button class="btn customer-menu-button" type="button" data-cause-lookup-cancel>Annulla</button>
+            </div>
         </div>
-      </div>`;
+      `;
     document.body.appendChild(causeLookup);
 
-    causeLookup.addEventListener("mousedown", (event) => {
+    causeLookup.addEventListener("click", (event) => {
       if (event.target === causeLookup) {
         closeCauseLookup();
       }
     });
-    causeLookup.querySelector("[data-cause-lookup-close]")?.addEventListener("click", closeCauseLookup);
     causeLookup.querySelector("[data-cause-lookup-cancel]")?.addEventListener("click", closeCauseLookup);
     causeLookup.querySelector("[data-cause-lookup-ok]")?.addEventListener("click", chooseCauseRow);
+    causeLookup.querySelector("[data-cause-lookup-type-filter]")?.addEventListener("change", () => {
+      renderCauseRows();
+      selectedCauseRow = null;
+      selectCauseRow(causeLookup.querySelector("[data-cause-lookup-row]"), true);
+    });
+    causeLookup.querySelector("[data-cause-lookup-search]")?.addEventListener("input", () => {
+      renderCauseRows();
+      selectedCauseRow = null;
+      selectCauseRow(causeLookup.querySelector("[data-cause-lookup-row]"));
+    });
     causeLookup.querySelectorAll("[data-cause-lookup-sort]").forEach((button) => {
       button.addEventListener("click", () => {
         const key = button.dataset.causeLookupSort;
@@ -793,6 +890,17 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }, { passive: true });
     causeLookup.addEventListener("keydown", (event) => {
+      if (event.target.matches("[data-cause-lookup-search]")) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeCauseLookup();
+        } else if (event.key === "Enter") {
+          event.preventDefault();
+          chooseCauseRow();
+        }
+        return;
+      }
+
       const rows = Array.from(causeLookup.querySelectorAll("[data-cause-lookup-row]"));
       const currentIndex = Math.max(rows.indexOf(selectedCauseRow), 0);
 
@@ -828,16 +936,19 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    dialog.querySelector("[data-cause-lookup-type-filter]").value = "";
+    dialog.querySelector("[data-cause-lookup-search]").value = "";
     renderCauseRows();
 
-    dialog.classList.add("is-open");
+    dialog.showModal();
     document.body.classList.add("lookup-open");
     causeLookupLastScrollTop = causeLookupFrame()?.scrollTop ?? 0;
     const currentCode = String(Number(String(causeCode?.value ?? "").replace(/\D/g, "")));
     const currentRow = currentCode && currentCode !== "0"
       ? body.querySelector(`[data-cause-code="${currentCode}"]`)
       : null;
-    selectCauseRow(currentRow || body.querySelector("[data-cause-lookup-row]"), true);
+    selectCauseRow(currentRow || body.querySelector("[data-cause-lookup-row]"));
+    window.requestAnimationFrame(() => dialog.querySelector("[data-cause-lookup-search]")?.focus());
   };
 
   const setSubjectLabel = (subject, preserveSubject = false) => {
@@ -845,13 +956,15 @@ document.addEventListener("DOMContentLoaded", () => {
       C: "Cliente",
       F: "Fornitore",
       B: "Banca",
-      D: "Dipendente"
+      D: "Dipendente",
+      A: "Agente"
     };
     const lookupTypes = {
       C: "clienti",
       F: "fornitori",
       B: "banche",
-      D: "dipendenti"
+      D: "dipendenti",
+      A: "agenti"
     };
     const normalizedSubject = String(subject || "").trim().toUpperCase();
     const previousSubject = String(subjectType?.value || "").trim().toUpperCase();
@@ -878,16 +991,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (subjectLookupOpen) {
       subjectLookupOpen.title = `Seleziona ${label.toLowerCase()}`;
       subjectLookupOpen.setAttribute("aria-label", `Seleziona ${label.toLowerCase()}`);
+      subjectLookupOpen.disabled = !lookupTypes[normalizedSubject];
+    }
+    if (subjectCodeDisplay) {
+      subjectCodeDisplay.disabled = !lookupTypes[normalizedSubject];
     }
   };
 
   const linkedDocumentSectorFor = (kind) => {
-    if (kind === "invoice") {
-      return 10;
-    }
-
     const subject = String(subjectType?.value || "").trim().toUpperCase();
-    return subject === "C" ? 30 : 10;
+    return subject === "C" ? 30 : subject === "F" ? 10 : 0;
   };
 
   const selectedSubjectCode = () => {
@@ -908,7 +1021,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (kind === "invoice") {
-      return `MovIva acquisto - settore ${sector}`;
+      return `MovIva ${sector === 30 ? "vendita" : "acquisto"} - settore ${sector}`;
     }
 
     return `Scadenza - settore ${sector}`;
@@ -918,6 +1031,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let linkedDocumentRows = [];
   let selectedLinkedDocumentRow = null;
   let activeLinkedDocumentField = null;
+  let linkedDocumentLookupOpener = null;
 
   const selectedSubjectType = () => String(subjectType?.value || "").trim().toUpperCase();
 
@@ -937,6 +1051,7 @@ document.addEventListener("DOMContentLoaded", () => {
       handler: "LinkedDocuments",
       kind,
       year: linkedDocumentLookupYear(),
+      sector: linkedDocumentSectorFor(kind),
       subjectType: selectedSubjectType(),
       subjectCode: selectedSubjectCode()
     });
@@ -975,10 +1090,15 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const closeLinkedDocumentLookup = () => {
-    linkedDocumentLookup?.classList.remove("is-open");
+    const returnFocus = linkedDocumentLookupOpener;
+    if (linkedDocumentLookup?.open) {
+      linkedDocumentLookup.close();
+    }
     document.body.classList.remove("lookup-open");
     selectedLinkedDocumentRow = null;
     activeLinkedDocumentField = null;
+    linkedDocumentLookupOpener = null;
+    window.requestAnimationFrame(() => returnFocus?.focus());
   };
 
   const selectLinkedDocumentRow = (row, focus = false) => {
@@ -987,10 +1107,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     linkedDocumentLookup?.querySelectorAll("[data-linked-document-row]").forEach((candidate) => {
-      candidate.classList.remove("selected-row");
+      candidate.classList.remove("selected");
       candidate.removeAttribute("aria-selected");
     });
-    row.classList.add("selected-row");
+    row.classList.add("selected");
     row.setAttribute("aria-selected", "true");
     selectedLinkedDocumentRow = row;
 
@@ -1036,7 +1156,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const renderLinkedDocumentRows = () => {
     const body = linkedDocumentLookup?.querySelector("[data-linked-document-body]");
     const empty = linkedDocumentLookup?.querySelector("[data-linked-document-empty]");
-    if (!body || !empty) {
+    const count = linkedDocumentLookup?.querySelector("[data-linked-document-count]");
+    if (!body || !empty || !count) {
       return;
     }
 
@@ -1050,6 +1171,7 @@ document.addEventListener("DOMContentLoaded", () => {
           data-document-number="${escapeHtml(row.number || "")}"
           data-document-date="${escapeHtml(row.date || "")}">
         <td class="accounting-linked-document-code">${escapeHtml(row.protocol || "")}</td>
+        <td>${escapeHtml(row.documentType || "")}</td>
         <td>${escapeHtml(row.number || "")}</td>
         <td class="accounting-linked-document-date">${escapeHtml(row.date || "")}</td>
         <td class="accounting-linked-document-amount">${escapeHtml(formatMoney(Number(row.amount || 0)))}</td>
@@ -1059,6 +1181,7 @@ document.addEventListener("DOMContentLoaded", () => {
       row.addEventListener("click", () => selectLinkedDocumentRow(row, true));
       row.addEventListener("dblclick", chooseLinkedDocumentRow);
     });
+    count.textContent = String(linkedDocumentRows.length);
     empty.hidden = linkedDocumentRows.length > 0;
   };
 
@@ -1067,24 +1190,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return linkedDocumentLookup;
     }
 
-    linkedDocumentLookup = document.createElement("div");
-    linkedDocumentLookup.className = "accounting-linked-document-lookup";
+    linkedDocumentLookup = document.createElement("dialog");
+    linkedDocumentLookup.className = "customer-lookup-dialog skylab-zoom-dialog accounting-linked-document-dialog";
     linkedDocumentLookup.innerHTML = `
-      <div class="accounting-linked-document-dialog" role="dialog" aria-modal="true" aria-labelledby="linked-document-lookup-title">
-        <div class="accounting-linked-document-titlebar">
-          <h2 id="linked-document-lookup-title" data-linked-document-title>Documenti collegati</h2>
-          <button class="accounting-linked-document-close" type="button" aria-label="Chiudi" data-linked-document-close></button>
-        </div>
-        <div class="accounting-linked-document-subject">
-          <span class="accounting-linked-document-subject-label">Soggetto</span>
-          <span class="accounting-linked-document-subject-code" data-linked-document-subject-code></span>
-          <span class="accounting-linked-document-subject-name" data-linked-document-subject-name></span>
-        </div>
-        <div class="accounting-linked-document-frame">
-          <table class="accounting-linked-document-table">
+        <div class="customer-lookup-title"><h2 data-linked-document-title></h2></div>
+        <div class="skylab-zoom-frame accounting-linked-document-frame" tabindex="0">
+          <table class="skylab-zoom-grid accounting-linked-document-grid">
             <thead>
               <tr>
                 <th>Partita</th>
+                <th>Tipo doc.</th>
                 <th>Numero</th>
                 <th>Data</th>
                 <th>Importo</th>
@@ -1092,27 +1207,27 @@ document.addEventListener("DOMContentLoaded", () => {
             </thead>
             <tbody data-linked-document-body></tbody>
           </table>
-          <div class="accounting-linked-document-empty" data-linked-document-empty hidden>Nessun documento disponibile</div>
+          <div class="skylab-zoom-empty" data-linked-document-empty hidden>Nessun documento disponibile</div>
         </div>
-        <div class="accounting-linked-document-actions">
-          <div class="accounting-linked-document-year-filter">
-            <label>Anno</label>
-            <select data-linked-document-year></select>
-          </div>
-          <div class="accounting-linked-document-action-buttons">
-            <button class="accounting-linked-document-command" type="button" data-linked-document-ok>OK</button>
-            <button class="accounting-linked-document-command" type="button" data-linked-document-cancel>Annulla</button>
+        <div class="skylab-zoom-tools accounting-linked-document-tools">
+          <label for="linked-document-year">Anno</label>
+          <select id="linked-document-year" data-linked-document-year></select>
+          <div class="customer-lookup-records-label">Records</div>
+          <div class="customer-lookup-records-count" data-linked-document-count>0</div>
+          <div></div>
+          <div class="customer-lookup-actions">
+            <button class="btn btn-primary" type="button" data-linked-document-ok>OK</button>
+            <button class="btn customer-menu-button" type="button" data-linked-document-cancel>Annulla</button>
           </div>
         </div>
-      </div>`;
+      `;
     document.body.appendChild(linkedDocumentLookup);
 
-    linkedDocumentLookup.addEventListener("mousedown", (event) => {
+    linkedDocumentLookup.addEventListener("click", (event) => {
       if (event.target === linkedDocumentLookup) {
         closeLinkedDocumentLookup();
       }
     });
-    linkedDocumentLookup.querySelector("[data-linked-document-close]")?.addEventListener("click", closeLinkedDocumentLookup);
     linkedDocumentLookup.querySelector("[data-linked-document-cancel]")?.addEventListener("click", closeLinkedDocumentLookup);
     linkedDocumentLookup.querySelector("[data-linked-document-ok]")?.addEventListener("click", chooseLinkedDocumentRow);
     linkedDocumentLookup.querySelector("[data-linked-document-year]")?.addEventListener("change", () => {
@@ -1125,10 +1240,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const rows = Array.from(linkedDocumentLookup.querySelectorAll("[data-linked-document-row]"));
       const currentIndex = Math.max(rows.indexOf(selectedLinkedDocumentRow), 0);
 
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeLinkedDocumentLookup();
-      } else if (event.key === "Enter") {
+      if (event.key === "Enter") {
         event.preventDefault();
         chooseLinkedDocumentRow();
       } else if (event.key === "ArrowDown") {
@@ -1138,6 +1250,10 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault();
         selectLinkedDocumentRow(rows[Math.max(currentIndex - 1, 0)], true);
       }
+    });
+    linkedDocumentLookup.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closeLinkedDocumentLookup();
     });
 
     return linkedDocumentLookup;
@@ -1149,12 +1265,14 @@ document.addEventListener("DOMContentLoaded", () => {
     activeLinkedDocumentField = field;
     linkedDocumentRows = [];
     selectedLinkedDocumentRow = null;
-    dialog.querySelector("[data-linked-document-title]").textContent = linkedDocumentTitle(kind);
-    dialog.querySelector("[data-linked-document-subject-code]").textContent = selectedSubjectCode().padStart(5, "0");
-    dialog.querySelector("[data-linked-document-subject-name]").textContent = selectedSubjectName();
+    linkedDocumentLookupOpener = field.querySelector("[data-movement-accessory-lookup]");
+    dialog.querySelector("[data-linked-document-title]").textContent =
+      `${linkedDocumentTitle(kind)} - ${selectedSubjectCode().padStart(5, "0")} ${selectedSubjectName()}`;
     fillLinkedDocumentYears();
     renderLinkedDocumentRows();
-    dialog.classList.add("is-open");
+    if (!dialog.open) {
+      dialog.showModal();
+    }
     document.body.classList.add("lookup-open");
     await loadLinkedDocumentRows(kind);
   };
@@ -1216,6 +1334,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const setAccessoryFieldState = (field, enabled, preserveValue = false) => {
     const kind = field.dataset.movementAccessory;
+    const keepValue = enabled && preserveValue;
     const code = field.querySelector("[data-movement-accessory-code]");
     const description = field.querySelector("[data-movement-accessory-description]");
     const button = field.querySelector("[data-movement-accessory-lookup]");
@@ -1225,7 +1344,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (code) {
       code.tabIndex = -1;
       code.readOnly = true;
-      if (!enabled && !preserveValue) {
+      if (!keepValue) {
         code.value = "";
       }
     }
@@ -1233,7 +1352,7 @@ document.addEventListener("DOMContentLoaded", () => {
     field.querySelectorAll("[data-movement-accessory-year], [data-movement-accessory-number], [data-movement-accessory-date], [data-movement-accessory-description]").forEach((input) => {
       input.tabIndex = -1;
       input.readOnly = true;
-      if (!enabled && !preserveValue) {
+      if (!keepValue) {
         input.value = "";
       }
     });
@@ -1247,7 +1366,7 @@ document.addEventListener("DOMContentLoaded", () => {
       clear.tabIndex = enabled ? 0 : -1;
     }
 
-    if (!enabled && !preserveValue) {
+    if (!keepValue) {
       if (linkedDocumentInputs[kind]?.id) {
         linkedDocumentInputs[kind].id.value = "";
       }
@@ -1291,6 +1410,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       setSubjectLabel("");
       updateAccessoryFields(null);
+      if (populateRows) {
+        [...rowsForSide("debit"), ...rowsForSide("credit")].forEach((row) => {
+          const select = row.querySelector("[data-account-select]");
+          const amount = row.querySelector("[data-line-amount]");
+          if (select) select.value = "";
+          if (amount) amount.value = "";
+          updateRow(row);
+        });
+        calculateTotals();
+      }
       return;
     }
 
@@ -1462,8 +1591,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     select.value = row.dataset.accountCode || "";
     updateRow(activeRow);
-    closeZoom();
-    activeRow.querySelector("[data-line-amount]")?.focus();
+    closeZoom(activeRow.querySelector("[data-line-amount]"));
   };
 
   const openZoom = (row) => {
@@ -1490,13 +1618,15 @@ document.addEventListener("DOMContentLoaded", () => {
     zoomSearch?.focus();
   };
 
-  function closeZoom() {
+  function closeZoom(focusTarget = null) {
     if (!zoom) {
       return;
     }
 
+    const returnFocus = focusTarget || activeRow?.querySelector("[data-account-add]");
     zoom.hidden = true;
     activeRow = null;
+    returnFocus?.focus();
   }
 
   movementDateDisplay?.addEventListener("input", () => {
@@ -1576,12 +1706,10 @@ document.addEventListener("DOMContentLoaded", () => {
     causeCode.value = String(causeCode.value || "").replace(/\D/g, "").slice(0, 3);
   });
   causeCode?.addEventListener("change", () => {
-    applyCauseTemplate(true);
-    validateTypedCauseCode();
+    if (validateTypedCauseCode()) applyCauseTemplate(true);
   });
   causeCode?.addEventListener("blur", () => {
-    applyCauseTemplate(true);
-    validateTypedCauseCode();
+    if (validateTypedCauseCode()) applyCauseTemplate(true);
   });
   causeLookupOpen?.addEventListener("click", openCauseLookup);
   subjectLookupOpen?.addEventListener("click", (event) => {
@@ -1663,7 +1791,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (form) {
       delete form.dataset.accountingSubmitPending;
     }
-    window.MicronoteProgress?.hide?.();
+    window.SkyProg?.Hide?.();
   };
 
   const submitWithProgress = () => {
@@ -1678,7 +1806,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     normalizeMoneyForSubmit(totalAmount);
     amountInputs.forEach(normalizeMoneyForSubmit);
-    window.MicronoteProgress?.show?.("Salvataggio in corso...");
+    window.SkyProg?.Show?.(form);
 
     window.setTimeout(() => {
       HTMLFormElement.prototype.submit.call(form);
@@ -1802,6 +1930,7 @@ document.addEventListener("DOMContentLoaded", () => {
   zoom?.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       closeZoom();
     }
   });
@@ -1829,7 +1958,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (event.key === "Escape" && zoom?.hidden !== false) {
       event.preventDefault();
-      window.location.href = document.querySelector(".top-actions a[href]")?.getAttribute("href") || "/PrimaNota";
+      window.location.href = cancelButton?.dataset.accountingMovementCancel || "/PrimaNota";
     }
   });
 

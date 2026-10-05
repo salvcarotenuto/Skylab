@@ -57,7 +57,7 @@ public static class MainMenuCatalog
         ]),
         new("contabilita", "Contabilità", "CN", "accent-accounting",
         [
-            Group("Prima nota contabile", Link("Movimenti di prima nota", "/PrimaNota/Index"), Pending("Scadenze passive"), Link("Saldi iniziali clienti e fornitori", "/SaldoInizialeClientiFornitori/Index"), Link("Apertura conti patrimoniali", "/AperturaContiPatrimoniali/Index")),
+            Group("Prima nota contabile", Link("Lista movimenti di prima nota", "/PrimaNota/Index"), Link("Movimenti di prima nota", "/PrimaNota/Edit", "menu", FormAzione.InserimentoContinuativo), Pending("Scadenze passive"), Link("Saldi iniziali clienti e fornitori", "/SaldoInizialeClientiFornitori/Index"), Link("Apertura conti patrimoniali", "/AperturaContiPatrimoniali/Index")),
             Group("Situazione economica", Link("Estratto conto fornitori", "/EstrattoContoClientiFornitori/Index"), Link("Estratto conto clienti", "/EstrattoContoClientiFornitori/Index"), Link("Scheda contabile", "/SchedaContabile/Index"), Link("Saldi clienti e fornitori", "/SaldiClientiFornitori/Index"), Pending("Liquidazione periodica IVA"), Link("Bilancio di verifica", "/BilancioVerifica/Index"), Link("Rendiconto cassa", "/RendicontoCassa/Index"), Link("Riepilogo movimenti contabili", "/RiepilogoMovimentiContabili/Index"), Link("Riepilogo movimenti per punto vendita", "/RiepilogoMovimentiPuntiVendita/Index")),
             Group("Banche e titoli", Link("Movimenti di banca", "/MovimentiBanca/Index"), Pending("Titoli di credito"), Pending("Estratto conto banca"))
         ]),
@@ -75,6 +75,6 @@ public static class MainMenuCatalog
     private static MenuGroupDefinition Group(string title, params MenuItemDefinition[] items) =>
         new(title, items);
 
-    private static MenuItemDefinition Link(string label, string page) => new(label, page);
+    private static MenuItemDefinition Link(string label, string page, string? returnTo = null, int? azione = null) => new(label, page, returnTo, azione);
     private static MenuItemDefinition Pending(string label) => new(label);
 }

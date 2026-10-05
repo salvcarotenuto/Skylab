@@ -12,10 +12,12 @@ public sealed class IndexModel(
 {
     public AccountingMovementListPageModel List { get; private set; } = new();
 
+    [TempData]
+    public string? DeleteWarning { get; set; }
+
     public async Task OnGetAsync(
         DateOnly? dateFrom,
         DateOnly? dateTo,
-        int? sector,
         int? causeCode,
         string? movementType,
         string? subjectType,
@@ -31,7 +33,7 @@ public sealed class IndexModel(
             year,
             start,
             end,
-            sector,
+            null,
             causeCode,
             movementType,
             subjectType,
@@ -49,7 +51,6 @@ public sealed class IndexModel(
         int movementId,
         DateOnly? dateFrom,
         DateOnly? dateTo,
-        int? sector,
         int? causeCode,
         string? movementType,
         string? subjectType,
@@ -58,14 +59,17 @@ public sealed class IndexModel(
     {
         if (movementId > 0)
         {
-            await repository.DeleteMovementAsync(movementId, cancellationToken);
+            var result = await repository.DeleteMovementAsync(movementId, cancellationToken);
+            if (result == AccountingMovementDeleteResult.FiscalDocumentMovement)
+            {
+                DeleteWarning = "Questo movimento è generato da un documento fiscale e non può essere cancellato in Prima Nota. Per cancellarlo, utilizzare il modulo specifico del documento.";
+            }
         }
 
         return RedirectToPage("./Index", new
         {
             dateFrom = dateFrom?.ToString("yyyy-MM-dd"),
             dateTo = dateTo?.ToString("yyyy-MM-dd"),
-            sector,
             causeCode,
             movementType,
             subjectType,

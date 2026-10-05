@@ -91,15 +91,19 @@
     }, { passive: true });
   };
 
-  const load = async catalog => {
-    if (!cache.has(catalog)) {
-      cache.set(catalog, fetch(`/api/zoom/${encodeURIComponent(catalog)}`, { headers: { Accept: "application/json" } })
+  const load = async (catalog, type = "") => {
+    const cacheKey = catalog === "anagrafiche" ? `${catalog}:${type}` : catalog;
+    if (!cache.has(cacheKey)) {
+      const url = catalog === "anagrafiche"
+        ? `/api/zoom/anagrafiche?tipo=${encodeURIComponent(type)}`
+        : `/api/zoom/${encodeURIComponent(catalog)}`;
+      cache.set(cacheKey, fetch(url, { headers: { Accept: "application/json" } })
         .then(response => {
           if (!response.ok) throw new Error(`Catalogo Zoom non disponibile: ${catalog}`);
           return response.json();
         }));
     }
-    return cache.get(catalog);
+    return cache.get(cacheKey);
   };
 
   const format = (value, column) => {
@@ -230,7 +234,7 @@
     if (complete) close(null);
     opener = options.opener || document.activeElement;
     try {
-      const payload = await load(catalog);
+      const payload = await load(catalog, options.type || "");
       render(payload);
       search.value = "";
       overlay.showModal();
@@ -273,7 +277,11 @@
     event.preventDefault();
     const catalog = button.dataset.skylabZoom;
     const currentSelector = button.dataset.skylabZoomTargetCode || button.dataset.skylabZoomTargetId;
-    const result = await open(catalog, { opener: button, current: currentSelector ? document.querySelector(currentSelector)?.value : "" });
+    const result = await open(catalog, {
+      opener: button,
+      current: currentSelector ? document.querySelector(currentSelector)?.value : "",
+      type: button.dataset.skylabZoomType || ""
+    });
     applyResult(button, result);
   });
 

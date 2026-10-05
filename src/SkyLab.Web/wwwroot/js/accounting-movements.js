@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let rows = Array.from(table?.querySelectorAll("[data-accounting-row]") ?? []);
   const sortHeaders = Array.from(table?.querySelectorAll("th[data-sort-key]") ?? []);
   const actionButtons = Array.from(document.querySelectorAll("[data-accounting-action]"));
+  const deleteWarning = document.querySelector("[data-accounting-delete-warning]");
+  const fiscalDeleteMessage = deleteWarning?.textContent.trim() || "Questo movimento è generato da un documento fiscale e non può essere cancellato in Prima Nota. Per cancellarlo, utilizzare il modulo specifico del documento.";
   const deleteForm = document.querySelector("[data-accounting-delete-form]");
   const deleteId = deleteForm?.querySelector("[data-accounting-delete-id]");
   const articleModal = document.querySelector("[data-accounting-article-modal]");
@@ -16,6 +18,18 @@ document.addEventListener("DOMContentLoaded", () => {
   let printZoom = 0.8;
   let filterTimer;
   let sortState = { key: "", direction: "asc" };
+
+  const showFiscalDeleteWarning = () => {
+    window.SkyLabMessageBox?.show({
+      variant: "error",
+      title: "Movimento non cancellabile",
+      message: fiscalDeleteMessage
+    });
+  };
+
+  if (deleteWarning?.dataset.showOnLoad === "true") {
+    showFiscalDeleteWarning();
+  }
 
   const submitFilters = () => {
     if (!filterForm) {
@@ -45,19 +59,33 @@ document.addEventListener("DOMContentLoaded", () => {
   const dittaLookup = filterForm?.querySelector(".accounting-supplier-filter");
   const dittaLookupButton = dittaLookup?.querySelector("[data-lookup-open]");
 
-  filterForm?.querySelectorAll("[data-accounting-ditta-type]").forEach((radio) => {
-    radio.addEventListener("change", () => {
-      const isSupplier = radio.value === "F";
+  const dittaType = dittaLookup?.querySelector("[data-accounting-ditta-type]");
+  dittaType?.addEventListener("change", () => {
+      const lookupTypes = {
+        C: ["clienti", "Clienti"],
+        F: ["fornitori", "Fornitori"],
+        B: ["banche", "Banche"],
+        A: ["agenti", "Agenti"],
+        D: ["dipendenti", "Dipendenti"]
+      };
+      const [lookupType, lookupTitle] = lookupTypes[dittaType.value] || ["", ""];
       if (dittaLookup) {
-        dittaLookup.dataset.lookupType = isSupplier ? "fornitori" : "clienti";
-        dittaLookup.dataset.lookupTitle = isSupplier ? "Fornitori" : "Clienti";
+        dittaLookup.dataset.lookupType = lookupType;
+        dittaLookup.dataset.lookupTitle = lookupTitle;
       }
+      if (dittaLookupButton) dittaLookupButton.dataset.skylabZoomType = dittaType.value;
       if (dittaCode) dittaCode.disabled = false;
       if (dittaLookupButton) dittaLookupButton.disabled = false;
       if (dittaCodeValue) dittaCodeValue.value = "";
       if (dittaCode) dittaCode.value = "";
       if (dittaName) dittaName.value = "";
-    });
+  });
+
+  dittaLookupButton?.addEventListener("skylab:zoom-selected", (event) => {
+    const result = event.detail;
+    const code = String(result?.code ?? "").replace(/\D/g, "");
+    if (dittaCode) dittaCode.value = code.padStart(5, "0");
+    if (dittaName) dittaName.value = result?.label ?? "";
   });
 
   dittaCode?.addEventListener("keydown", (event) => {
@@ -273,20 +301,43 @@ document.addEventListener("DOMContentLoaded", () => {
     const returnTo = encodeURIComponent(currentReturnUrl());
 
     if (sector === 20) {
-      if (!document) {
+      window.SkyLabMessageBox?.show({
+        title: "Corrispettivi",
+        message: "La modifica del documento di origine non è ancora disponibile.",
+        detail: "Il modulo dei corrispettivi non è ancora stato realizzato."
+      });
+      return;
+    }
+
+    if (sector === 10) {
+      if (!document || !/^\d+$/.test(document)) {
         window.SkyLabMessageBox?.show({
-          title: "Vendita",
-          message: "Collegamento alla vendita non disponibile.",
-          detail: "Il movimento non contiene il riferimento al documento origine."
+          title: "Fattura di acquisto",
+          message: "Collegamento alla fattura di acquisto non disponibile.",
+          detail: "Il movimento non contiene un ID Moviva valido."
         });
         return;
       }
 
-      window.location.href = `/Vendite?saleId=${encodeURIComponent(document)}&returnTo=${returnTo}`;
+      window.location.href = `/FattureAcquisto/Edit/${encodeURIComponent(document)}?azione=3&returnUrl=${returnTo}`;
       return;
     }
 
-    if (sector === 10 || sector === 30 || sector === 40 || sector === 50 || sector === 60) {
+    if (sector === 30) {
+      if (!document || !/^\d+$/.test(document)) {
+        window.SkyLabMessageBox?.show({
+          title: "Fattura di vendita",
+          message: "Collegamento alla fattura di vendita non disponibile.",
+          detail: "Il movimento non contiene un ID Moviva valido."
+        });
+        return;
+      }
+
+      window.location.href = `/FattureVendita/Edit?azione=3&movivaId=${encodeURIComponent(document)}&returnUrl=${returnTo}`;
+      return;
+    }
+
+    if (sector === 40 || sector === 50 || sector === 60) {
       window.location.href = `/PrimaNota/Edit/${id}?returnTo=${returnTo}`;
       return;
     }
@@ -428,6 +479,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const label = selectedLabel(row);
       if (action === "delete") {
+        const sector = Number.parseInt(row.dataset.movementSector || "0", 10);
+        if ([10, 20, 30].includes(sector)) {
+          showFiscalDeleteWarning();
+          return;
+        }
+
         window.SkyLabMessageBox?.show({
           mode: "confirm",
           variant: "confirm",

@@ -4,9 +4,29 @@
 
   const storageKey = "skylab.mainMenu.openSections";
   const isTwoColumns = () => window.matchMedia("(min-width: 761px)").matches;
+  const revealMargins = 16;
   const saveState = () => {
     const openIds = sections.filter(section => section.open).map(section => section.id);
     sessionStorage.setItem(storageKey, JSON.stringify(openIds));
+  };
+  const revealSection = section => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!section.open) return;
+
+      const bounds = section.getBoundingClientRect();
+      const availableHeight = window.innerHeight - revealMargins * 2;
+      let scrollAdjustment = 0;
+
+      if (bounds.height > availableHeight || bounds.top < revealMargins) {
+        scrollAdjustment = bounds.top - revealMargins;
+      } else if (bounds.bottom > window.innerHeight - revealMargins) {
+        scrollAdjustment = bounds.bottom - window.innerHeight + revealMargins;
+      }
+
+      if (Math.abs(scrollAdjustment) > 1) {
+        window.scrollBy({ top: scrollAdjustment, behavior: "smooth" });
+      }
+    }));
   };
 
   try {
@@ -25,6 +45,7 @@
       if (syncing) return;
       if (!isTwoColumns()) {
         saveState();
+        if (section.open) revealSection(section);
         return;
       }
 
@@ -32,6 +53,7 @@
       const peer = sections[peerIndex];
       if (!peer || peer.open === section.open) {
         saveState();
+        if (section.open) revealSection(section);
         return;
       }
 
@@ -40,6 +62,7 @@
       requestAnimationFrame(() => {
         syncing = false;
         saveState();
+        if (section.open) revealSection(section);
       });
     });
   });

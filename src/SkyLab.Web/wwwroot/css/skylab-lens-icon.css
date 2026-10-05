@@ -1,0 +1,14 @@
+html body .page-container .lookup-button,
+html body .page-container .field-command-search {
+  background-image: url("/images/Lens_53.png?v=2");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 22px 22px;
+}
+
+html body .page-container .lookup-button::before,
+html body .page-container .lookup-button::after,
+html body .page-container .field-command-search::before,
+html body .page-container .field-command-search::after {
+  content: none;
+}

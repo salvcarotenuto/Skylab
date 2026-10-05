@@ -10,7 +10,7 @@
 .accounting-movements-module .page-container {
   height: calc(100vh - 8px);
   max-width: none;
-  padding: 0;
+  padding: 0 18px;
 }
 
 .accounting-movements-module .page-container > main {
@@ -19,7 +19,7 @@
 }
 
 .accounting-movements-page {
-  background: #edf2f8;
+  background: transparent;
   display: grid;
   column-gap: 8px;
   row-gap: 8px;
@@ -47,9 +47,9 @@
 
 .accounting-movements-page .module-header {
   align-items: center;
-  background: #fff;
-  border: 1px solid #8799ad;
-  border-radius: 0;
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid #b8c5d6;
+  border-radius: 8px;
   box-shadow: none;
   box-sizing: border-box;
   display: flex;
@@ -58,32 +58,35 @@
   margin: 0;
   min-height: 80px;
   min-width: 0;
-  padding: 0;
+  padding: 0 18px;
 }
 
 .accounting-movements-page .module-title-identity {
   align-items: center;
   flex: 1 1 auto;
   gap: 14px;
-  margin-left: 18px;
+  margin-left: 0;
   min-width: 0;
 }
 
 .accounting-movements-page .module-title-identity img {
   flex: 0 0 auto;
-  height: 56px;
+  height: 64px;
   width: auto;
 }
 
 .accounting-movements-page .module-header h1 {
-  font-size: 21px;
+  font-size: 26px;
   font-weight: 600;
+  line-height: 1.05;
   margin: 0;
   white-space: nowrap;
 }
 
 .accounting-movements-page .module-header p {
-  display: none;
+  display: block;
+  font-size: 13px;
+  margin: 3px 0 0;
 }
 
 .accounting-movements-actions {
@@ -91,32 +94,52 @@
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
-  margin-right: 18px;
+  margin-right: 0;
 }
 
 .accounting-movements-actions .list-records-box {
+  align-items: center;
+  background: #edf2f8;
+  border: 1px solid #9db3ca;
+  border-radius: 6px;
   box-sizing: border-box;
+  color: #263b55;
+  display: inline-flex;
+  gap: 5px;
   height: 40px;
+  justify-content: center;
   margin: 0 2px 0 0;
   min-height: 40px;
   min-width: 112px;
   padding: 0;
+  white-space: nowrap;
+}
+
+.accounting-movements-actions .list-records-box strong {
+  color: #173f76;
 }
 
 .accounting-movements-actions .button {
   background: #fff;
-  border: 1px solid #8799ad;
-  border-radius: 0;
+  border: 1px solid var(--BlueButton);
+  border-radius: 6px;
   box-sizing: border-box;
   color: #000;
   font-size: 13px;
   font-weight: 600;
   height: 40px;
   min-height: 40px;
-  min-width: 140px;
+  min-width: 135px;
   padding: 0;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.accounting-movements-actions a.button {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .accounting-movements-actions [data-accounting-action="new"] {
@@ -137,7 +160,7 @@
 }
 
 .accounting-movements-actions .accounting-article-button {
-  min-width: 140px;
+  min-width: 135px;
 }
 
 .accounting-movements-filters {
@@ -160,7 +183,7 @@
   height: 52px;
   margin: 0;
   min-width: 0;
-  padding: 0;
+  padding: 0 12px;
   width: 100%;
 }
 
@@ -168,9 +191,9 @@
   align-items: center;
   column-gap: 10px;
   display: grid;
-  grid-template-columns: 155px 155px 145px 250px 170px minmax(430px, 1fr);
+  grid-template-columns: 155px 155px 320px 240px minmax(330px, 1fr);
   height: 100%;
-  min-width: 1360px;
+  min-width: 1210px;
   width: 100%;
 }
 
@@ -221,6 +244,17 @@
   width: 100%;
 }
 
+.accounting-movements-filter-row .accounting-cause-filter select,
+.accounting-movements-filter-row .accounting-type-filter select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23324762' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 9px center;
+  background-repeat: no-repeat;
+  background-size: 10px 6px;
+  padding: 0 26px 0 6px;
+  text-indent: 0;
+}
+
 .accounting-movements-filter-row input:focus-visible,
 .accounting-movements-filter-row select:focus-visible {
   border-color: #1f6feb;
@@ -240,49 +274,23 @@
 }
 
 .accounting-movements-filter-row .accounting-supplier-filter {
-  grid-template-columns: 52px 30px 30px 64px minmax(130px, 1fr) 30px;
+  grid-template-columns: 52px 116px 64px minmax(55px, 1fr) 30px;
   min-width: 0;
+  width: 100%;
 }
 
-.accounting-ditta-radio {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #8a8f98;
-  border-radius: 5px;
-  box-sizing: border-box;
-  cursor: pointer;
-  display: flex;
-  gap: 3px;
-  height: 30px;
-  justify-content: center;
-  margin: 0;
-  min-width: 0;
-  padding: 0 3px;
-  text-indent: 0 !important;
-}
-
-.accounting-ditta-radio input[type="radio"] {
-  accent-color: #506fc7;
-  height: 14px;
-  margin: 0;
-  min-height: 14px;
-  padding: 0;
+.accounting-supplier-filter > select {
+  padding: 0 18px 0 4px;
   text-indent: 0;
-  width: 14px;
-}
-
-.accounting-ditta-radio span {
-  font-size: 12px;
-  line-height: 1;
-}
-
-.accounting-ditta-radio:has(input:checked) {
-  background: #dce7f3;
-  border-color: #506fc7;
 }
 
 .accounting-supplier-filter input[readonly] {
   background: #e6e6f0;
+}
+
+.accounting-movements-filter-row .accounting-supplier-filter [data-accounting-ditta-code] {
+  text-align: center;
+  text-indent: 0;
 }
 
 .accounting-movements-filter-row .lookup-button {
@@ -449,12 +457,19 @@
 
   .accounting-movements-filter-row {
     column-gap: 10px;
-    grid-template-columns: 135px 135px 130px 210px 150px minmax(390px, 1fr);
+    grid-template-columns: 135px 135px 280px 220px minmax(290px, 1fr);
     min-width: 0;
     width: 100%;
   }
 
   .accounting-movements-filter-row .accounting-supplier-filter {
-    grid-template-columns: 52px 30px 30px 58px minmax(90px, 1fr) 30px;
+    grid-template-columns: 52px 116px 58px minmax(55px, 1fr) 30px;
+  }
+}
+
+@media (max-width: 760px) {
+  .accounting-movements-module .page-container {
+    padding-right: 14px;
+    padding-left: 14px;
   }
 }

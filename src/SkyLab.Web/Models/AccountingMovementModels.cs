@@ -68,6 +68,13 @@ public sealed record AccountingMovementSupplierOption(
     int Code,
     string Name);
 
+public enum AccountingMovementDeleteResult
+{
+    Deleted,
+    NotFound,
+    FiscalDocumentMovement
+}
+
 public sealed class AccountingMovementEditModel
 {
     public bool IsNew { get; set; }

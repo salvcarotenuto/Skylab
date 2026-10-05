@@ -163,7 +163,11 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
                 movementCommand.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
                 movementCommand.Parameters.AddWithValue("@code", movement.Code);
                 movementCommand.Parameters.AddWithValue("@document", id);
-                await movementCommand.ExecuteNonQueryAsync(cancellationToken);
+                if (await movementCommand.ExecuteNonQueryAsync(cancellationToken) != 1)
+                {
+                    throw new InvalidOperationException(
+                        "Il movimento contabile non corrisponde alla fattura; operazione annullata.");
+                }
             }
 
             await DeleteVatRowsAsync(connection, transaction, id, invoice.Year, invoice.Code, cancellationToken);

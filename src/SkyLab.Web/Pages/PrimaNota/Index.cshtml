@@ -2,6 +2,7 @@
 @model SkyLab.Web.Pages.PrimaNota.IndexModel
 @using System.Globalization
 <link rel="stylesheet" href="~/css/accounting-movements.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/accounting-article-detail.css" asp-append-version="true" />
 @{
     ViewData["Title"] = "Movimenti contabili di prima nota";
     ViewData["BodyClass"] = "accounting-movements-module";
@@ -32,8 +33,13 @@
             <button class="button button-primary primary" type="button" data-accounting-action="delete">Cancella</button>
             <button class="button button-primary primary accounting-article-button" type="button" data-accounting-action="article">Vedi articolo p.n.</button>
             <button class="button button-primary primary" type="button" data-accounting-action="print">Stampa</button>
+            <a class="button button-primary primary accounting-exit-button" asp-page="/Index">Esci</a>
         </div>
     </header>
+
+    <span hidden
+          data-accounting-delete-warning
+          data-show-on-load="@(string.IsNullOrWhiteSpace(Model.DeleteWarning) ? "false" : "true")">@(Model.DeleteWarning ?? "Questo movimento è generato da un documento fiscale e non può essere cancellato in Prima Nota. Per cancellarlo, utilizzare il modulo specifico del documento.")</span>
 
     <form class="sales-history-filters accounting-movements-filters" method="get" data-accounting-filters data-progress-disabled="true">
         <fieldset class="form-frame">
@@ -57,15 +63,6 @@
                         <button class="micronote-date-button" type="button" tabindex="-1"
                                 aria-label="Seleziona data finale" data-date-picker-button></button>
                     </span>
-                </div>
-                <div class="field accounting-sector-filter">
-                    <label>Settore</label>
-                    <select name="sector">
-                        <option value=""></option>
-                        <option value="10" selected="@(Model.List.Sector == 10)">10 - Fattura acquisto</option>
-                        <option value="20" selected="@(Model.List.Sector == 20)">20 - Corrispettivi</option>
-                        <option value="30" selected="@(Model.List.Sector == 30)">30 - Fattura vendita</option>
-                    </select>
                 </div>
                 <div class="field accounting-cause-filter">
                     <label>Causale</label>
@@ -93,22 +90,19 @@
                 </div>
                 <div class="field accounting-supplier-filter lookup-field"
                      data-lookup-field
-                     data-lookup-type="@(Model.List.SubjectTypeFilter == "F" ? "fornitori" : "clienti")"
-                     data-lookup-title="@(Model.List.SubjectTypeFilter == "F" ? "Fornitori" : "Clienti")"
+                     data-lookup-type="@(Model.List.SubjectTypeFilter switch { "C" => "clienti", "F" => "fornitori", "B" => "banche", "A" => "agenti", "D" => "dipendenti", _ => "fornitori" })"
+                     data-lookup-title="@(Model.List.SubjectTypeFilter switch { "C" => "Clienti", "F" => "Fornitori", "B" => "Banche", "A" => "Agenti", "D" => "Dipendenti", _ => "Fornitori" })"
                      data-code-input="dittaCode"
                      data-code-display="dittaCodeDisplay"
                      data-label-input="dittaNameDisplay">
                     <label>Ditta</label>
-                    <label class="accounting-ditta-radio" title="Cliente">
-                        <input type="radio" name="subjectType" value="C" aria-label="Cliente"
-                               checked="@(Model.List.SubjectTypeFilter == "C")" data-accounting-ditta-type />
-                        <span>C</span>
-                    </label>
-                    <label class="accounting-ditta-radio" title="Fornitore">
-                        <input type="radio" name="subjectType" value="F" aria-label="Fornitore"
-                               checked="@(Model.List.SubjectTypeFilter == "F")" data-accounting-ditta-type />
-                        <span>F</span>
-                    </label>
+                    <select name="subjectType" aria-label="Tipologia ditta" data-accounting-ditta-type>
+                        <option value="C" selected="@(Model.List.SubjectTypeFilter == "C")">C - Cliente</option>
+                        <option value="F" selected="@(Model.List.SubjectTypeFilter == "F")">F - Fornitore</option>
+                        <option value="B" selected="@(Model.List.SubjectTypeFilter == "B")">B - Banca</option>
+                        <option value="A" selected="@(Model.List.SubjectTypeFilter == "A")">A - Agente</option>
+                        <option value="D" selected="@(Model.List.SubjectTypeFilter == "D")">D - Dipendente</option>
+                    </select>
                     <input id="dittaCode"
                            name="dittaCode"
                            type="hidden"
@@ -129,8 +123,10 @@
                             type="button"
                             title="Seleziona ditta"
                             aria-label="Seleziona ditta"
-                            disabled="@(Model.List.SubjectTypeFilter is null)"
-                            data-lookup-open></button>
+                            data-skylab-zoom="anagrafiche"
+                            data-skylab-zoom-type="@Model.List.SubjectTypeFilter"
+                            data-skylab-zoom-target-code="#dittaCode"
+                            data-skylab-zoom-target-label="#dittaNameDisplay"></button>
                 </div>
             </div>
         </fieldset>
@@ -141,7 +137,6 @@
         <input type="hidden" name="movementId" data-accounting-delete-id />
         <input type="hidden" name="dateFrom" value="@Model.List.DateFrom.ToString("yyyy-MM-dd")" />
         <input type="hidden" name="dateTo" value="@Model.List.DateTo.ToString("yyyy-MM-dd")" />
-        <input type="hidden" name="sector" value="@(Model.List.Sector?.ToString(CultureInfo.InvariantCulture) ?? "")" />
         <input type="hidden" name="causeCode" value="@(Model.List.CauseCode?.ToString(CultureInfo.InvariantCulture) ?? "")" />
         <input type="hidden" name="movementType" value="@Model.List.MovementType" />
         <input type="hidden" name="subjectType" value="@Model.List.SubjectTypeFilter" />
@@ -162,7 +157,7 @@
                         <th data-sort-key="causeCode" data-sort-type="number">Causale</th>
                         <th data-sort-key="causeDescription">Causale</th>
                         <th data-sort-key="amount" data-sort-type="number">Importo</th>
-                        <th data-sort-key="subjectType">C/F/B/D</th>
+                        <th data-sort-key="subjectType">Tipo</th>
                         <th data-sort-key="subjectCode" data-sort-type="number">Ditta</th>
                         <th data-sort-key="subjectName">Nome</th>
                         <th data-sort-key="notes">Note</th>
@@ -177,7 +172,6 @@
                             {
                                 dateFrom = Model.List.DateFrom.ToString("yyyy-MM-dd"),
                                 dateTo = Model.List.DateTo.ToString("yyyy-MM-dd"),
-                                sector = Model.List.Sector,
                                 causeCode = Model.List.CauseCode,
                                 movementType = Model.List.MovementType,
                                 subjectType = Model.List.SubjectTypeFilter,
