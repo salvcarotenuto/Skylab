@@ -42,6 +42,7 @@ public sealed record SalesInvoiceEditResult(
 public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions)
 {
     private const int SalesSector = 30;
+    private const int SalesAccountingCause = 30;
 
     public async Task<SalesInvoiceSaveResult> SaveAsync(
         SalesInvoiceSaveRequest invoice,
@@ -54,6 +55,7 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
         var vatRows = BuildVatRows(invoice, lines);
         var vatTotal = Round(vatRows.Sum(row => row.Tax));
         var invoiceTotal = Round(taxableTotal + vatTotal);
+        ValidateCalculatedTotals(invoice, invoiceTotal);
 
         await using var connection = new MySqlConnection(databaseOptions.BuildCompanyConnectionString());
         await connection.OpenAsync(cancellationToken);
@@ -73,11 +75,19 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
             }
 
             var vatMovementId = await InsertVatMovementAsync(
-                connection, transaction, invoice, currentYear, code, cancellationToken);
+                connection, transaction, invoice, currentYear, code,
+                taxableTotal, vatTotal, invoiceTotal, cancellationToken);
             await InsertVatRowsAsync(connection, transaction, vatMovementId, invoice.StoreCode, vatRows, cancellationToken);
 
+            var accountingAccounts = await LoadSalesAccountingAccountsAsync(connection, transaction, cancellationToken);
+            var accountingCode = await NextAccountingCodeAsync(connection, transaction, currentYear, cancellationToken);
             var accountingMovementId = await InsertAccountingMovementAsync(
-                connection, transaction, invoice, invoiceId, currentYear, code, invoiceTotal, cancellationToken);
+                connection, transaction, invoice, vatMovementId, currentYear, accountingCode, invoiceTotal, cancellationToken);
+            await InsertSalesAccountingRowsAsync(
+                connection, transaction, accountingMovementId, invoice, accountingAccounts,
+                taxableTotal, vatTotal, invoiceTotal, cancellationToken);
+            await InsertAccountingDocumentLinkAsync(
+                connection, transaction, accountingMovementId, vatMovementId, invoice.Cause, cancellationToken);
             await LinkVatMovementAsync(connection, transaction, vatMovementId, accountingMovementId, cancellationToken);
 
             if (invoice.WorkSheetId > 0)
@@ -155,17 +165,73 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
 
     public async Task UpdateAsync(int id, SalesInvoiceSaveRequest invoice, int currentYear, CancellationToken cancellationToken = default)
     {
-        Validate(invoice,currentYear);var lines=invoice.Lines??[];var taxable=Round(invoice.WorkAmount+lines.Sum(x=>x.Amount));var vatRows=BuildVatRows(invoice,lines);var vat=Round(vatRows.Sum(x=>x.Tax));var total=Round(taxable+vat);
+        Validate(invoice,currentYear);var lines=invoice.Lines??[];var taxable=Round(invoice.WorkAmount+lines.Sum(x=>x.Amount));var vatRows=BuildVatRows(invoice,lines);var vat=Round(vatRows.Sum(x=>x.Tax));var total=Round(taxable+vat);ValidateCalculatedTotals(invoice,total);
         await using var connection=new MySqlConnection(databaseOptions.BuildCompanyConnectionString());await connection.OpenAsync(cancellationToken);await using var transaction=await connection.BeginTransactionAsync(cancellationToken);
         try
         {
-            int code;await using(var find=new MySqlCommand("SELECT Codice FROM Fatture WHERE ID=@id AND Anno=@year LIMIT 1",connection,transaction)){find.Parameters.AddWithValue("@id",id);find.Parameters.AddWithValue("@year",currentYear);var value=await find.ExecuteScalarAsync(cancellationToken);if(value is null)throw new InvalidOperationException("Fattura non trovata.");code=Convert.ToInt32(value);}
-            await using(var update=new MySqlCommand("""UPDATE Fatture SET Causale=@cause,NumDoc=@number,DataDoc=@date,Cliente=@customer,ULocale=@store,Agente=@agent,Attivita=@activity,SchedaLavoro=@work,Imponibile=@taxable,Iva=@vat,Totale=@total WHERE ID=@id;""",connection,transaction)){update.Parameters.AddWithValue("@cause",invoice.Cause);update.Parameters.AddWithValue("@number",invoice.DocumentNumber.Trim());update.Parameters.AddWithValue("@date",invoice.DocumentDate.ToDateTime(TimeOnly.MinValue));update.Parameters.AddWithValue("@customer",invoice.CustomerCode);update.Parameters.AddWithValue("@store",invoice.StoreCode);update.Parameters.AddWithValue("@agent",invoice.AgentCode);update.Parameters.AddWithValue("@activity",invoice.Activity.Trim());update.Parameters.AddWithValue("@work",invoice.WorkSheetId);update.Parameters.AddWithValue("@taxable",taxable);update.Parameters.AddWithValue("@vat",vat);update.Parameters.AddWithValue("@total",total);update.Parameters.AddWithValue("@id",id);await update.ExecuteNonQueryAsync(cancellationToken);}
-            await using(var clear=new MySqlCommand("UPDATE Lavori SET Fattura_ID=NULL WHERE Fattura_ID=@id; DELETE FROM FattureRg WHERE ID=@id;",connection,transaction)){clear.Parameters.AddWithValue("@id",id);await clear.ExecuteNonQueryAsync(cancellationToken);}
-            var columns=await TableColumnsAsync(connection,transaction,"fatturerg",cancellationToken);for(var index=0;index<lines.Count;index++)await InsertLineAsync(connection,transaction,columns,id,currentYear,code,index+1,lines[index],cancellationToken);
-            await DeleteMovementsAsync(connection,transaction,id,currentYear,code,cancellationToken);
-            var vatId=await InsertVatMovementAsync(connection,transaction,invoice,currentYear,code,cancellationToken);await InsertVatRowsAsync(connection,transaction,vatId,invoice.StoreCode,vatRows,cancellationToken);var accountingId=await InsertAccountingMovementAsync(connection,transaction,invoice,id,currentYear,code,total,cancellationToken);await LinkVatMovementAsync(connection,transaction,vatId,accountingId,cancellationToken);
-            if(invoice.WorkSheetId>0){await using var link=new MySqlCommand("UPDATE Lavori SET Fattura_ID=@id WHERE ID=@work AND COALESCE(Fattura_ID,0)=0",connection,transaction);link.Parameters.AddWithValue("@id",id);link.Parameters.AddWithValue("@work",invoice.WorkSheetId);if(await link.ExecuteNonQueryAsync(cancellationToken)!=1)throw new InvalidOperationException("La scheda lavoro risulta già fatturata o non è più disponibile.");}
+            int invoiceCode;
+            await using (var find = new MySqlCommand("SELECT Codice FROM Fatture WHERE ID=@id AND Anno=@year LIMIT 1", connection, transaction))
+            {
+                find.Parameters.AddWithValue("@id", id);
+                find.Parameters.AddWithValue("@year", currentYear);
+                var value = await find.ExecuteScalarAsync(cancellationToken);
+                if (value is null) throw new InvalidOperationException("Fattura non trovata.");
+                invoiceCode = Convert.ToInt32(value);
+            }
+
+            var previousVatId = await FindVatMovementIdAsync(connection, transaction, currentYear, invoiceCode, cancellationToken);
+            var previousAccountingMovement = await FindAccountingMovementAsync(connection, transaction, id, previousVatId, cancellationToken);
+            var accountingCode = previousAccountingMovement?.Code
+                ?? await NextAccountingCodeAsync(connection, transaction, currentYear, cancellationToken);
+
+            await using (var update = new MySqlCommand("""UPDATE Fatture SET Causale=@cause,NumDoc=@number,DataDoc=@date,Cliente=@customer,ULocale=@store,Agente=@agent,Attivita=@activity,SchedaLavoro=@work,Imponibile=@taxable,Iva=@vat,Totale=@total WHERE ID=@id;""", connection, transaction))
+            {
+                update.Parameters.AddWithValue("@cause", invoice.Cause);
+                update.Parameters.AddWithValue("@number", invoice.DocumentNumber.Trim());
+                update.Parameters.AddWithValue("@date", invoice.DocumentDate.ToDateTime(TimeOnly.MinValue));
+                update.Parameters.AddWithValue("@customer", invoice.CustomerCode);
+                update.Parameters.AddWithValue("@store", invoice.StoreCode);
+                update.Parameters.AddWithValue("@agent", invoice.AgentCode);
+                update.Parameters.AddWithValue("@activity", invoice.Activity.Trim());
+                update.Parameters.AddWithValue("@work", invoice.WorkSheetId);
+                update.Parameters.AddWithValue("@taxable", taxable);
+                update.Parameters.AddWithValue("@vat", vat);
+                update.Parameters.AddWithValue("@total", total);
+                update.Parameters.AddWithValue("@id", id);
+                await update.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await using (var clear = new MySqlCommand("UPDATE Lavori SET Fattura_ID=NULL WHERE Fattura_ID=@id; DELETE FROM FattureRg WHERE ID=@id;", connection, transaction))
+            {
+                clear.Parameters.AddWithValue("@id", id);
+                await clear.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            var columns = await TableColumnsAsync(connection, transaction, "fatturerg", cancellationToken);
+            for (var index = 0; index < lines.Count; index++)
+                await InsertLineAsync(connection, transaction, columns, id, currentYear, invoiceCode, index + 1, lines[index], cancellationToken);
+
+            var accountingAccounts = await LoadSalesAccountingAccountsAsync(connection, transaction, cancellationToken);
+            await DeleteMovementsAsync(connection, transaction, id, previousVatId, previousAccountingMovement?.Id ?? 0, currentYear, invoiceCode, cancellationToken);
+
+            var vatId = await InsertVatMovementAsync(
+                connection, transaction, invoice, currentYear, invoiceCode,
+                taxable, vat, total, cancellationToken);
+            await InsertVatRowsAsync(connection, transaction, vatId, invoice.StoreCode, vatRows, cancellationToken);
+            var accountingId = await InsertAccountingMovementAsync(connection, transaction, invoice, vatId, currentYear, accountingCode, total, cancellationToken);
+            await InsertSalesAccountingRowsAsync(connection, transaction, accountingId, invoice, accountingAccounts, taxable, vat, total, cancellationToken);
+            await InsertAccountingDocumentLinkAsync(connection, transaction, accountingId, vatId, invoice.Cause, cancellationToken);
+            await LinkVatMovementAsync(connection, transaction, vatId, accountingId, cancellationToken);
+
+            if (invoice.WorkSheetId > 0)
+            {
+                await using var link = new MySqlCommand("UPDATE Lavori SET Fattura_ID=@id WHERE ID=@work AND COALESCE(Fattura_ID,0)=0", connection, transaction);
+                link.Parameters.AddWithValue("@id", id);
+                link.Parameters.AddWithValue("@work", invoice.WorkSheetId);
+                if (await link.ExecuteNonQueryAsync(cancellationToken) != 1)
+                    throw new InvalidOperationException("La scheda lavoro risulta già fatturata o non è più disponibile.");
+            }
+
             await transaction.CommitAsync(cancellationToken);
         }
         catch{await transaction.RollbackAsync(cancellationToken);throw;}
@@ -173,15 +239,87 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
 
     public async Task DeleteAsync(int id,CancellationToken cancellationToken=default)
     {
-        await using var connection=new MySqlConnection(databaseOptions.BuildCompanyConnectionString());await connection.OpenAsync(cancellationToken);await using var transaction=await connection.BeginTransactionAsync(cancellationToken);
-        try{int year,code;await using(var find=new MySqlCommand("SELECT Anno,Codice FROM Fatture WHERE ID=@id LIMIT 1",connection,transaction)){find.Parameters.AddWithValue("@id",id);await using var reader=await find.ExecuteReaderAsync(cancellationToken);if(!await reader.ReadAsync(cancellationToken))throw new InvalidOperationException("Fattura non trovata.");year=reader.GetInt32(0);code=reader.GetInt32(1);}await using(var unlink=new MySqlCommand("UPDATE Lavori SET Fattura_ID=NULL WHERE Fattura_ID=@id",connection,transaction)){unlink.Parameters.AddWithValue("@id",id);await unlink.ExecuteNonQueryAsync(cancellationToken);}await DeleteMovementsAsync(connection,transaction,id,year,code,cancellationToken);await using(var delete=new MySqlCommand("DELETE FROM Fatture WHERE ID=@id",connection,transaction)){delete.Parameters.AddWithValue("@id",id);await delete.ExecuteNonQueryAsync(cancellationToken);}await transaction.CommitAsync(cancellationToken);}catch{await transaction.RollbackAsync(cancellationToken);throw;}
+        await using var connection=new MySqlConnection(databaseOptions.BuildCompanyConnectionString());
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction=await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            int year,code;
+            await using(var find=new MySqlCommand("SELECT Anno,Codice FROM Fatture WHERE ID=@id LIMIT 1",connection,transaction))
+            {
+                find.Parameters.AddWithValue("@id",id);
+                await using var reader=await find.ExecuteReaderAsync(cancellationToken);
+                if(!await reader.ReadAsync(cancellationToken)) throw new InvalidOperationException("Fattura non trovata.");
+                year=reader.GetInt32(0);
+                code=reader.GetInt32(1);
+            }
+
+            var vatId=await FindVatMovementIdAsync(connection,transaction,year,code,cancellationToken);
+            if(vatId<=0) throw new InvalidOperationException("Movimento IVA collegato alla fattura non trovato. La fattura non è stata cancellata.");
+            var accountingMovement=await FindAccountingMovementAsync(connection,transaction,id,vatId,cancellationToken);
+            if(accountingMovement is null) throw new InvalidOperationException("Movimento contabile collegato alla fattura non trovato. La fattura non è stata cancellata.");
+
+            await using(var unlink=new MySqlCommand("UPDATE Lavori SET Fattura_ID=NULL WHERE Fattura_ID=@id",connection,transaction))
+            {
+                unlink.Parameters.AddWithValue("@id",id);
+                await unlink.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await DeleteMovementsAsync(connection,transaction,id,vatId,accountingMovement.Id,year,code,cancellationToken);
+
+            await using(var deleteLines=new MySqlCommand("DELETE FROM FattureRg WHERE ID=@id",connection,transaction))
+            {
+                deleteLines.Parameters.AddWithValue("@id",id);
+                await deleteLines.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await using(var delete=new MySqlCommand("DELETE FROM Fatture WHERE ID=@id",connection,transaction))
+            {
+                delete.Parameters.AddWithValue("@id",id);
+                if(await delete.ExecuteNonQueryAsync(cancellationToken)!=1)
+                    throw new InvalidOperationException("La fattura non è stata cancellata; operazione annullata.");
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     private static async Task<decimal> WorkVatRateAsync(MySqlConnection connection,int invoiceId,decimal workAmount,CancellationToken ct)
     {if(workAmount==0)return 0;await using var command=new MySqlCommand("""SELECT COALESCE(r.AliqIva,0) FROM MovIvaRg r JOIN MovIva v ON v.ID=r.ID WHERE v.Settore=30 AND v.Codice=(SELECT Codice FROM Fatture WHERE ID=@id) AND v.Anno=(SELECT Anno FROM Fatture WHERE ID=@id) ORDER BY ABS(r.Imponibile-@workAmount),r.Imponibile DESC LIMIT 1;""",connection);command.Parameters.AddWithValue("@id",invoiceId);command.Parameters.AddWithValue("@workAmount",workAmount);var value=await command.ExecuteScalarAsync(ct);return value is null or DBNull?0:Convert.ToDecimal(value);}
 
-    private static async Task DeleteMovementsAsync(MySqlConnection connection,MySqlTransaction transaction,int invoiceId,int year,int code,CancellationToken ct)
-    {var commands=new[]{"DELETE rg FROM MovIvaRg rg JOIN MovIva v ON v.ID=rg.ID WHERE v.Anno=@year AND v.Settore=30 AND v.Codice=@code","DELETE FROM MovIva WHERE Anno=@year AND Settore=30 AND Codice=@code","DELETE rg FROM MovContRg rg JOIN MovCont m ON m.ID=rg.ID WHERE m.Settore=30 AND m.Documento=@id","DELETE dc FROM MovContDc dc JOIN MovCont m ON m.ID=dc.Mov_Id WHERE m.Settore=30 AND m.Documento=@id","DELETE FROM MovCont WHERE Settore=30 AND Documento=@id"};foreach(var sql in commands){await using var command=new MySqlCommand(sql,connection,transaction);command.Parameters.AddWithValue("@year",year);command.Parameters.AddWithValue("@code",code);command.Parameters.AddWithValue("@id",invoiceId);await command.ExecuteNonQueryAsync(ct);}}
+    private static async Task DeleteMovementsAsync(MySqlConnection connection,MySqlTransaction transaction,int invoiceId,int vatMovementId,int accountingMovementId,int year,int code,CancellationToken ct)
+    {
+        var commands = new[]
+        {
+            "DELETE FROM movcontdc WHERE Mov_Id=@accountingId OR (@vatId>0 AND Doc_Id=@vatId)",
+            "DELETE rg FROM movivarg rg JOIN moviva v ON v.ID=rg.ID WHERE v.Anno=@year AND v.Settore=30 AND v.Codice=@code",
+            "DELETE FROM moviva WHERE Anno=@year AND Settore=30 AND Codice=@code",
+            "DELETE FROM movcontrg WHERE ID=@accountingId OR (@accountingId=0 AND ID IN (SELECT m.ID FROM movcont m WHERE m.Settore=30 AND m.Documento IN (@vatId,@invoiceId)))",
+            "DELETE FROM movcont WHERE (ID=@accountingId AND Settore=30 AND Documento=@vatId) OR (@accountingId=0 AND Settore=30 AND Documento IN (@vatId,@invoiceId))"
+        };
+        foreach (var sql in commands)
+        {
+            await using var command = new MySqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@year", year);
+            command.Parameters.AddWithValue("@code", code);
+            command.Parameters.AddWithValue("@vatId", vatMovementId);
+            command.Parameters.AddWithValue("@invoiceId", invoiceId);
+            command.Parameters.AddWithValue("@accountingId", accountingMovementId);
+            var affected = await command.ExecuteNonQueryAsync(ct);
+            if (sql.StartsWith("DELETE FROM movcont WHERE", StringComparison.Ordinal)
+                && accountingMovementId > 0
+                && affected != 1)
+                throw new InvalidOperationException("Il movimento contabile non corrisponde alla fattura; operazione annullata.");
+            if (sql.StartsWith("DELETE FROM moviva WHERE", StringComparison.Ordinal)
+                && affected != 1)
+                throw new InvalidOperationException("Il movimento IVA non corrisponde alla fattura; operazione annullata.");
+        }
+    }
 
     private static void Validate(SalesInvoiceSaveRequest invoice, int currentYear)
     {
@@ -379,16 +517,19 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
         SalesInvoiceSaveRequest invoice,
         int year,
         int code,
+        decimal taxableTotal,
+        decimal vatTotal,
+        decimal invoiceTotal,
         CancellationToken cancellationToken)
     {
         await using var command = new MySqlCommand(
             """
             INSERT INTO MovIva
-                (Anno, Settore, Codice, Causale, NumDoc, DataDoc, Ditta, CtPartita,
-                 ULocale, Pagamento, Banca, FeName, Note)
+                (Anno, Settore, Codice, TipoDoc, NumDoc, DataDoc, Ditta, CtPartita,
+                 ULocale, Imponibile, Iva, Totale, Pagamento, Banca, FeName, Note)
             VALUES
                 (@year, @sector, @code, @cause, @documentNumber, @documentDate, @customerCode, 0,
-                 @storeCode, 0, 0, '', @notes);
+                 @storeCode, @taxable, @vat, @total, 0, 0, '', @notes);
             """, connection, transaction);
         command.Parameters.AddWithValue("@year", year);
         command.Parameters.AddWithValue("@sector", SalesSector);
@@ -398,6 +539,9 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
         command.Parameters.AddWithValue("@documentDate", invoice.DocumentDate.ToDateTime(TimeOnly.MinValue));
         command.Parameters.AddWithValue("@customerCode", invoice.CustomerCode);
         command.Parameters.AddWithValue("@storeCode", invoice.StoreCode);
+        command.Parameters.AddWithValue("@taxable", taxableTotal);
+        command.Parameters.AddWithValue("@vat", vatTotal);
+        command.Parameters.AddWithValue("@total", invoiceTotal);
         command.Parameters.AddWithValue("@notes", (invoice.Activity ?? "").Trim());
         await command.ExecuteNonQueryAsync(cancellationToken);
         return Convert.ToInt32(command.LastInsertedId);
@@ -431,9 +575,9 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
         MySqlConnection connection,
         MySqlTransaction transaction,
         SalesInvoiceSaveRequest invoice,
-        int invoiceId,
+        int vatMovementId,
         int year,
-        int code,
+        int accountingCode,
         decimal invoiceTotal,
         CancellationToken cancellationToken)
     {
@@ -448,17 +592,217 @@ public sealed class SalesInvoiceRepository(SkyLabDatabaseOptions databaseOptions
             """, connection, transaction);
         command.Parameters.AddWithValue("@year", year);
         command.Parameters.AddWithValue("@sector", SalesSector);
-        command.Parameters.AddWithValue("@code", code);
-        command.Parameters.AddWithValue("@cause", invoice.Cause);
+        command.Parameters.AddWithValue("@code", accountingCode);
+        command.Parameters.AddWithValue("@cause", SalesAccountingCause);
         command.Parameters.AddWithValue("@movementDate", invoice.DocumentDate.ToDateTime(TimeOnly.MinValue));
         command.Parameters.AddWithValue("@customerCode", invoice.CustomerCode);
         command.Parameters.AddWithValue("@documentNumber", invoice.DocumentNumber.Trim());
-        command.Parameters.AddWithValue("@document", invoiceId);
+        command.Parameters.AddWithValue("@document", vatMovementId);
         command.Parameters.AddWithValue("@amount", invoiceTotal);
         command.Parameters.AddWithValue("@storeCode", invoice.StoreCode);
         command.Parameters.AddWithValue("@description", $"Fattura vendita {invoice.DocumentNumber.Trim()}");
         await command.ExecuteNonQueryAsync(cancellationToken);
         return Convert.ToInt32(command.LastInsertedId);
+    }
+
+    private static async Task<int> NextAccountingCodeAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int year,
+        CancellationToken cancellationToken)
+    {
+        await using var command = new MySqlCommand(
+            "SELECT COALESCE(MAX(Codice), 0) + 1 FROM movcont WHERE Anno = @year;",
+            connection,
+            transaction);
+        command.Parameters.AddWithValue("@year", year);
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
+    }
+
+    private static async Task<int> FindVatMovementIdAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int year,
+        int invoiceCode,
+        CancellationToken cancellationToken)
+    {
+        await using var command = new MySqlCommand(
+            "SELECT ID FROM moviva WHERE Anno=@year AND Settore=@sector AND Codice=@code LIMIT 1;",
+            connection,
+            transaction);
+        command.Parameters.AddWithValue("@year", year);
+        command.Parameters.AddWithValue("@sector", SalesSector);
+        command.Parameters.AddWithValue("@code", invoiceCode);
+        var value = await command.ExecuteScalarAsync(cancellationToken);
+        return value is null or DBNull ? 0 : Convert.ToInt32(value);
+    }
+
+    private sealed record ExistingSalesAccountingMovement(int Id, int Code);
+
+    private static async Task<ExistingSalesAccountingMovement?> FindAccountingMovementAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int invoiceId,
+        int vatMovementId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = new MySqlCommand(
+            """
+            SELECT m.ID, m.Codice
+            FROM moviva v
+            JOIN movcont m ON m.ID = v.Movcont_Id
+            WHERE v.ID = @vatId
+              AND m.Settore = @sector
+              AND m.Documento = v.ID
+            LIMIT 1;
+            """, connection, transaction);
+        command.Parameters.AddWithValue("@sector", SalesSector);
+        command.Parameters.AddWithValue("@vatId", vatMovementId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken)
+            ? new ExistingSalesAccountingMovement(Convert.ToInt32(reader["ID"]), Convert.ToInt32(reader["Codice"]))
+            : null;
+    }
+
+    private static void ValidateCalculatedTotals(SalesInvoiceSaveRequest invoice, decimal calculatedTotal)
+    {
+        if (Round(invoice.InvoiceTotal) != calculatedTotal)
+            throw new InvalidOperationException("Il totale fattura non coincide con imponibile e IVA.");
+    }
+
+    private static async Task<IReadOnlyList<SalesAccountingAccount>> LoadSalesAccountingAccountsAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        const string causeSql = """
+            SELECT COALESCE(Dare1, 0), COALESCE(Dare2, 0), COALESCE(Dare3, 0),
+                   COALESCE(Dare4, 0), COALESCE(Dare5, 0), COALESCE(Dare6, 0),
+                   COALESCE(Avere1, 0), COALESCE(Avere2, 0), COALESCE(Avere3, 0),
+                   COALESCE(Avere4, 0), COALESCE(Avere5, 0), COALESCE(Avere6, 0)
+            FROM causalicont
+            WHERE Codice = @code
+            LIMIT 1;
+            """;
+        await using var causeCommand = new MySqlCommand(causeSql, connection, transaction);
+        causeCommand.Parameters.AddWithValue("@code", SalesAccountingCause);
+        await using var causeReader = await causeCommand.ExecuteReaderAsync(cancellationToken);
+        if (!await causeReader.ReadAsync(cancellationToken))
+            throw new InvalidOperationException("Causale contabile 030 non trovata.");
+
+        var debitAccounts = new int[6];
+        var creditAccounts = new int[6];
+        for (var index = 0; index < 6; index++)
+        {
+            debitAccounts[index] = Convert.ToInt32(causeReader.GetValue(index));
+            creditAccounts[index] = Convert.ToInt32(causeReader.GetValue(index + 6));
+        }
+        await causeReader.DisposeAsync();
+
+        if (debitAccounts[0] <= 0 || debitAccounts.Skip(1).Any(code => code > 0)
+            || creditAccounts[0] <= 0 || creditAccounts[1] <= 0 || creditAccounts.Skip(2).Any(code => code > 0))
+            throw new InvalidOperationException("La causale contabile 030 deve mappare Dare1 cliente, Avere1 ricavo e Avere2 IVA.");
+
+        var result = new[]
+        {
+            new SalesAccountingAccount(debitAccounts[0], "D", SalesAccountingAmount.Total),
+            new SalesAccountingAccount(creditAccounts[0], "A", SalesAccountingAmount.Taxable),
+            new SalesAccountingAccount(creditAccounts[1], "A", SalesAccountingAmount.Vat)
+        };
+        if (result.Select(account => account.Code).Distinct().Count() != result.Length)
+            throw new InvalidOperationException("La causale contabile 030 deve indicare tre conti distinti.");
+
+        var parameters = result.Select((_, index) => $"@account{index}").ToArray();
+        var accountSql = $"SELECT COUNT(DISTINCT Codice) FROM conti WHERE Codice IN ({string.Join(",", parameters)});";
+        await using (var accountCommand = new MySqlCommand(accountSql, connection, transaction))
+        {
+            for (var index = 0; index < result.Length; index++)
+                accountCommand.Parameters.AddWithValue(parameters[index], result[index].Code);
+            if (Convert.ToInt32(await accountCommand.ExecuteScalarAsync(cancellationToken)) != result.Length)
+                throw new InvalidOperationException("Uno o più conti configurati nella causale contabile 030 non esistono nel Piano dei conti.");
+        }
+
+        return result;
+    }
+
+    private static async Task InsertSalesAccountingRowsAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int movementId,
+        SalesInvoiceSaveRequest invoice,
+        IReadOnlyList<SalesAccountingAccount> accounts,
+        decimal taxableTotal,
+        decimal vatTotal,
+        decimal invoiceTotal,
+        CancellationToken cancellationToken)
+    {
+        var rows = accounts.Select(account =>
+        {
+            var amount = account.AmountRole switch
+            {
+                SalesAccountingAmount.Total => invoiceTotal,
+                SalesAccountingAmount.Taxable => taxableTotal,
+                SalesAccountingAmount.Vat => vatTotal,
+                _ => throw new InvalidOperationException("Ruolo importo contabile non valido.")
+            };
+            var sign = account.Side;
+            if (invoice.Cause == 32) sign = sign == "D" ? "A" : "D";
+            return (Account: account.Code, Amount: amount, Sign: sign);
+        }).Where(row => row.Amount != 0).ToArray();
+
+        var debitTotal = rows.Where(row => row.Sign == "D").Sum(row => row.Amount);
+        var creditTotal = rows.Where(row => row.Sign == "A").Sum(row => row.Amount);
+        if (debitTotal != creditTotal)
+            throw new InvalidOperationException("La mappatura della causale contabile 030 non genera un movimento bilanciato.");
+
+        var rowNumber = 1;
+        foreach (var row in rows)
+        {
+            await using var command = new MySqlCommand(
+                """
+                INSERT INTO movcontrg (ID, Riga, Conto, Importo, Segno)
+                VALUES (@id, @row, @account, @amount, @sign);
+                """, connection, transaction);
+            command.Parameters.AddWithValue("@id", movementId);
+            command.Parameters.AddWithValue("@row", rowNumber++);
+            command.Parameters.AddWithValue("@account", row.Account);
+            command.Parameters.AddWithValue("@amount", row.Amount);
+            command.Parameters.AddWithValue("@sign", row.Sign);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    private enum SalesAccountingAmount { Total, Taxable, Vat }
+    private sealed record SalesAccountingAccount(int Code, string Side, SalesAccountingAmount AmountRole);
+
+    private static async Task InsertAccountingDocumentLinkAsync(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        int accountingMovementId,
+        int vatMovementId,
+        int documentType,
+        CancellationToken cancellationToken)
+    {
+        await using var hasSectorCommand = new MySqlCommand(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND LOWER(TABLE_NAME) = 'movcontdc'
+                  AND LOWER(COLUMN_NAME) = 'settore'
+            );
+            """, connection, transaction);
+        var hasSector = Convert.ToInt32(await hasSectorCommand.ExecuteScalarAsync(cancellationToken)) != 0;
+        var sql = hasSector
+            ? "INSERT INTO movcontdc (Mov_Id, Settore, Doc_Id, TipoDoc) VALUES (@movementId, @sector, @documentId, @documentType);"
+            : "INSERT INTO movcontdc (Mov_Id, Doc_Id, TipoDoc) VALUES (@movementId, @documentId, @documentType);";
+        await using var command = new MySqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("@movementId", accountingMovementId);
+        command.Parameters.AddWithValue("@documentId", vatMovementId);
+        command.Parameters.AddWithValue("@documentType", documentType);
+        if (hasSector) command.Parameters.AddWithValue("@sector", SalesSector);
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static async Task LinkVatMovementAsync(

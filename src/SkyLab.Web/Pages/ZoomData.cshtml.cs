@@ -1,13 +1,60 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using SkyLab.Web.Data;
 using SkyLab.Web.Services;
 
 namespace SkyLab.Web.Pages;
 
-public sealed class ZoomDataModel(CustomerService customers) : PageModel
+public sealed class ZoomDataModel(CustomerService customers, LookupRepository lookup) : PageModel
 {
-    public async Task<IActionResult> OnGetAsync(string catalogo, CancellationToken ct)
+    public async Task<IActionResult> OnGetAsync(string catalogo, string? tipo, CancellationToken ct)
     {
+        if (string.Equals(catalogo, "anagrafiche", StringComparison.OrdinalIgnoreCase))
+        {
+            var normalizedType = tipo?.Trim().ToUpperInvariant();
+            var lookupType = normalizedType switch
+            {
+                "C" => "clienti",
+                "F" => "fornitori",
+                "B" => "banche",
+                "A" => "agenti",
+                "D" => "dipendenti",
+                _ => null
+            };
+            if (lookupType is null)
+            {
+                return BadRequest();
+            }
+
+            var title = normalizedType switch
+            {
+                "C" => "Clienti",
+                "F" => "Fornitori",
+                "B" => "Banche",
+                "A" => "Agenti",
+                "D" => "Dipendenti",
+                _ => "Anagrafiche"
+            };
+            var entries = await lookup.SearchAnagraficheAsync(lookupType, null, ct);
+            return new JsonResult(new
+            {
+                title,
+                defaultSort = "label",
+                columns = new object[]
+                {
+                    new { key = "code", label = "Codice", width = "104px", align = "center" },
+                    new { key = "label", label = "Nome" },
+                    new { key = "detail", label = "Sede", width = "330px" }
+                },
+                rows = entries.Select(entry => new
+                {
+                    code = entry.CodeLabel,
+                    label = entry.Label,
+                    detail = entry.Detail
+                })
+            });
+        }
+
         if (string.Equals(catalogo, "fornitori", StringComparison.OrdinalIgnoreCase))
         {
             var suppliers = await customers.SuppliersAsync(ct);

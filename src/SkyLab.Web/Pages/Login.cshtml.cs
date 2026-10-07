@@ -41,7 +41,7 @@ public sealed class LoginModel(ApplicationAuthService auth, UserService users) :
     }
     private async Task LoadUsers(CancellationToken ct)
     {
-        try { Users = (await users.SearchAsync("", ct)).Where(x => x.IsActive && !x.IsLocked && x.TypeCode is 1 or 2 or 3).ToList(); }
+        try { Users = (await users.SearchAsync("", ct)).Where(x => x.IsActive && !x.IsLocked && x.TypeCode > 0).ToList(); }
         catch (MySqlConnector.MySqlException) { Error = "Servizio non disponibile. Riprovare tra poco."; }
     }
 }

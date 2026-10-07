@@ -11,15 +11,64 @@
         const count = list.querySelector("[data-purchase-load-count]");
         const frame = list.querySelector(".purchase-load-grid-frame.documents");
         const body = frame?.querySelector("tbody");
+        const table = frame?.querySelector("table");
+        const gridHead = table?.querySelector("thead");
         const sortHeaders = Array.from(frame?.querySelectorAll("[data-sort-key]") ?? []);
         const detailRows = Array.from(list.querySelectorAll("[data-purchase-load-detail]"));
         let selected = rows[0] ?? null;
         let sortState = { key: "", direction: "asc" };
+        let lastScrollTop = frame?.scrollTop ?? 0;
+        let scrollFrame = 0;
         const syncDetails = row => detailRows.forEach(detail => { detail.hidden = !row || detail.dataset.documentId !== row.dataset.id; });
-        const selectRow = row => { rows.forEach(item => item.classList.toggle("is-selected", item === row)); selected = row; syncDetails(row); };
-        const ensureVisible = row => { if (!row || !frame) return; const top = row.offsetTop; const bottom = top + row.offsetHeight; if (top < frame.scrollTop + 30) frame.scrollTop = Math.max(0, top - 30); else if (bottom > frame.scrollTop + frame.clientHeight) frame.scrollTop = bottom - frame.clientHeight; };
-        rows.forEach(row => row.addEventListener("click", () => selectRow(row)));
-        if (selected) selectRow(selected);
+        const ensureVisible = (row, direction = 0) => {
+            if (!row || !frame) return;
+            const headerHeight = gridHead?.offsetHeight ?? 0;
+            const visibleTop = frame.scrollTop + headerHeight;
+            const visibleBottom = frame.scrollTop + frame.clientHeight;
+            const rowTop = row.offsetTop;
+            const rowBottom = rowTop + row.offsetHeight;
+            if (rowTop >= visibleTop && rowBottom <= visibleBottom) return;
+            if (direction >= 0 && rowBottom > visibleBottom) frame.scrollTop = rowBottom - frame.clientHeight + 1;
+            else if (direction <= 0 && rowTop < visibleTop) frame.scrollTop = Math.max(rowTop - headerHeight - 1, 0);
+        };
+        const focusCell = row => {
+            const cell = row?.cells[0];
+            if (!cell || !frame) return;
+            const bounds = frame.getBoundingClientRect();
+            const left = bounds.left + frame.clientLeft;
+            const right = left + frame.clientWidth;
+            const rect = cell.getBoundingClientRect();
+            if (rect.left < left || rect.right > right) frame.scrollLeft = 0;
+            cell.tabIndex = -1;
+            cell.focus({ preventScroll: true });
+        };
+        const selectRow = (row, focus = false, direction = 0) => {
+            rows.forEach(item => {
+                item.classList.toggle("is-selected", item === row);
+                if (item === row) item.setAttribute("aria-selected", "true");
+                else item.removeAttribute("aria-selected");
+            });
+            selected = row;
+            syncDetails(row);
+            if (focus && row) focusCell(row);
+            ensureVisible(row, direction);
+        };
+        const visibleRows = () => rows.filter(row => !row.hidden);
+        const move = (current, key) => {
+            const visible = visibleRows();
+            if (!visible.length) return;
+            let index = current ? visible.indexOf(current) : -1;
+            if (index < 0) index = key === "ArrowUp" || key === "End" ? visible.length - 1 : 0;
+            if (key === "Home") { selectRow(visible[0], true, -1); return; }
+            if (key === "End") { selectRow(visible.at(-1), true, 1); return; }
+            const direction = key === "ArrowDown" ? 1 : -1;
+            index = Math.max(0, Math.min(visible.length - 1, index + direction));
+            selectRow(visible[index], true, direction);
+        };
+        rows.forEach(row => {
+            row.addEventListener("click", () => selectRow(row, true));
+            row.addEventListener("dblclick", () => { selectRow(row); location.href = `./CaricoAcquisti/Edit?azione=3&id=${row.dataset.id}`; });
+        });
         const currentYearFilter = list.querySelector('[data-purchase-load-filter="year"]');
         if (currentYearFilter?.tagName === "INPUT") {
             const yearSelect = document.createElement("select");
@@ -82,7 +131,7 @@
         const filters = Array.from(list.querySelectorAll("[data-purchase-load-filter]"));
         const applyFilters = () => {
             rows.forEach(row => { row.hidden = !filters.every(filter => { const value = filter.value.trim().toLocaleLowerCase("it"); return !value || (row.dataset[filter.dataset.purchaseLoadFilter] || "").toLocaleLowerCase("it").includes(value); }); });
-            const visibleRows = rows.filter(row => !row.hidden); if (count) count.textContent = String(visibleRows.length); if (!selected || selected.hidden) selectRow(visibleRows[0] ?? null);
+            const visible = visibleRows(); if (count) count.textContent = String(visible.length); if (!selected || selected.hidden) selectRow(visible[0] ?? null);
         };
         filters.forEach(filter => {
             filter.addEventListener(filter.tagName === "SELECT" ? "change" : "input", applyFilters);
@@ -111,12 +160,44 @@
             });
         }));
         frame?.addEventListener("keydown", event => {
-            const visibleRows = rows.filter(row => !row.hidden); if (!visibleRows.length) return; const current = Math.max(0, visibleRows.indexOf(selected)); let next = current;
-            if (event.key === "ArrowDown") next = Math.min(visibleRows.length - 1, current + 1); else if (event.key === "ArrowUp") next = Math.max(0, current - 1); else if (event.key === "Home") next = 0; else if (event.key === "End") next = visibleRows.length - 1; else if (event.key === "Enter") { location.href = `./CaricoAcquisti/Edit?azione=3&id=${selected?.dataset.id || ""}`; return; } else return;
-            event.preventDefault(); selectRow(visibleRows[next]); ensureVisible(visibleRows[next]);
+            if (event.key === "Enter") {
+                if (!selected) return;
+                event.preventDefault();
+                location.href = `./CaricoAcquisti/Edit?azione=3&id=${selected.dataset.id}`;
+            } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+                event.preventDefault();
+                move(selected, event.key);
+            }
         });
+        frame?.addEventListener("scroll", () => {
+            if (scrollFrame) cancelAnimationFrame(scrollFrame);
+            scrollFrame = requestAnimationFrame(() => {
+                scrollFrame = 0;
+                const direction = frame.scrollTop >= lastScrollTop ? 1 : -1;
+                lastScrollTop = frame.scrollTop;
+                if (!selected) return;
+                const bounds = frame.getBoundingClientRect();
+                const headerHeight = gridHead?.getBoundingClientRect().height ?? 0;
+                const selectedBounds = selected.getBoundingClientRect();
+                if (selectedBounds.bottom > bounds.top + headerHeight && selectedBounds.top < bounds.bottom) return;
+                const inView = visibleRows().filter(row => {
+                    const rect = row.getBoundingClientRect();
+                    return rect.top >= bounds.top + headerHeight && rect.bottom <= bounds.bottom;
+                });
+                if (inView.length) selectRow(direction > 0 ? inView[0] : inView.at(-1));
+            });
+        }, { passive: true });
         list.querySelectorAll("[data-purchase-load-action]").forEach(button => button.addEventListener("click", () => { if (button.dataset.purchaseLoadAction === "edit") { if (selected) location.href = `./CaricoAcquisti/Edit?azione=3&id=${selected.dataset.id}`; return; } showPreviewMessage(); }));
-        document.addEventListener("keydown", event => { if (event.key === "Escape") list.querySelector("[data-purchase-load-exit]")?.click(); });
+        document.addEventListener("keydown", event => {
+            if (event.key !== "Escape" || event.defaultPrevented || document.querySelector("dialog[open]") || document.body.classList.contains("lookup-open")) return;
+            event.preventDefault();
+            list.querySelector("[data-purchase-load-exit]")?.click();
+        });
+        requestAnimationFrame(() => {
+            const first = visibleRows()[0];
+            if (first) selectRow(first, true);
+            else frame?.focus({ preventScroll: true });
+        });
     }
     const edit = document.querySelector("[data-purchase-load-edit]");
     if (edit) {

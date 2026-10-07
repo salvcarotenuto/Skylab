@@ -5,17 +5,17 @@
 
 .article-list-page .list-titlebar {
     box-sizing: border-box;
-    height: 96px;
-    margin-bottom: 10px;
-    min-height: 96px;
-    padding: 10px 18px;
+    height: 80px;
+    margin-bottom: 8px;
+    min-height: 80px;
+    padding: 8px 18px;
 }
 
 .article-list-page .list-title-layout {
     align-items: center;
     display: flex;
     gap: 12px;
-    height: 72px;
+    height: 56px;
 }
 
 .article-list-page .list-title-identity strong {
@@ -37,3 +37,8 @@
 .article-list-page .list-title-button { white-space: nowrap; }
 .article-list-page .list-title-delete { background: #b64040; border-color: #8f2f2f; }
 .article-list-page .list-title-delete:hover { background: #8f2f2f; }
+
+.article-list-page .article-grid td:focus,
+.article-list-page .article-grid td:focus-visible {
+    outline: none;
+}

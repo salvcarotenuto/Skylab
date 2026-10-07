@@ -16,7 +16,7 @@
  </header>
  <section class="article-filter-panel">
   <div class="list-toolbar article-list-toolbar">
-   <div class="list-filter-field article-search-field"><label for="article-search">Cerca</label><div class="list-search-control"><input id="article-search" type="text" placeholder="Codice o descrizione articolo" autocomplete="off" autofocus data-article-search /><button class="list-search-clear" type="button" aria-label="Pulisci filtro" data-article-search-clear hidden>×</button></div></div>
+   <div class="list-filter-field article-search-field"><label for="article-search">Cerca</label><div class="list-search-control"><input id="article-search" type="text" placeholder="Codice o descrizione articolo" autocomplete="off" data-article-search /><button class="list-search-clear" type="button" aria-label="Pulisci filtro" data-article-search-clear hidden>×</button></div></div>
    <div class="list-filter-field"><label for="article-category">Categoria</label><select id="article-category" data-article-category><option value=""></option>@foreach(var x in categories){<option value="@x.CategoryCode">@x.Category</option>}</select></div>
    <div class="list-filter-field"><label for="article-group">Gruppo</label><select id="article-group" data-article-group><option value=""></option>@foreach(var x in groups){<option value="@x.GroupCode">@x.Group</option>}</select></div>
    <div class="list-filter-field"><label for="article-brand">Marca</label><select id="article-brand" data-article-brand><option value=""></option>@foreach(var x in brands){<option value="@x.BrandCode">@x.Brand</option>}</select></div>

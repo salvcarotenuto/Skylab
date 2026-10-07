@@ -16,11 +16,11 @@
     border-radius: 8px;
     box-sizing: border-box;
     display: flex;
-    height: 96px;
+    height: 80px;
     justify-content: space-between;
     margin-bottom: 8px;
-    min-height: 96px;
-    padding: 12px 28px 12px 18px;
+    min-height: 80px;
+    padding: 8px 18px;
 }
 
 .supplier-heading .module-title-identity {
@@ -35,20 +35,23 @@
     gap: 10px;
 }
 
-.supplier-title-actions .btn,
-.supplier-title-actions .customer-menu-button {
+.supplier-title-actions ::deep .btn,
+.supplier-title-actions ::deep .customer-menu-button {
     align-items: center;
     border-radius: 6px;
     box-sizing: border-box;
     display: inline-flex;
     flex: 0 0 140px;
+    font-size: 13px;
     font-weight: 600;
     height: 40px !important;
     justify-content: center;
     max-width: 140px;
     min-height: 40px !important;
     min-width: 140px;
-    padding: 0 13px;
+    line-height: 1;
+    padding: 0;
+    text-align: center;
     text-decoration: none;
     width: 140px !important;
 }
@@ -96,11 +99,11 @@
     border-radius: 8px;
     box-sizing: border-box;
     display: flex;
-    gap: 10px;
-    height: 48px;
-    min-height: 48px;
-    margin-bottom: 8px;
-    padding: 8px 9px;
+    gap: 3px;
+    height: 52px;
+    min-height: 52px;
+    margin-bottom: 12px;
+    padding: 8px 12px;
 }
 
 .supplier-toolbar label {
@@ -161,11 +164,12 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
-    padding: 8px;
+    padding: 0;
 }
 
 .supplier-grid {
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 13px;
     user-select: none;
     width: 100%;
@@ -184,7 +188,8 @@
     text-align: left;
     top: 0;
     user-select: none;
-    z-index: 2;
+    z-index: 3;
+    background-clip: padding-box;
 }
 
 .supplier-grid th.is-sorted::after {
@@ -227,7 +232,15 @@
 
 .supplier-grid tbody tr.selected {
     background: #b8d2ee;
+}
+
+.supplier-grid tbody tr.selected td:first-child {
     box-shadow: inset 4px 0 0 #2f6faa;
+}
+
+.supplier-grid td:focus,
+.supplier-grid td:focus-visible {
+    outline: none;
 }
 
 .code-cell {

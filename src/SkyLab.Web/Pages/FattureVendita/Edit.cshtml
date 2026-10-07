@@ -8,8 +8,8 @@
 <link rel="stylesheet" href="~/css/purchase-load-edit.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/sales-invoice-edit.css" asp-append-version="true" />
 
-<section class="purchase-load-edit-page sales-invoice-edit-page" data-sales-invoice-edit data-azione="@Model.Azione">
-    <header class="purchase-load-edit-titlebar"><div class="purchase-load-edit-heading"><img src="~/images/skylab-logo.png" alt="SkyLab" /><div><h1>Fattura di vendita</h1><p>SkyLab · Emissione documento di vendita</p></div></div><div class="purchase-load-edit-actions"><button type="button" class="purchase-load-edit-button primary">Salva</button><a class="purchase-load-edit-button" asp-page="Index">Annulla</a></div></header>
+<section class="purchase-load-edit-page sales-invoice-edit-page" data-sales-invoice-edit data-azione="@Model.Azione" data-invoice-id="@Model.InvoiceId" data-load-error="@Model.LoadError">
+    <header class="purchase-load-edit-titlebar"><div class="purchase-load-edit-heading"><img src="~/images/skylab-logo.png" alt="SkyLab" /><div><h1>Fattura di vendita</h1><p>SkyLab · Emissione documento di vendita</p></div></div><div class="purchase-load-edit-actions"><button type="button" class="purchase-load-edit-button primary">Salva</button><a class="purchase-load-edit-button" href="@Model.ReturnUrl">Annulla</a></div></header>
     <form class="purchase-load-form-body sales-invoice-form-body" data-enter-navigation>
         <section class="purchase-load-document sales-invoice-general"><div class="purchase-load-fields">
             <div class="purchase-load-field partita"><label>Partita</label><input value="@Model.Partita.ToString("000000")" readonly tabindex="-1" /></div><span class="purchase-load-separator">/</span><div class="purchase-load-field year"><input value="@Model.Anno" aria-label="Anno" readonly tabindex="-1" /></div>

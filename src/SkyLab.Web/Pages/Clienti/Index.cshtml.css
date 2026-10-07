@@ -131,22 +131,33 @@ section[data-customer-list-page] ::deep .customer-list-frame {
     display: flex;
     font-size: 13px;
     font-weight: 400;
-    height: 32px;
+    height: 30px;
     margin: 0;
     padding: 0 8px;
 }
 
-.customer-search-field input {
+.customer-search-field label {
+    border-radius: 5px;
+}
+
+.customer-search-field ::deep input.form-control {
     background: #fff;
     border: 1px solid #8a8f98;
     border-radius: 5px;
     box-sizing: border-box;
     font-size: 13px;
     font-weight: 420;
-    height: 32px;
+    height: 30px;
+    line-height: normal;
     margin: 0;
-    min-height: 32px;
+    min-height: 30px;
     padding: 0 8px;
+}
+
+.customer-search-field ::deep input.form-control:focus {
+    border-color: #668bb2;
+    box-shadow: 0 0 0 2px rgba(47, 111, 170, 0.18);
+    outline: 0;
 }
 
 .customer-filter-check {

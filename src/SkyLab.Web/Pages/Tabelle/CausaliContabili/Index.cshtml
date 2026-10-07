@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Causali contabili";
     ViewData["HideFooter"] = true;
-    static string MovLabel(string v) => v switch { "C" => "Contabile", "B" => "Banca", "V" => "IVA", _ => v };
+    static string MovLabel(string v) => v switch { "C" => "Contabile", "B" => "Banca", "V" => "IVA", "D" => "Movimento dipendenti", _ => v };
     static string PartyLabel(string v) => v switch { "C" => "Cliente", "F" => "Fornitore", "B" => "Banca", "D" => "Dipendente", _ => "" };
     static string SignLabel(string v) => v switch { "A" => "Avere", "D" => "Dare", _ => "" };
     static string InOutLabel(string v) => v switch { "E" => "Entrata", "U" => "Uscita", _ => "" };
@@ -21,7 +21,7 @@
             <button class="btn btn-primary" type="button" data-cause-new>Nuovo</button>
             <button class="btn customer-menu-button" type="button" data-cause-edit disabled>Modifica</button>
             <button class="btn customer-menu-button" type="button" data-cause-delete disabled>Elimina</button>
-            <a class="btn customer-menu-button" asp-page="/Index" data-cause-exit>Esci</a>
+            <button class="btn customer-menu-button" type="button" data-cause-exit data-exit-url="@Url.Page("/Index")">Esci</button>
         </div>
     </header>
     <div class="cause-toolbar">
@@ -31,7 +31,7 @@
         </div>
         <div class="cause-filter-field cause-filter-movement">
             <label for="cause-movement-filter">Tipo movimento</label>
-            <select id="cause-movement-filter" data-cause-movement-filter><option value="">Tutti</option><option value="C">C - Movimento contabile</option><option value="B">B - Movimento bancario</option><option value="V">V - Movimento IVA</option></select>
+            <select id="cause-movement-filter" data-cause-movement-filter><option value="">Tutti</option><option value="C">C - Movimento contabile</option><option value="B">B - Movimento bancario</option><option value="V">V - Movimento IVA</option><option value="D">D - Movimento dipendenti</option></select>
         </div>
     </div>
     <div class="cause-grid-frame">
@@ -116,7 +116,7 @@
             <footer><button type="button" data-account-zoom-ok>OK</button><button type="button" data-account-zoom-cancel>Annulla</button></footer>
         </div>
     </dialog>
-    <form method="post" asp-page-handler="Delete" data-cause-delete-form hidden><input name="code" data-cause-delete-code /></form>
+    <form method="post" asp-page-handler="Delete" data-cause-delete-form hidden><input name="code" data-cause-delete-code /><input name="assistancePassword" /></form>
     @if (!string.IsNullOrWhiteSpace(Model.Message)) { <span hidden data-page-message data-message-text="@Model.Message"></span> }
 </section>
 @section Scripts { <partial name="_ValidationScriptsPartial" /><script src="~/js/accounting-causes-list.js" asp-append-version="true"></script> }

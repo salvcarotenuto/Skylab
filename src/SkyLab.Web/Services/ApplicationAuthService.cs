@@ -8,6 +8,7 @@ public sealed class ApplicationAuthService(IHttpContextAccessor accessor, SkyLab
 {
     public const string UserCodeKey = "skylab_user_code";
     private const string LastSeenKey = "skylab_last_seen";
+    public int? CurrentUserCode => accessor.HttpContext?.Session.GetInt32(UserCodeKey);
     public bool IsLoggedIn()
     {
         var session = accessor.HttpContext?.Session;
@@ -26,7 +27,7 @@ public sealed class ApplicationAuthService(IHttpContextAccessor accessor, SkyLab
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) return false;
         await using var connection = new MySqlConnection(options.BuildCompanyConnectionString());
         await connection.OpenAsync(ct);
-        await using var command = new MySqlCommand("SELECT Codice FROM Utenti WHERE Username=@username AND Passwd=@password AND COALESCE(Attivo,0)<>0 AND COALESCE(Bloccato,0)=0 AND COALESCE(Tipo,0) IN (1,2,3) LIMIT 1", connection);
+        await using var command = new MySqlCommand("SELECT Codice FROM Utenti WHERE Username=@username AND Passwd=@password AND COALESCE(Attivo,0)<>0 AND COALESCE(Bloccato,0)=0 AND COALESCE(Tipo,0)>0 LIMIT 1", connection);
         command.Parameters.AddWithValue("@username", username.Trim());
         command.Parameters.AddWithValue("@password", password);
         var code = await command.ExecuteScalarAsync(ct);

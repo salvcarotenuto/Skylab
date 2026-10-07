@@ -16,6 +16,9 @@ public sealed class EditModel(
     public const int CreditNoteCause = 32;
 
     public int Azione { get; private set; } = 2;
+    public int? InvoiceId { get; private set; }
+    public string ReturnUrl { get; private set; } = "/FattureVendita";
+    public string LoadError { get; private set; } = "";
     public int Partita { get; private set; } = 1;
     public int Anno { get; private set; }
     public string DocumentNumber { get; private set; } = "";
@@ -27,10 +30,27 @@ public sealed class EditModel(
     public IReadOnlyList<CodeLookupItem> UnitMeasures { get; private set; } = [];
     public IReadOnlyList<PartyLookupItem> Customers { get; private set; } = [];
 
-    public async Task OnGetAsync(int azione = 2, CancellationToken cancellationToken = default)
+    public async Task OnGetAsync(
+        int azione = 2,
+        int? id = null,
+        int? movivaId = null,
+        string? returnUrl = null,
+        CancellationToken cancellationToken = default)
     {
         Azione = azione;
         Anno = applicationState.Esercizio;
+        InvoiceId = id is > 0 ? id : null;
+        ReturnUrl = NormalizeReturnUrl(returnUrl);
+
+        if (InvoiceId is null && movivaId is > 0)
+        {
+            InvoiceId = await FindSalesInvoiceIdAsync(movivaId.Value, cancellationToken);
+            if (InvoiceId is null)
+            {
+                LoadError = "Fattura di vendita collegata non trovata. La scheda non è stata aperta.";
+            }
+        }
+
         if (Azione == 2)
         {
             DocumentDate = DateOnly.FromDateTime(DateTime.Today);
@@ -48,6 +68,41 @@ public sealed class EditModel(
         Agents = await LoadAgentsAsync(cancellationToken);
         UnitLocations = await LoadUnitLocationsAsync(cancellationToken);
         UnitMeasures = await customerService.UnitMeasuresAsync(cancellationToken);
+    }
+
+    private async Task<int?> FindSalesInvoiceIdAsync(int vatMovementId, CancellationToken cancellationToken)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT f.ID
+            FROM moviva v
+            JOIN fatture f ON f.Anno = v.Anno AND f.Codice = v.Codice
+            WHERE v.ID = @vatId AND v.Settore = @sector
+            LIMIT 1;
+            """;
+        var vatIdParameter = command.CreateParameter();
+        vatIdParameter.ParameterName = "@vatId";
+        vatIdParameter.Value = vatMovementId;
+        command.Parameters.Add(vatIdParameter);
+        var sectorParameter = command.CreateParameter();
+        sectorParameter.ParameterName = "@sector";
+        sectorParameter.Value = AccountingSector;
+        command.Parameters.Add(sectorParameter);
+
+        var value = await command.ExecuteScalarAsync(cancellationToken);
+        return value is null or DBNull ? null : Convert.ToInt32(value);
+    }
+
+    private static string NormalizeReturnUrl(string? returnUrl)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl)) return "/FattureVendita";
+        var value = returnUrl.Trim();
+        return value.StartsWith("/", StringComparison.Ordinal)
+            && !value.StartsWith("//", StringComparison.Ordinal)
+            && !value.Contains('\\')
+            ? value
+            : "/FattureVendita";
     }
 
     private async Task<IReadOnlyList<CodeLookupItem>> LoadAgentsAsync(CancellationToken cancellationToken)

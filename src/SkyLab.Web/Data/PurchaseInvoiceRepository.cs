@@ -130,43 +130,50 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         try
         {
             var movement = await ExistingAccountingMovementAsync(connection, transaction, id, cancellationToken);
-            if (movement is not null)
+            if (movement is null)
             {
-                await DeleteAccountingRowsAsync(
-                    connection,
-                    transaction,
-                    movement.Id,
-                    movement.Year,
-                    PurchaseInvoiceSector,
-                    movement.Code,
-                    cancellationToken);
-                await using (var linkedCommand = new MySqlCommand(
-                    "DELETE FROM movcontdc WHERE Mov_Id = @id;",
-                    connection,
-                    transaction))
-                {
-                    linkedCommand.Parameters.AddWithValue("@id", movement.Id);
-                    await linkedCommand.ExecuteNonQueryAsync(cancellationToken);
-                }
+                throw new InvalidOperationException(
+                    "Movimento contabile collegato alla fattura non trovato. La fattura non è stata cancellata.");
+            }
 
-                await using (var movementCommand = new MySqlCommand(
-                    """
-                    DELETE FROM movcont
-                    WHERE ID = @id
-                      AND Anno = @year
-                      AND Settore = @sector
-                      AND Codice = @code
-                      AND Documento = @document;
-                    """,
-                    connection,
-                    transaction))
+            await DeleteAccountingRowsAsync(
+                connection,
+                transaction,
+                movement.Id,
+                movement.Year,
+                PurchaseInvoiceSector,
+                movement.Code,
+                cancellationToken);
+            await using (var linkedCommand = new MySqlCommand(
+                "DELETE FROM movcontdc WHERE Mov_Id = @id;",
+                connection,
+                transaction))
+            {
+                linkedCommand.Parameters.AddWithValue("@id", movement.Id);
+                await linkedCommand.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await using (var movementCommand = new MySqlCommand(
+                """
+                DELETE FROM movcont
+                WHERE ID = @id
+                  AND Anno = @year
+                  AND Settore = @sector
+                  AND Codice = @code
+                  AND Documento = @document;
+                """,
+                connection,
+                transaction))
+            {
+                movementCommand.Parameters.AddWithValue("@id", movement.Id);
+                movementCommand.Parameters.AddWithValue("@year", movement.Year);
+                movementCommand.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
+                movementCommand.Parameters.AddWithValue("@code", movement.Code);
+                movementCommand.Parameters.AddWithValue("@document", id);
+                if (await movementCommand.ExecuteNonQueryAsync(cancellationToken) != 1)
                 {
-                    movementCommand.Parameters.AddWithValue("@id", movement.Id);
-                    movementCommand.Parameters.AddWithValue("@year", movement.Year);
-                    movementCommand.Parameters.AddWithValue("@sector", PurchaseInvoiceSector);
-                    movementCommand.Parameters.AddWithValue("@code", movement.Code);
-                    movementCommand.Parameters.AddWithValue("@document", id);
-                    await movementCommand.ExecuteNonQueryAsync(cancellationToken);
+                    throw new InvalidOperationException(
+                        "Il movimento contabile non è stato cancellato; operazione annullata.");
                 }
             }
 
@@ -228,7 +235,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             SELECT mv.ID,
                    mv.Anno,
                    mv.Codice,
-                   COALESCE(mv.Causale, 0) AS Causale,
+                   COALESCE(mv.TipoDoc, 0) AS Causale,
                    COALESCE(mv.NumDoc, '') AS NumDoc,
                    mv.DataDoc,
                    COALESCE(mv.Ditta, 0) AS Ditta,
@@ -631,7 +638,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
         await using var command = new MySqlCommand(
             """
             INSERT INTO moviva
-                (Anno, Settore, Codice, Causale, NumDoc, DataDoc, Ditta, CtPartita, ULocale,
+                (Anno, Settore, Codice, TipoDoc, NumDoc, DataDoc, Ditta, CtPartita, ULocale,
                  Pagamento, Banca, FeName, Note)
             VALUES
                 (@year, @sector, @code, @cause, @documentNumber, @documentDate, @supplierCode, @contraAccountCode,
@@ -667,7 +674,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             SET Anno = @year,
                 Settore = @sector,
                 Codice = @code,
-                Causale = @cause,
+                TipoDoc = @cause,
                 NumDoc = @documentNumber,
                 DataDoc = @documentDate,
                 Ditta = @supplierCode,
@@ -1294,8 +1301,8 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
                    mv.Codice,
                    COALESCE(mv.NumDoc, '') AS NumDoc,
                    mv.DataDoc,
-                   COALESCE(mv.Causale, 0) AS Causale,
-                   CASE COALESCE(mv.Causale, 0)
+                   COALESCE(mv.TipoDoc, 0) AS Causale,
+                   CASE COALESCE(mv.TipoDoc, 0)
                        WHEN 10 THEN 'Fattura acquisto'
                        WHEN 11 THEN 'Nota debito acquisti'
                        WHEN 12 THEN 'Nota credito acquisti'
@@ -1322,7 +1329,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             WHERE mv.Settore = @sector
               AND mv.Anno = @year
               AND (@month IS NULL OR MONTH(mv.DataDoc) = @month)
-              AND (@causeCode IS NULL OR mv.Causale = @causeCode)
+              AND (@causeCode IS NULL OR mv.TipoDoc = @causeCode)
               AND (@supplierCode IS NULL OR mv.Ditta = @supplierCode)
               AND (
                   @storeCode IS NULL

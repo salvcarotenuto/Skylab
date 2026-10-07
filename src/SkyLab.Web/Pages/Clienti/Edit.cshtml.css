@@ -5,3 +5,26 @@
     padding-bottom: 10px;
     padding-top: 10px;
 }
+
+.customer-form-page .customer-notes-field ::deep > label,
+.customer-form-page .customer-notes-field ::deep > textarea {
+    height: 64px;
+    min-height: 64px;
+}
+
+.customer-form-toolbar ::deep .btn {
+    align-items: center;
+    box-sizing: border-box;
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 600;
+    height: 40px;
+    justify-content: center;
+    line-height: 1;
+    max-width: 140px;
+    min-height: 40px;
+    min-width: 140px;
+    padding: 0;
+    text-align: center;
+    width: 140px;
+}

@@ -1,9 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("#user-form");
   const save = document.querySelector("[data-user-save]");
+  const cancel = document.querySelector("[data-user-cancel]");
   const view = document.querySelector("[data-password-view]");
   const password = document.querySelector("[data-password-input]");
   if (!form || !save) return;
+
+  cancel?.addEventListener("click", () => {
+    location.href = cancel.dataset.cancelUrl || "/Utenti";
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || event.defaultPrevented || document.querySelector("dialog[open]")) return;
+    event.preventDefault();
+    cancel?.click();
+  });
 
   view?.addEventListener("click", () => {
     const visible = password.type === "text";

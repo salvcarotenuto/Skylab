@@ -8,6 +8,8 @@
   const count = page.querySelector("[data-count]");
   const empty = page.querySelector("[data-empty]");
   const gridFrame = page.querySelector(".supplier-grid-frame");
+  const gridHead = page.querySelector(".supplier-grid thead");
+  const exitLink = page.querySelector("[data-supplier-exit]");
   let selected = null;
   let sortKey = "name";
   let ascending = true;
@@ -57,45 +59,51 @@
     searchTimer = window.setTimeout(updateQuery, 450);
   };
   const visibleRows = () => [...page.querySelectorAll("[data-row]")].filter(row => !row.hidden);
-  const rowIsVisibleInFrame = (row) => {
-    if (!row || !gridFrame) return false;
-    const frameRect = gridFrame.getBoundingClientRect();
-    const rowRect = row.getBoundingClientRect();
-    return rowRect.top >= frameRect.top && rowRect.bottom <= frameRect.bottom;
+  const ensure = (row, direction = 0) => {
+    if (!row || !gridFrame) return;
+    const headerHeight = gridHead?.offsetHeight || 0;
+    const top = gridFrame.scrollTop + headerHeight;
+    const bottom = gridFrame.scrollTop + gridFrame.clientHeight;
+    const rowTop = row.offsetTop;
+    const rowBottom = rowTop + row.offsetHeight;
+    if (rowTop >= top && rowBottom <= bottom) return;
+    if (direction >= 0 && rowBottom > bottom) gridFrame.scrollTop = rowBottom - gridFrame.clientHeight + 1;
+    else if (direction <= 0 && rowTop < top) gridFrame.scrollTop = Math.max(rowTop - headerHeight - 1, 0);
   };
-  const firstVisibleRowInFrame = (direction = 1) => {
-    if (!gridFrame) return visibleRows()[0] || null;
-    const frameRect = gridFrame.getBoundingClientRect();
-    const visible = visibleRows().filter(row => {
-      const rowRect = row.getBoundingClientRect();
-      return rowRect.bottom > frameRect.top && rowRect.top < frameRect.bottom;
-    });
-    return direction >= 0 ? visible[0] || null : visible.at(-1) || null;
+  const focusCell = row => {
+    const cell = row?.cells[0];
+    if (!cell) return;
+    cell.tabIndex = -1;
+    const frame = gridFrame.getBoundingClientRect();
+    const left = frame.left + gridFrame.clientLeft;
+    const right = left + gridFrame.clientWidth;
+    const rect = cell.getBoundingClientRect();
+    if (rect.left < left || rect.right > right) gridFrame.scrollLeft = 0;
+    cell.focus({ preventScroll: true });
   };
-  const choose = (row, focus = false) => {
+  const choose = (row, focus = false, direction = 0) => {
     rows.forEach(item => item.classList.remove("selected"));
     selected = row;
     if (!row) return;
     row.classList.add("selected");
-    if (focus) {
-      row.focus({ preventScroll: true });
-      row.scrollIntoView({ block: "nearest", inline: "nearest" });
-    }
+    if (focus) focusCell(row);
+    ensure(row, direction);
   };
   const move = (current, key) => {
     const visible = visibleRows();
     if (!visible.length) return;
-    let index = Math.max(0, visible.indexOf(current));
-    if (key === "ArrowDown") index = Math.min(visible.length - 1, index + 1);
-    else if (key === "ArrowUp") index = Math.max(0, index - 1);
-    else if (key === "Home") index = 0;
-    else if (key === "End") index = visible.length - 1;
-    choose(visible[index], true);
+    let index = current ? visible.indexOf(current) : -1;
+    if (index < 0) index = key === "ArrowUp" || key === "End" ? visible.length - 1 : 0;
+    if (key === "Home") { choose(visible[0], true, -1); return; }
+    if (key === "End") { choose(visible.at(-1), true, 1); return; }
+    const direction = key === "ArrowDown" ? 1 : -1;
+    index = Math.max(0, Math.min(visible.length - 1, index + direction));
+    choose(visible[index], true, direction);
   };
 
   rows.forEach(row => {
     row.addEventListener("click", () => choose(row, true));
-    row.addEventListener("dblclick", () => { location.href = row.dataset.edit; });
+    row.addEventListener("dblclick", () => { choose(row, true); location.href = row.dataset.edit; });
     row.addEventListener("keydown", event => {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -128,10 +136,9 @@
     scheduleQueryUpdate();
   });
   search.addEventListener("keydown", event => {
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const visible = visibleRows();
-    if (visible.length) choose(event.key === "ArrowDown" ? visible[0] : visible.at(-1), true);
+    move(selected, event.key);
   });
   clear.addEventListener("click", () => {
     search.value = "";
@@ -142,6 +149,17 @@
 
   // Stesso gestore collaudato della lista Articoli.
   document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      if (preview && !preview.hidden) {
+        event.preventDefault();
+        preview.hidden = true;
+        return;
+      }
+      if (document.querySelector("dialog[open]")) return;
+      event.preventDefault();
+      location.href = exitLink?.href || "/";
+      return;
+    }
     const target = event.target;
     const isEditable = target instanceof HTMLInputElement
       || target instanceof HTMLSelectElement
@@ -178,16 +196,27 @@
       return comparison * (ascending ? 1 : -1);
     }).forEach(row => body.append(row));
     syncSortHeaders();
-    if (selected) choose(selected, true);
+    if (selected) choose(selected);
   }));
 
+  let scrollFrame = 0;
   gridFrame?.addEventListener("scroll", () => {
-    const direction = gridFrame.scrollTop >= lastScrollTop ? 1 : -1;
-    lastScrollTop = gridFrame.scrollTop;
-    if (!selected || !rowIsVisibleInFrame(selected)) {
-      const next = firstVisibleRowInFrame(direction);
-      if (next) choose(next);
-    }
+    if (scrollFrame) cancelAnimationFrame(scrollFrame);
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      const direction = gridFrame.scrollTop >= lastScrollTop ? 1 : -1;
+      lastScrollTop = gridFrame.scrollTop;
+      if (!selected) return;
+      const frame = gridFrame.getBoundingClientRect();
+      const headerHeight = gridHead?.getBoundingClientRect().height || 0;
+      const rect = selected.getBoundingClientRect();
+      if (rect.bottom > frame.top + headerHeight && rect.top < frame.bottom) return;
+      const inView = visibleRows().filter(row => {
+        const item = row.getBoundingClientRect();
+        return item.top >= frame.top + headerHeight && item.bottom <= frame.bottom;
+      });
+      if (inView.length) choose(direction > 0 ? inView[0] : inView.at(-1));
+    });
   }, { passive: true });
 
   const requireSelection = () => {
@@ -233,5 +262,8 @@
   };
 
   filter();
+  const firstRow = visibleRows()[0] || null;
+  if (firstRow) choose(firstRow, true);
+  else gridFrame?.focus({ preventScroll: true });
   syncSortHeaders();
 })();
