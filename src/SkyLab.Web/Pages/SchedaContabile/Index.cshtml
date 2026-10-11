@@ -21,22 +21,22 @@
     }));
 }
 
-<section class="module-page stock-movements-page accounting-statement-page supplier-form-page data-form-skin"
+<section class="accounting-statement-page"
          data-accounting-statement
          data-return-url="@Model.ReturnUrl"
          data-read-only-navigation="@Model.IsReadOnlyNavigation.ToString().ToLowerInvariant()"
          data-is-loaded="@Model.Report.IsLoaded.ToString().ToLowerInvariant()">
-    <header class="module-header stock-movements-header">
-        <div class="module-title-identity">
-            <a class="module-title-logo" href="@Model.ReturnUrl" aria-label="Torna alla pagina precedente">
-                <img src="~/images/micronote-bak.jpeg" alt="" />
+    <header class="accounting-statement-header">
+        <div class="accounting-statement-title-identity">
+            <a class="accounting-statement-logo" href="@Model.ReturnUrl" aria-label="Torna alla pagina precedente">
+                <img src="~/images/skylab-logo.png" alt="" />
             </a>
             <div>
                 <h1>Scheda contabile</h1>
                 <p>Visualizzazione e stampa scheda contabile</p>
             </div>
         </div>
-        <div class="top-actions accounting-statement-actions">
+        <div class="accounting-statement-actions">
             <span class="list-records-box accounting-statement-records">
                 <strong>@Model.Report.RecordCount</strong>
                 <span>record</span>
@@ -47,7 +47,7 @@
         </div>
     </header>
 
-    <form class="stock-movements-filters accounting-statement-filters"
+    <form class="accounting-statement-filters"
           method="get"
           data-accounting-statement-filters
           data-progress-message="Elaborazione scheda contabile in corso..."
@@ -56,7 +56,7 @@
         {
             <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
         }
-        <fieldset class="form-frame">
+        <fieldset class="accounting-statement-filter-frame">
             <div class="accounting-statement-filter-row">
                 <div class="field accounting-statement-account-field">
                     <label>Conto</label>
