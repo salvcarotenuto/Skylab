@@ -25,7 +25,7 @@ public sealed class IndexModel(
     {
         ReturnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : "/";
         var year = applicationState.Esercizio;
-        var from = dateFrom ?? new DateOnly(year, 1, 1);
+        var from = dateFrom ?? new DateOnly(2018, 1, 1);
         var to = dateTo ?? DefaultDateTo(year);
 
         Report = accountCode is > 0

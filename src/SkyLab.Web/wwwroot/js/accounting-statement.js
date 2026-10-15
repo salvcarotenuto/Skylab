@@ -720,8 +720,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const isRowVisible = (row, viewport) => {
     const rowRect = row.getBoundingClientRect();
-    return rowRect.bottom > viewport.top + 1 &&
-      rowRect.top < viewport.bottom - 1;
+    return rowRect.top >= viewport.top + 1 &&
+      rowRect.bottom <= viewport.bottom - 1;
   };
 
   const fullyVisibleRows = (viewport) =>
@@ -752,6 +752,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const focusCell = (row) => {
+    const cell = row?.cells[0];
+    if (!cell || !grid) {
+      return;
+    }
+
+    const frameRect = grid.getBoundingClientRect();
+    const left = frameRect.left + grid.clientLeft;
+    const right = left + grid.clientWidth;
+    const cellRect = cell.getBoundingClientRect();
+
+    if (cellRect.left < left || cellRect.right > right) {
+      grid.scrollLeft = 0;
+    }
+
+    cell.tabIndex = -1;
+    cell.focus({ preventScroll: true });
+  };
+
   const selectRow = (row, focus = false, direction = 0) => {
     if (!row) {
       return;
@@ -761,7 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
     row.classList.add("selected-row", "selected");
     row.setAttribute("aria-selected", "true");
     if (focus) {
-      row.focus({ preventScroll: true });
+      focusCell(row);
     }
     ensureVisible(row, direction);
   };
@@ -1067,7 +1086,12 @@ document.addEventListener("DOMContentLoaded", () => {
     articleModal.hidden = true;
     document.body.classList.remove("purchase-invoice-payment-modal-open");
     articleModalFrame?.removeAttribute("src");
-    document.querySelector("[data-accounting-statement-action='article']")?.focus();
+    const row = selectedRow();
+    if (row) {
+      focusCell(row);
+    } else {
+      grid?.focus({ preventScroll: true });
+    }
   };
 
   const openArticleModal = (row) => {
@@ -1090,7 +1114,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   if (rows.length) {
-    selectRow(rows[0]);
+    selectRow(rows[0], true, -1);
   }
 
   document.querySelectorAll("[data-accounting-statement-action]").forEach((button) => {

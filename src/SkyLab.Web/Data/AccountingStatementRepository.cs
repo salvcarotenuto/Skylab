@@ -202,9 +202,9 @@ public sealed class AccountingStatementRepository(SkyLabDatabase database)
 
         const string sql = """
             SELECT rg.ID,
-                   rg.Anno,
-                   rg.Settore,
-                   rg.Codice,
+                   m.Anno,
+                   m.Settore,
+                   m.Codice,
                    COALESCE(rg.Segno, '') AS Segno,
                    COALESCE(rg.Importo, 0) AS Importo,
                    m.DataMov,

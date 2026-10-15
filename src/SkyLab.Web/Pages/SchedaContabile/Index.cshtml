@@ -5,6 +5,7 @@
 @{
     ViewData["Title"] = "Scheda contabile";
     ViewData["BodyClass"] = "accounting-statement-module";
+    ViewData["HideFooter"] = true;
     var it = CultureInfo.GetCultureInfo("it-IT");
     string Money(decimal value) => value == 0 ? "" : value.ToString("N2", it);
     string MoneyTotal(decimal value) => value.ToString("N2", it);
@@ -131,8 +132,7 @@
                 <tbody>
                     @foreach (var row in Model.Report.Rows)
                     {
-                        <tr tabindex="0"
-                            data-accounting-statement-row
+                        <tr data-accounting-statement-row
                             data-id="@(row.Id?.ToString() ?? "")"
                             data-year="@(row.Year?.ToString() ?? "")"
                             data-sector="@(row.Sector?.ToString() ?? "")"
