@@ -47,7 +47,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
                        ELSE ''
                    END AS Nome,
                    COALESCE(m.NumDoc, '') AS NumDoc,
-                   COALESCE(m.ULocale, 0) AS PuntoV,
+                   COALESCE(m.ULocale, 0) AS ULocale,
                    COALESCE(m.Descrizione, '') AS Note,
                    COALESCE(m.Importo, 0) AS Importo
             FROM movcont m
@@ -90,7 +90,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             SubjectCode = ToNullableCode(reader["Ditta"]),
             SubjectName = Convert.ToString(reader["Nome"]) ?? "",
             DocumentNumber = Convert.ToString(reader["NumDoc"]) ?? "",
-            StoreCode = ToNullableCode(reader["PuntoV"]),
+            StoreCode = ToNullableCode(reader["ULocale"]),
             Notes = Convert.ToString(reader["Note"]) ?? "",
             Amount = Money(reader["Importo"])
         };
@@ -675,13 +675,14 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             await deleteCommand.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        await InsertLinesForSideAsync(
+        var nextRowNumber = await InsertLinesForSideAsync(
             connection,
             transaction,
             movementId,
             movement,
             movement.DebitLines,
             "D",
+            1,
             cancellationToken);
         await InsertLinesForSideAsync(
             connection,
@@ -690,39 +691,40 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
             movement,
             movement.CreditLines,
             "A",
+            nextRowNumber,
             cancellationToken);
     }
 
-    private static async Task InsertLinesForSideAsync(
+    private static async Task<int> InsertLinesForSideAsync(
         MySqlConnection connection,
         MySqlTransaction transaction,
         int movementId,
         AccountingMovementEditModel movement,
         IEnumerable<AccountingMovementLineEditModel> lines,
         string sign,
+        int firstRowNumber,
         CancellationToken cancellationToken)
     {
         const string sql = """
             INSERT INTO movcontrg
-                (ID, Anno, Settore, Codice, Riga, Conto, Importo, Segno)
+                (ID, Riga, Conto, Importo, Segno)
             VALUES
-                (@id, @year, @sector, @code, @rowNumber, @accountCode, @amount, @sign);
+                (@id, @rowNumber, @accountCode, @amount, @sign);
             """;
 
-        var rowNumber = 1;
+        var rowNumber = firstRowNumber;
         foreach (var line in CompactLines(lines))
         {
             await using var command = new MySqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@id", movementId);
-            command.Parameters.AddWithValue("@year", movement.Year);
-            command.Parameters.AddWithValue("@sector", movement.Sector);
-            command.Parameters.AddWithValue("@code", movement.Code);
             command.Parameters.AddWithValue("@rowNumber", rowNumber++);
             command.Parameters.AddWithValue("@accountCode", line.AccountCode!.Value);
             command.Parameters.AddWithValue("@amount", line.Amount);
             command.Parameters.AddWithValue("@sign", sign);
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
+
+        return rowNumber;
     }
 
     private static IEnumerable<AccountingMovementLineEditModel> CompactLines(
@@ -879,10 +881,11 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
         }
 
         const string sql = """
-            SELECT COALESCE(NumeroFatt, '') AS NumDoc,
-                   DataFatt
-            FROM scadenze
-            WHERE ID = @id
+            SELECT COALESCE(v.NumDoc, '') AS NumDoc,
+                   v.DataDoc
+            FROM scadenze s
+            INNER JOIN moviva v ON v.ID = s.MovIva_Id
+            WHERE s.ID = @id
             LIMIT 1;
             """;
 
@@ -893,7 +896,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
         if (await reader.ReadAsync(cancellationToken))
         {
             model.LinkedDueDateDocumentNumber = Convert.ToString(reader["NumDoc"]) ?? "";
-            model.LinkedDueDateDocumentDate = Date(reader["DataFatt"]);
+            model.LinkedDueDateDocumentDate = Date(reader["DataDoc"]);
         }
     }
 
@@ -1377,19 +1380,20 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
         CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT ID,
-                   Anno,
-                   Settore,
-                   Codice,
-                   COALESCE(NumeroFatt, '') AS NumDoc,
-                   DataFatt,
-                   COALESCE(Importo, 0) AS Importo
-            FROM scadenze
-            WHERE Anno = @year
-              AND Settore = @sector
-              AND CliFor = @subjectType
-              AND Ditta = @subjectCode
-            ORDER BY DataScadenza DESC, Codice DESC, Numero DESC;
+            SELECT s.ID,
+                   v.Anno,
+                   v.Settore,
+                   v.Codice,
+                   COALESCE(v.NumDoc, '') AS NumDoc,
+                   v.DataDoc,
+                   COALESCE(s.Importo, 0) AS Importo
+            FROM scadenze s
+            INNER JOIN moviva v ON v.ID = s.MovIva_Id
+            WHERE v.Anno = @year
+              AND v.Settore = @sector
+              AND v.CliFor = @subjectType
+              AND v.Ditta = @subjectCode
+            ORDER BY s.DataScadenza DESC, v.Codice DESC, s.Numero DESC;
             """;
 
         await using var command = new MySqlCommand(sql, connection);
@@ -1408,7 +1412,7 @@ public sealed class AccountingMovementRepository(SkyLabDatabase database)
                 Convert.ToInt32(reader["Settore"]),
                 Convert.ToInt32(reader["Codice"]),
                 Convert.ToString(reader["NumDoc"]) ?? "",
-                Date(reader["DataFatt"]),
+                Date(reader["DataDoc"]),
                 Money(reader["Importo"])));
         }
 

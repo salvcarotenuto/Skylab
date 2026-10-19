@@ -241,7 +241,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
                    COALESCE(mv.Ditta, 0) AS Ditta,
                    COALESCE(f.Nome, '') AS Fornitore,
                    COALESCE(mv.CtPartita, 0) AS CtPartita,
-                   COALESCE(mv.ULocale, 0) AS PuntoV,
+                   COALESCE(mv.ULocale, 0) AS ULocale,
                    COALESCE(vat.Imponibile, 0) AS Imponibile,
                    COALESCE(vat.Iva, 0) AS Iva,
                    COALESCE(vat.Imponibile, 0) + COALESCE(vat.Iva, 0) AS Totale,
@@ -284,7 +284,7 @@ public sealed class PurchaseInvoiceRepository(SkyLabDatabase database)
             invoice.SupplierCode = Convert.ToInt32(reader["Ditta"]);
             invoice.SupplierName = Convert.ToString(reader["Fornitore"]) ?? "";
             invoice.ContraAccountCode = Convert.ToInt32(reader["CtPartita"]);
-            invoice.StoreCode = Convert.ToInt32(reader["PuntoV"]);
+            invoice.StoreCode = Convert.ToInt32(reader["ULocale"]);
             invoice.TaxableTotal = Convert.ToDecimal(reader["Imponibile"]);
             invoice.VatTotal = Convert.ToDecimal(reader["Iva"]);
             invoice.Total = Convert.ToDecimal(reader["Totale"]);

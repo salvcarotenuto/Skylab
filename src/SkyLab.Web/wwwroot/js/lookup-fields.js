@@ -332,7 +332,7 @@
     setInputValue(field.dataset.labelInput, row.label || "");
 
     const codeInput = document.getElementById(field.dataset.codeInput);
-    codeInput?.dispatchEvent(new Event("change", { bubbles: true }));
+    dispatchCodeChange(field, codeInput);
     field.dispatchEvent(new CustomEvent("micronote:lookup-selected", {
       bubbles: true,
       detail: { row, type }
@@ -343,7 +343,20 @@
     setInputValue(field.dataset.codeInput, "");
     setInputValue(field.dataset.codeDisplay, "");
     setInputValue(field.dataset.labelInput, "");
-    document.getElementById(field.dataset.codeInput)?.dispatchEvent(new Event("change", { bubbles: true }));
+    dispatchCodeChange(field, document.getElementById(field.dataset.codeInput));
+  }
+
+  function dispatchCodeChange(field, input) {
+    if (!input) {
+      return;
+    }
+
+    input.dataset.lookupApplyingValue = "true";
+    try {
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    } finally {
+      delete input.dataset.lookupApplyingValue;
+    }
   }
 
   async function lookupByCode(field) {
@@ -358,19 +371,24 @@
       return;
     }
 
-    const params = new URLSearchParams({ type: field.dataset.lookupType, code });
+    const lookupType = field.dataset.lookupType;
+    const params = new URLSearchParams({ type: lookupType, code });
     const response = await fetch(`${apiUrl}?${params.toString()}`, {
       headers: { Accept: "application/json" }
     });
     const payload = await response.json();
+    const currentCode = String(codeInput.value || "").replace(/\D/g, "");
+    if (currentCode !== code || field.dataset.lookupType !== lookupType) {
+      return;
+    }
     if (payload.row) {
-      applyRow(field, payload.row, field.dataset.lookupType);
+      applyRow(field, payload.row, lookupType);
       return;
     }
 
     field.dispatchEvent(new CustomEvent("micronote:lookup-not-found", {
       bubbles: true,
-      detail: { code, type: field.dataset.lookupType }
+      detail: { code, type: lookupType }
     }));
     clearRow(field);
   }
@@ -414,7 +432,11 @@
     codeInput.addEventListener("input", () => {
       codeInput.value = codeInput.value.replace(/\D/g, "");
     });
-    codeInput.addEventListener("change", () => lookupByCode(field));
+    codeInput.addEventListener("change", () => {
+      if (codeInput.dataset.lookupApplyingValue !== "true") {
+        lookupByCode(field);
+      }
+    });
     codeInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();

@@ -1,0 +1,45 @@
+.customer-supplier-statement-page > .customer-supplier-statement-header {
+  box-sizing: border-box;
+  height: 80px;
+  margin: 0 0 8px;
+  min-height: 80px;
+  padding: 4px 12px;
+}
+
+.customer-supplier-statement-page .customer-supplier-statement-header .module-title-logo,
+.customer-supplier-statement-page .customer-supplier-statement-header .module-title-logo img {
+  flex: 0 0 64px;
+  height: 64px;
+  max-height: 64px;
+  max-width: 64px;
+  object-fit: contain;
+  width: 64px;
+}
+
+.customer-supplier-statement-page .accounting-statement-actions > .button {
+  box-sizing: border-box;
+  flex: 0 0 140px;
+  font-size: 13px;
+  font-weight: 600;
+  height: 40px;
+  min-width: 140px;
+  user-select: none;
+  width: 140px;
+}
+
+.customer-supplier-statement-page .accounting-statement-actions > .button.secondary {
+  background: #ffffff;
+  border: 1px solid var(--BlueButton);
+  color: #000000;
+}
+
+.customer-supplier-statement-page .accounting-statement-actions > .button.secondary:hover,
+.customer-supplier-statement-page .accounting-statement-actions > .button.secondary:focus-visible {
+  background: var(--BlueButton);
+  color: #ffffff;
+}
+
+.customer-supplier-statement-page .accounting-statement-actions > .button:disabled {
+  cursor: default;
+  opacity: 1;
+}

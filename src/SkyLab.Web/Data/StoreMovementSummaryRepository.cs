@@ -357,7 +357,7 @@ public sealed class StoreMovementSummaryRepository(SkyLabDatabase database)
                 SELECT COALESCE(SUM(Imponibile), 0) AS Imponibile,
                        COALESCE(SUM(NonImpo), 0) AS NonImpo
                 FROM MovivaRg
-                WHERE Anno = @year AND Settore = 20 AND PuntoV = @storeCode
+                WHERE Anno = @year AND Settore = 20 AND ULocale = @storeCode
             ) fiscal
             CROSS JOIN (
                 SELECT COALESCE(SUM(Altro), 0) AS Altro,
@@ -368,7 +368,7 @@ public sealed class StoreMovementSummaryRepository(SkyLabDatabase database)
                        COALESCE(SUM(Sospesi), 0) AS Sospesi,
                        COALESCE(SUM(Perdite), 0) AS Perdite
                 FROM VenditeRg
-                WHERE Anno = @year AND PuntoV = @storeCode
+                WHERE Anno = @year AND ULocale = @storeCode
             ) receipts;
             """;
 

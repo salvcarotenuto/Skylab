@@ -17,7 +17,7 @@ public sealed class LookupRepository(SkyLabDatabase database)
 
         var source = LookupSource(type);
         var sql = $"""
-            SELECT Codice, Nome, Contropartita, PuntoV, Dettaglio
+            SELECT Codice, Nome, Contropartita, ULocale, Dettaglio
             FROM ({source}) AS anagrafica
             WHERE Codice = @code
             LIMIT 1;
@@ -48,7 +48,7 @@ public sealed class LookupRepository(SkyLabDatabase database)
 
         var source = LookupSource(type);
         var sql = $"""
-            SELECT Codice, Nome, Contropartita, PuntoV, Dettaglio
+            SELECT Codice, Nome, Contropartita, ULocale, Dettaglio
             FROM ({source}) AS anagrafica
             WHERE @search = ''
                OR Nome LIKE CONCAT('%', @search, '%')
@@ -87,7 +87,7 @@ public sealed class LookupRepository(SkyLabDatabase database)
             SELECT Codice,
                    TRIM(CONCAT_WS(' ', NULLIF(COALESCE(Cognome, ''), ''), NULLIF(COALESCE(Nome, ''), ''))) AS Nome,
                    NULL AS Contropartita,
-                   PuntoV,
+                   ULocale,
                    TRIM(CONCAT_WS(' ', NULLIF(COALESCE(Citta, ''), ''), NULLIF(COALESCE(Indirizzo, ''), ''))) AS Dettaglio
             FROM dipendenti
             """,
@@ -95,7 +95,7 @@ public sealed class LookupRepository(SkyLabDatabase database)
             SELECT Codice,
                    COALESCE(Nome, '') AS Nome,
                    NULL AS Contropartita,
-                   NULL AS PuntoV,
+                   NULL AS ULocale,
                    TRIM(CONCAT_WS(' ', NULLIF(COALESCE(Agenzia, ''), ''), NULLIF(COALESCE(Iban, ''), ''))) AS Dettaglio
             FROM banche
             """,
@@ -103,7 +103,7 @@ public sealed class LookupRepository(SkyLabDatabase database)
             SELECT Codice,
                    COALESCE(Nome, '') AS Nome,
                    NULL AS Contropartita,
-                   NULL AS PuntoV,
+                   NULL AS ULocale,
                    '' AS Dettaglio
             FROM agenti
             """,
@@ -114,7 +114,7 @@ public sealed class LookupRepository(SkyLabDatabase database)
         SELECT Codice,
                COALESCE(Nome, '') AS Nome,
                NULL AS Contropartita,
-               NULL AS PuntoV,
+               NULL AS ULocale,
                TRIM(CONCAT_WS(' ', NULLIF(COALESCE(Citta, ''), ''), NULLIF(COALESCE(Provincia, ''), ''))) AS Dettaglio
         FROM {table}
         """;
@@ -128,6 +128,6 @@ public sealed class LookupRepository(SkyLabDatabase database)
             reader.GetString("Nome"),
             reader.GetString("Dettaglio"),
             reader["Contropartita"] == DBNull.Value ? null : Convert.ToInt32(reader["Contropartita"]),
-            reader["PuntoV"] == DBNull.Value ? null : Convert.ToInt32(reader["PuntoV"]));
+            reader["ULocale"] == DBNull.Value ? null : Convert.ToInt32(reader["ULocale"]));
     }
 }

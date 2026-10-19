@@ -276,6 +276,19 @@
 </section>
 
 
+<div class="accounting-statement-print-backdrop" data-accounting-statement-print-preview hidden>
+  <section class="accounting-statement-print-window" role="dialog" aria-modal="true" aria-labelledby="accountingStatementPrintTitle">
+    <header class="accounting-statement-print-toolbar">
+      <div class="accounting-statement-print-heading"><strong id="accountingStatementPrintTitle">Anteprima scheda contabile</strong><span data-accounting-statement-print-summary></span></div>
+      <div class="accounting-statement-print-actions">
+        <button type="button" data-accounting-statement-zoom-out aria-label="Riduci zoom">−</button><span data-accounting-statement-zoom-label>80%</span>
+        <button type="button" data-accounting-statement-zoom-in aria-label="Aumenta zoom">+</button>
+        <button type="button" data-accounting-statement-print>Stampa</button><button type="button" data-accounting-statement-print-close>Chiudi</button>
+      </div>
+    </header>
+    <div class="accounting-statement-print-viewport"><div class="accounting-statement-print-document" data-accounting-statement-print-document></div></div>
+  </section>
+</div>
 <div class="purchase-invoice-payment-modal-overlay" data-accounting-statement-article-modal hidden>
     <section class="purchase-invoice-payment-modal accounting-article-modal" role="dialog" aria-modal="true" aria-label="Articolo di contabilita">
         <iframe title="Articolo di contabilita" data-accounting-statement-article-modal-frame></iframe>

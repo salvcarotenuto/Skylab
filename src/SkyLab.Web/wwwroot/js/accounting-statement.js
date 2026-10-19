@@ -163,61 +163,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const formatDisplayDate = (date) =>
     `${padDatePart(date.getDate())}/${padDatePart(date.getMonth() + 1)}/${date.getFullYear()}`;
 
-  const clampDay = (day, month, year) =>
-    Math.min(day, new Date(year, month, 0).getDate());
-
-  const datePartRanges = {
-    day: [0, 2],
-    month: [3, 5],
-    year: [6, 10]
-  };
-
-  const selectDatePart = (field, part) => {
-    const range = datePartRanges[part] ?? datePartRanges.day;
-    window.setTimeout(() => field.setSelectionRange(range[0], range[1]), 0);
-  };
-
-  const datePartFromCaret = (field) => {
-    const position = field.selectionStart ?? 0;
-    if (position >= 6) {
-      return "year";
-    }
-    if (position >= 3) {
-      return "month";
-    }
-    return "day";
-  };
-
-  const shiftDatePart = (field, part, delta) => {
-    const iso = toIsoDate(field.value);
-    if (!iso) {
-      return false;
-    }
-
-    let [year, month, day] = iso.split("-").map((value) => Number.parseInt(value, 10));
-    if (part === "day") {
-      day = Math.max(1, Math.min(day + delta, new Date(year, month, 0).getDate()));
-    } else if (part === "month") {
-      month += delta;
-      if (month < 1) {
-        month = 12;
-        year -= 1;
-      } else if (month > 12) {
-        month = 1;
-        year += 1;
-      }
-      day = clampDay(day, month, year);
-    } else if (part === "year") {
-      year += delta;
-      day = clampDay(day, month, year);
-    }
-
-    field.value = `${padDatePart(day)}/${padDatePart(month)}/${year}`;
-    syncDateHidden(field);
-    selectDatePart(field, part);
-    return true;
-  };
-
   const buildDatePickerPanel = () => {
     if (datePickerPanel) {
       return datePickerPanel;
@@ -303,17 +248,6 @@ document.addEventListener("DOMContentLoaded", () => {
     renderDatePicker();
     panel.hidden = false;
     positionDatePicker();
-  };
-
-  const normalizeDateInput = (field) => {
-    const digits = field.value.replace(/\D/g, "").slice(0, 8);
-    let text = digits;
-    if (digits.length > 4) {
-      text = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    } else if (digits.length > 2) {
-      text = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    }
-    field.value = text.slice(0, 10);
   };
 
   const syncDateHidden = (field) => {
@@ -686,22 +620,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextIndex = (index + direction + fields.length) % fields.length;
     const nextField = fields[nextIndex];
     nextField.focus();
-    if (nextField instanceof HTMLInputElement) {
+    if (nextField instanceof HTMLInputElement && !nextField.matches("[data-filter-date-display]")) {
       nextField.select?.();
-    }
-    if (nextField.matches?.("[data-statement-date-display]") && toIsoDate(nextField.value)) {
-      selectDatePart(nextField, "day");
     }
   };
 
   const focusChoiceDateFrom = () => {
     choiceFields.dateFromDisplay?.focus();
-    if (choiceFields.dateFromDisplay instanceof HTMLInputElement) {
-      choiceFields.dateFromDisplay.select?.();
-      if (toIsoDate(choiceFields.dateFromDisplay.value)) {
-        selectDatePart(choiceFields.dateFromDisplay, "day");
-      }
-    }
   };
 
   const visibleRows = () => rows.filter((row) => !row.hidden);
@@ -850,18 +775,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   document.querySelectorAll("[data-statement-date-display]").forEach((field) => {
-    field.addEventListener("input", () => normalizeDateInput(field));
     field.addEventListener("blur", () => syncDateHidden(field));
-    field.addEventListener("focus", () => {
-      if (toIsoDate(field.value)) {
-        selectDatePart(field, "day");
-      }
-    });
-    field.addEventListener("click", () => {
-      if (toIsoDate(field.value)) {
-        selectDatePart(field, datePartFromCaret(field));
-      }
-    });
     field.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         syncDateHidden(field);
@@ -875,18 +789,6 @@ document.addEventListener("DOMContentLoaded", () => {
           event.preventDefault();
           moveChoiceFocus(field, event.shiftKey ? -1 : 1);
         }
-      } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-        const part = datePartFromCaret(field);
-        if (shiftDatePart(field, part, event.key === "ArrowUp" ? 1 : -1)) {
-          event.preventDefault();
-        }
-      } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-        const part = datePartFromCaret(field);
-        const nextPart = event.key === "ArrowLeft"
-          ? part === "year" ? "month" : "day"
-          : part === "day" ? "month" : "year";
-        event.preventDefault();
-        selectDatePart(field, nextPart);
       }
     });
   });
@@ -898,74 +800,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
-
-  document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) {
-      return;
-    }
-
-    const dateButton = target.closest("[data-date-picker-button]");
-    if (dateButton) {
-      event.preventDefault();
-      const field = dateButton.closest("[data-date-control]")?.querySelector("[data-statement-date-display]");
-      if (field instanceof HTMLInputElement) {
-        if (activeDateField === field && datePickerPanel && !datePickerPanel.hidden) {
-          closeDatePicker();
-          return;
-        }
-
-        openDatePicker(field);
-        field.focus();
-      }
-      return;
-    }
-
-    if (target.closest(".micronote-date-picker")) {
-      const previousButton = target.closest("[data-date-picker-prev]");
-      const nextButton = target.closest("[data-date-picker-next]");
-      const dayButton = target.closest("[data-date-picker-day]");
-
-      if (previousButton && activeDateMonth) {
-        activeDateMonth = new Date(activeDateMonth.getFullYear(), activeDateMonth.getMonth() - 1, 1);
-        renderDatePicker();
-        positionDatePicker();
-        return;
-      }
-
-      if (nextButton && activeDateMonth) {
-        activeDateMonth = new Date(activeDateMonth.getFullYear(), activeDateMonth.getMonth() + 1, 1);
-        renderDatePicker();
-        positionDatePicker();
-        return;
-      }
-
-      if (dayButton && activeDateField && activeDateMonth) {
-        const day = Number.parseInt(dayButton.getAttribute("data-date-picker-day") ?? "0", 10);
-        activeDateField.value = formatDisplayDate(new Date(activeDateMonth.getFullYear(), activeDateMonth.getMonth(), day));
-        syncDateHidden(activeDateField);
-        activeDateField.dispatchEvent(new Event("change", { bubbles: true }));
-        closeDatePicker();
-      }
-
-      return;
-    }
-
-    if (!target.closest("[data-date-control]")) {
-      closeDatePicker();
-    }
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && datePickerPanel && !datePickerPanel.hidden) {
-      event.preventDefault();
-      closeDatePicker();
-      activeDateField?.focus();
-    }
-  });
-
-  window.addEventListener("resize", positionDatePicker);
-  window.addEventListener("scroll", positionDatePicker, true);
 
   lookup?.querySelector("[data-account-ok]")?.addEventListener("click", confirmLookup);
   lookup?.querySelector("[data-account-cancel]")?.addEventListener("click", closeLookup);
@@ -1117,25 +951,123 @@ document.addEventListener("DOMContentLoaded", () => {
     selectRow(rows[0], true, -1);
   }
 
+  const printPreview = document.querySelector("[data-accounting-statement-print-preview]");
+  const printDocument = printPreview?.querySelector("[data-accounting-statement-print-document]");
+  const printSummary = printPreview?.querySelector("[data-accounting-statement-print-summary]");
+  const printZoomLabel = printPreview?.querySelector("[data-accounting-statement-zoom-label]");
+  let printZoom = 0.8;
+  const closePrintPreview = () => { if (printPreview) printPreview.hidden = true; };
+  const updatePrintZoom = () => {
+    if (!printDocument || !printZoomLabel) return;
+    printDocument.style.setProperty("--accounting-statement-print-zoom", String(printZoom));
+    printZoomLabel.textContent = `${Math.round(printZoom * 100)}%`;
+  };
+  const openPrintPreview = () => {
+    const table = page.querySelector(".accounting-statement-grid");
+    const body = table?.tBodies?.[0];
+    const rows = body ? Array.from(body.rows) : [];
+    if (!printPreview || !printDocument || !table || !rows.length) { showMessage("Nessun movimento da stampare."); return; }
+    const headers = Array.from(table.tHead?.rows?.[0]?.cells ?? []).map((cell) => cell.textContent.trim());
+    const accountCode = page.querySelector("[data-statement-account-code]")?.value?.trim() ?? "";
+    const accountDescription = page.querySelector("[data-statement-account-description]")?.value?.trim() ?? "";
+    const dateFrom = page.querySelector("[data-statement-date-from-display]")?.value?.trim() ?? "";
+    const dateTo = page.querySelector("[data-statement-date-to-display]")?.value?.trim() ?? "";
+    const rowsPerPage = 25;
+    const pageCount = Math.ceil(rows.length / rowsPerPage);
+    const createdAt = new Intl.DateTimeFormat("it-IT").format(new Date());
+    printDocument.replaceChildren();
+    for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+      const reportPage = document.createElement("article");
+      reportPage.className = "accounting-statement-print-page";
+      const heading = document.createElement("header");
+      heading.className = "accounting-statement-print-page-heading";
+      const title = document.createElement("div");
+      const titleText = document.createElement("strong");
+      titleText.textContent = page.querySelector("[data-statement-party-type]")?.value === "C"
+        ? "ESTRATTO CONTO CLIENTI"
+        : "ESTRATTO CONTO FORNITORI";
+      const accountText = document.createElement("div");
+      accountText.textContent = [accountCode, accountDescription].filter(Boolean).join(" - ");
+      const periodText = document.createElement("div");
+      periodText.textContent = `Periodo: ${dateFrom} - ${dateTo}`;
+      title.append(titleText, accountText, periodText);
+      const info = document.createElement("div");
+      info.className = "accounting-statement-print-page-info";
+      info.textContent = `Stampata il ${createdAt} | Pagina ${pageIndex + 1} di ${pageCount}`;
+      heading.append(title, info);
+      reportPage.append(heading);
+      const reportTable = document.createElement("table");
+      reportTable.className = "accounting-statement-print-table";
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      headers.forEach((text) => { const cell = document.createElement("th"); cell.textContent = text; headerRow.append(cell); });
+      thead.append(headerRow);
+      reportTable.append(thead);
+      const tbody = document.createElement("tbody");
+      rows.slice(pageIndex * rowsPerPage, (pageIndex + 1) * rowsPerPage).forEach((sourceRow) => {
+        const row = document.createElement("tr");
+        Array.from(sourceRow.cells).forEach((sourceCell) => { const cell = document.createElement("td"); cell.textContent = sourceCell.textContent.trim(); row.append(cell); });
+        tbody.append(row);
+      });
+      reportTable.append(tbody);
+      if (pageIndex === pageCount - 1 && table.tFoot?.rows?.length) {
+        const tfoot = document.createElement("tfoot");
+        Array.from(table.tFoot.rows).forEach((sourceRow) => {
+          const row = document.createElement("tr");
+          const currencyFormat = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          Array.from(sourceRow.cells).forEach((sourceCell, cellIndex, cells) => {
+            const cell = document.createElement("td");
+            cell.colSpan = sourceCell.colSpan;
+            const control = sourceCell.querySelector("input, select, textarea");
+            const rawValue = (control ? control.value : sourceCell.textContent).trim();
+            if (cellIndex > 0 && cellIndex < cells.length - 1) {
+              const numericValue = Number(rawValue.replace(/\./g, "").replace(",", "."));
+              cell.textContent = currencyFormat.format(Number.isFinite(numericValue) ? numericValue : 0);
+            } else {
+              cell.textContent = rawValue;
+            }
+            row.append(cell);
+          });
+          tfoot.append(row);
+        });
+        reportTable.append(tfoot);
+      }
+      reportPage.append(reportTable);
+      printDocument.append(reportPage);
+    }
+    if (printSummary) printSummary.textContent = `${rows.length} movimenti | ${pageCount} pagine`;
+    printZoom = 0.8;
+    updatePrintZoom();
+    printPreview.hidden = false;
+    printPreview.querySelector("[data-accounting-statement-print-close]")?.focus();
+  };
+  printPreview?.querySelector("[data-accounting-statement-print-close]")?.addEventListener("click", closePrintPreview);
+  printPreview?.querySelector("[data-accounting-statement-zoom-out]")?.addEventListener("click", () => { printZoom = Math.max(0.45, Math.round((printZoom - 0.1) * 100) / 100); updatePrintZoom(); });
+  printPreview?.querySelector("[data-accounting-statement-zoom-in]")?.addEventListener("click", () => { printZoom = Math.min(1.4, Math.round((printZoom + 0.1) * 100) / 100); updatePrintZoom(); });
+  printPreview?.querySelector("[data-accounting-statement-print]")?.addEventListener("click", () => {
+    const style = document.createElement("style");
+    style.id = "accounting-statement-print-page-style";
+    style.textContent = "@page { size: A4 landscape; margin: 0; }";
+    document.head.append(style);
+    document.body.classList.add("accounting-statement-print-active");
+    window.print();
+    window.addEventListener("afterprint", () => { document.body.classList.remove("accounting-statement-print-active"); style.remove(); }, { once: true });
+  });
+  printPreview?.addEventListener("click", (event) => { if (event.target === printPreview) closePrintPreview(); });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !printPreview || printPreview.hidden) return;
+    event.preventDefault(); event.stopImmediatePropagation(); closePrintPreview();
+  }, true);
   document.querySelectorAll("[data-accounting-statement-action]").forEach((button) => {
     button.addEventListener("click", () => {
       const action = button.dataset.accountingStatementAction;
+      if (action === "print") { openPrintPreview(); return; }
       const row = selectedRow();
-      if (!row || !row.dataset.id) {
-        showMessage("Selezionare un movimento.");
-        return;
-      }
-      if (action === "article") {
-        openArticleModal(row);
-        return;
-      }
-
-      showMessage(action === "print"
-        ? "Stampa scheda contabile. Funzione in preparazione."
-        : "Visualizzazione movimento. Funzione in preparazione.");
+      if (!row || !row.dataset.id) { showMessage("Selezionare un movimento."); return; }
+      if (action === "article") { openArticleModal(row); return; }
+      showMessage("Visualizzazione movimento. Funzione in preparazione.");
     });
   });
-
   if (page.dataset.isLoaded !== "true") {
     openChoice();
   }

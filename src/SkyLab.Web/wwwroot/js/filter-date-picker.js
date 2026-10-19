@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+const initializeFilterDatePicker = () => {
   const fields = Array.from(document.querySelectorAll("[data-filter-date-display]"));
   if (!fields.length) return;
   let panel;
@@ -216,7 +216,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && isOpen()) { event.preventDefault(); event.stopImmediatePropagation(); close(); }
   }, true);
-});
+};
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeFilterDatePicker, { once: true });
+} else {
+  initializeFilterDatePicker();
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const dialog = document.querySelector("[data-acquire-dialog]");

@@ -71,13 +71,13 @@ public sealed class AccountingMovementSummaryRepository(SkyLabDatabase database)
         CancellationToken cancellationToken)
     {
         var sql = $"""
-            SELECT COALESCE(PuntoV, 0) AS PuntoV,
+            SELECT COALESCE(ULocale, 0) AS ULocale,
                    COALESCE(SUM(Imponibile), 0) AS Imponibile,
                    COALESCE(SUM(Iva), 0) AS Iva,
                    COALESCE(SUM(Totale), 0) AS Totale
             FROM {table}
             WHERE Anno = @year AND {condition}
-            GROUP BY COALESCE(PuntoV, 0);
+            GROUP BY COALESCE(ULocale, 0);
             """;
         await using var command = new MySqlCommand(sql, connection);
         command.Parameters.AddWithValue("@year", year);
@@ -85,7 +85,7 @@ public sealed class AccountingMovementSummaryRepository(SkyLabDatabase database)
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            rows[Convert.ToInt32(reader["PuntoV"])] = new VatTotals(
+            rows[Convert.ToInt32(reader["ULocale"])] = new VatTotals(
                 Decimal(reader["Imponibile"]), Decimal(reader["Iva"]), Decimal(reader["Totale"]));
         }
         return rows;
@@ -97,13 +97,13 @@ public sealed class AccountingMovementSummaryRepository(SkyLabDatabase database)
         CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT COALESCE(PuntoV, 0) AS PuntoV,
+            SELECT COALESCE(ULocale, 0) AS ULocale,
                    COALESCE(SUM(Imponibile + NonImpo), 0) AS Imponibile,
                    COALESCE(SUM(Iva), 0) AS Iva,
                    COALESCE(SUM(Imponibile + NonImpo + Iva), 0) AS Totale
             FROM MovivaRg
             WHERE Anno = @year AND Settore = 20
-            GROUP BY COALESCE(PuntoV, 0);
+            GROUP BY COALESCE(ULocale, 0);
             """;
 
         await using var command = new MySqlCommand(sql, connection);
@@ -112,7 +112,7 @@ public sealed class AccountingMovementSummaryRepository(SkyLabDatabase database)
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            rows[Convert.ToInt32(reader["PuntoV"])] = new VatTotals(
+            rows[Convert.ToInt32(reader["ULocale"])] = new VatTotals(
                 Decimal(reader["Imponibile"]), Decimal(reader["Iva"]), Decimal(reader["Totale"]));
         }
 
@@ -154,7 +154,8 @@ public sealed class AccountingMovementSummaryRepository(SkyLabDatabase database)
             SELECT c.Codice, COALESCE(c.Descrizione, '') AS Descrizione,
                    COALESCE(SUM(CASE WHEN r.Segno = 'D' THEN r.Importo WHEN r.Segno = 'A' THEN -r.Importo ELSE 0 END), 0) AS Importo
             FROM Conti c
-            LEFT JOIN MovContRg r ON r.Conto = c.Codice AND r.Anno = @year
+            LEFT JOIN MovContRg r ON r.Conto = c.Codice
+            LEFT JOIN MovCont m ON m.ID = r.ID AND m.Anno = @year
             WHERE c.Tipo = 'C'
             GROUP BY c.Codice, c.Descrizione
             HAVING Importo <> 0
@@ -184,9 +185,10 @@ public sealed class AccountingMovementSummaryRepository(SkyLabDatabase database)
     {
         const string sql = """
             SELECT c.Codice, COALESCE(c.Descrizione, '') AS Descrizione,
-                   COALESCE(SUM(CASE WHEN r.Settore = 20 AND r.Segno = 'D' AND r.Anno = @year THEN r.Importo ELSE 0 END), 0) AS Importo
+                   COALESCE(SUM(CASE WHEN m.Settore = 20 AND r.Segno = 'D' AND m.Anno = @year THEN r.Importo ELSE 0 END), 0) AS Importo
             FROM Conti c
             LEFT JOIN MovContRg r ON r.Conto = c.Codice
+            LEFT JOIN MovCont m ON m.ID = r.ID
             WHERE c.Codice IN (61, 62, 63, 65, 71)
             GROUP BY c.Codice, c.Descrizione
             ORDER BY FIELD(c.Codice, 61, 62, 63, 65, 71);

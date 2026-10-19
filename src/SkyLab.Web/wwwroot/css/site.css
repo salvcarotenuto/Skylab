@@ -1296,7 +1296,7 @@ button:disabled {
 }
 
 .accounting-statement-choice-frame {
-  background: #ffffff;
+  background: #eaf3fc;
   border: 1px solid #a6b4c4;
   border-radius: 5px;
   box-sizing: border-box;
@@ -1612,7 +1612,10 @@ button:disabled {
 }
 
 .accounting-statement-choice-frame .statement-choice-account {
-  column-gap: 8px;
+  column-gap: 3px;
+}
+.accounting-statement-choice-frame [data-choice-account-description] {
+  margin-left: 5px;
 }
 
 .accounting-statement-choice-frame .lookup-button {
@@ -2444,4 +2447,445 @@ button:disabled {
   background-repeat: no-repeat !important;
   background-size: 22px 22px !important;
   transform: none !important;
+}
+
+.accounting-statement-total-row input {
+  text-align: right;
+}
+.accounting-statement-total-row input {
+  box-sizing: border-box;
+  display: block;
+  margin: 0;
+  min-width: 0;
+  text-align: right;
+  width: 100%;
+}
+.accounting-statement-total-row td:last-child input {
+  text-align: center;
+}
+.accounting-statement-total-row td:nth-child(8) input,
+.accounting-statement-total-row td:nth-child(9) input,
+.accounting-statement-total-row td:nth-child(10) input {
+  width: calc(100% + 5px);
+}
+.accounting-statement-grid th:nth-child(4),
+.accounting-statement-grid td:nth-child(4) {
+  width: 95px;
+}
+
+.accounting-statement-grid th:nth-child(8),
+.accounting-statement-grid td:nth-child(8),
+.accounting-statement-grid th:nth-child(9),
+.accounting-statement-grid td:nth-child(9),
+.accounting-statement-grid th:nth-child(10),
+.accounting-statement-grid td:nth-child(10) {
+  width: 115px;
+}
+
+.accounting-statement-total-row td:nth-child(8) input,
+.accounting-statement-total-row td:nth-child(9) input,
+.accounting-statement-total-row td:nth-child(10) input {
+  width: 100%;
+}
+.accounting-statement-total-row input {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+.accounting-statement-filter-row input[readonly] {
+  cursor: default;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.accounting-statement-filter-row input[readonly]:focus {
+  outline: none;
+  box-shadow: none;
+}
+/* Anteprima di stampa autonoma della Scheda contabile */
+.accounting-statement-print-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 18px; background: rgba(17, 38, 61, .58); }
+.accounting-statement-print-backdrop[hidden] { display: none; }
+.accounting-statement-print-window { display: flex; flex-direction: column; width: min(1500px, 98vw); height: min(940px, 96vh); overflow: hidden; border: 1px solid #91a9c2; border-radius: 8px; background: #eef3f8; box-shadow: 0 18px 48px rgba(16, 37, 58, .32); }
+.accounting-statement-print-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 62px; padding: 10px 16px; border-bottom: 1px solid #a6b8ca; background: #fff; color: #142a43; }
+.accounting-statement-print-heading { display: grid; gap: 4px; }
+.accounting-statement-print-heading strong { font-size: 16px; }
+.accounting-statement-print-heading span { font-size: 12px; color: #52677d; }
+.accounting-statement-print-actions { display: flex; align-items: center; gap: 8px; }
+.accounting-statement-print-actions button { min-width: 40px; height: 38px; padding: 0 14px; border: 1px solid #536fc3; border-radius: 5px; background: #fff; color: #17345a; font: 13px/1.2 Arial, sans-serif; cursor: pointer; }
+.accounting-statement-print-actions button:hover, .accounting-statement-print-actions button:focus-visible { background: #e7eff9; }
+.accounting-statement-print-actions [data-accounting-statement-print] { background: #526fc7; color: #fff; font-weight: 600; }
+.accounting-statement-print-viewport { flex: 1; overflow: auto; padding: 22px; }
+.accounting-statement-print-document { display: grid; justify-content: center; gap: 22px; min-width: 100%; width: max-content; zoom: var(--accounting-statement-print-zoom, .8); }
+.accounting-statement-print-page { box-sizing: border-box; width: 297mm; min-height: 210mm; padding: 12mm; background: #fff; color: #111; box-shadow: 0 3px 16px rgba(20, 40, 60, .2); font: 10px/1.35 Arial, sans-serif; }
+.accounting-statement-print-page-heading { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 10mm; padding-bottom: 5mm; border-bottom: 1px solid #63768a; }
+.accounting-statement-print-page-heading strong { display: block; margin-bottom: 4px; font-size: 18px; }
+.accounting-statement-print-page-info { white-space: nowrap; text-align: right; }
+.accounting-statement-print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.accounting-statement-print-table th, .accounting-statement-print-table td { padding: 4px 5px; border: 1px solid #aeb9c5; text-align: left; overflow-wrap: anywhere; }
+.accounting-statement-print-table th:nth-child(4), .accounting-statement-print-table td:nth-child(4), .accounting-statement-print-table th:nth-child(6), .accounting-statement-print-table td:nth-child(6), .accounting-statement-print-table th:nth-child(11), .accounting-statement-print-table td:nth-child(11) { text-align: center; }
+.accounting-statement-print-table th:nth-child(8), .accounting-statement-print-table td:nth-child(8), .accounting-statement-print-table th:nth-child(9), .accounting-statement-print-table td:nth-child(9), .accounting-statement-print-table th:nth-child(10), .accounting-statement-print-table td:nth-child(10) { text-align: right; }
+.accounting-statement-print-table th { background: #e6edf4; font-weight: 700; }
+.accounting-statement-print-table tfoot td { background: #edf1f5; font-weight: 700; }
+.accounting-statement-print-table tfoot td:not(:first-child):not(:last-child) { text-align: right; }
+.accounting-statement-print-table tfoot td:last-child { text-align: center; }
+@media (max-width: 760px) { .accounting-statement-print-backdrop { padding: 6px; } .accounting-statement-print-window { width: 100%; height: 98vh; } .accounting-statement-print-toolbar { align-items: flex-start; flex-direction: column; } .accounting-statement-print-actions { flex-wrap: wrap; } .accounting-statement-print-viewport { padding: 10px; } }
+@media print {
+  body.accounting-statement-print-active * { visibility: hidden !important; }
+  body.accounting-statement-print-active .accounting-statement-print-backdrop, body.accounting-statement-print-active .accounting-statement-print-backdrop * { visibility: visible !important; }
+  body.accounting-statement-print-active .accounting-statement-print-backdrop { position: static; display: block; padding: 0; background: #fff; }
+  body.accounting-statement-print-active .accounting-statement-print-window { display: block; width: auto; height: auto; overflow: visible; border: 0; border-radius: 0; box-shadow: none; background: #fff; }
+  body.accounting-statement-print-active .accounting-statement-print-toolbar { display: none; }
+  body.accounting-statement-print-active .accounting-statement-print-viewport { overflow: visible; padding: 0; }
+  body.accounting-statement-print-active .accounting-statement-print-document { display: block; width: auto; min-width: 0; zoom: 1 !important; }
+  body.accounting-statement-print-active .accounting-statement-print-page { width: 297mm; height: 210mm; min-height: 0; margin: 0; overflow: hidden; box-shadow: none; break-after: page; page-break-after: always; }
+  body.accounting-statement-print-active .accounting-statement-print-page:last-child { break-after: auto; page-break-after: auto; }
+}
+
+/* Layout autonomo del selettore clienti/fornitori */
+.customer-supplier-choice-dialog { width: min(770px, calc(100vw - 32px)); }
+.customer-supplier-choice-frame {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 12px;
+}
+.customer-supplier-choice-frame .field {
+  align-items: center;
+  display: flex !important;
+  gap: 6px;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  grid-template-columns: none !important;
+  min-width: 0;
+  width: 100%;
+}
+.customer-supplier-choice-frame .field > label {
+  flex: 0 0 120px;
+  min-width: 0;
+  width: 120px;
+}
+.customer-supplier-choice-frame .customer-supplier-choice-code > label { flex-basis: 120px; }
+.customer-supplier-choice-frame .customer-supplier-choice-code [data-choice-account-code] {
+  flex: 0 0 100px;
+  margin: 0;
+  text-align: center;
+  width: 100px;
+}
+.customer-supplier-choice-frame .customer-supplier-choice-code [data-lookup-open] {
+  flex: 0 0 32px;
+  height: 30px;
+  min-height: 30px;
+  width: 32px;
+}
+.customer-supplier-choice-frame .customer-supplier-choice-code [data-choice-party-type="C"] { margin-left: auto; }
+.customer-supplier-choice-frame .customer-supplier-choice-code [data-choice-party-type="F"] { margin-left: 4px; }
+.customer-supplier-choice-frame .customer-supplier-choice-code .button { flex: 0 0 86px; height: 28px; min-height: 28px; width: 86px; }
+.customer-supplier-choice-frame .customer-supplier-choice-wide > input { flex: 1 1 auto; min-width: 0; width: 100%; }
+.customer-supplier-choice-frame .customer-supplier-choice-city [data-choice-party-city] { flex: 1 1 auto; min-width: 0; width: auto; }
+.customer-supplier-choice-frame .customer-supplier-choice-city [data-choice-party-province] { flex: 0 0 90px; margin-left: 8px; min-width: 0; width: 90px; }
+.customer-supplier-choice-frame .customer-supplier-choice-tax .customer-supplier-choice-tax-code-label { flex: 0 0 120px; white-space: nowrap; }
+.customer-supplier-choice-frame .customer-supplier-choice-tax .customer-supplier-choice-tax-code-input { flex: 0 0 210px; min-width: 0; width: 210px; }
+.customer-supplier-choice-frame .customer-supplier-choice-tax .customer-supplier-choice-vat-label { flex: 0 0 90px; margin-left: 8px; white-space: nowrap; width: 90px; }
+.customer-supplier-choice-frame .customer-supplier-choice-tax .customer-supplier-choice-vat-input { flex: 1 1 auto; min-width: 0; width: 100%; }
+.customer-supplier-choice-frame .customer-supplier-choice-dates { flex-wrap: nowrap; gap: 6px; }
+.customer-supplier-choice-frame .customer-supplier-choice-dates > label { flex: 0 0 120px; }
+.customer-supplier-choice-frame .customer-supplier-choice-dates .customer-supplier-choice-date-to-label { flex-basis: 90px; width: 90px; }
+.customer-supplier-choice-frame .customer-supplier-choice-dates .micronote-date-control { flex: 0 0 150px; width: 150px; }
+.customer-supplier-choice-frame .customer-supplier-choice-dates .customer-supplier-choice-date-to-label { margin-left: 68px; }
+.customer-supplier-choice-frame .customer-supplier-choice-dates .customer-supplier-choice-date-to-control { margin-left: 0; }
+.customer-supplier-choice-frame input[readonly] { background: #e6e6f0; color: #000; opacity: 1; }
+.customer-supplier-choice-frame .customer-supplier-choice-dates .micronote-date-control {
+  border: 1px solid #8a8f98;
+  border-radius: 5px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  height: 30px;
+  overflow: hidden;
+  position: relative;
+}
+.customer-supplier-choice-frame .customer-supplier-choice-dates .micronote-date-input {
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  box-sizing: border-box;
+  height: 28px;
+  min-width: 0;
+  padding: 0 4px;
+  width: 100%;
+}
+.customer-supplier-choice-frame .customer-supplier-choice-dates .micronote-date-button {
+  bottom: 0;
+  height: auto;
+  right: 0;
+  top: 0;
+  width: 28px;
+}
+
+/* Estratto conto clienti/fornitori - intestazione lista */
+.customer-supplier-statement-page > .customer-supplier-statement-header {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: row nowrap;
+  height: 80px !important;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  min-height: 80px !important;
+  overflow: hidden;
+  padding: 4px 12px;
+}
+
+.customer-supplier-statement-page .customer-supplier-statement-header .module-title-identity {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 11px;
+  min-width: 0;
+}
+
+.customer-supplier-statement-page .customer-supplier-statement-header .module-title-logo,
+.customer-supplier-statement-page .customer-supplier-statement-header .module-title-logo img {
+  display: flex;
+  flex: 0 0 64px;
+  height: 64px !important;
+  max-height: 64px !important;
+  max-width: 64px !important;
+  object-fit: contain;
+  width: 64px !important;
+}
+
+.customer-supplier-statement-page .customer-supplier-statement-header .module-title-logo img {
+  display: block;
+}
+
+.customer-supplier-statement-page .customer-supplier-statement-header .accounting-statement-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  margin: 0;
+}
+
+.customer-supplier-statement-page > .customer-supplier-statement-header {
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid #b8c5d6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(23, 34, 54, .06);
+}
+
+.customer-supplier-statement-page .customer-supplier-statement-header .module-title-identity > div {
+  min-width: 0;
+}
+
+.customer-supplier-statement-page .customer-supplier-statement-header h1 {
+  color: #172236;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 29px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.customer-supplier-statement-page .customer-supplier-statement-header p {
+  color: #53657a;
+  font-size: 13px;
+  line-height: 18px;
+  margin: 2px 0 0;
+}
+
+.customer-supplier-statement-page .accounting-statement-actions .accounting-statement-records {
+  flex: 0 0 112px;
+  height: 40px;
+  margin: 0;
+  width: 112px;
+}
+
+/* Estratto conto clienti/fornitori - barra filtri */
+.customer-supplier-statement-page > .accounting-statement-filters {
+  flex: 0 0 auto;
+  margin: 0 0 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.customer-supplier-statement-page > .accounting-statement-filters > .form-frame {
+  align-items: center;
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid #9eacbc;
+  border-radius: 6px;
+  box-sizing: border-box;
+  display: flex;
+  height: 52px;
+  margin: 0;
+  min-height: 52px;
+  padding: 0;
+  width: 100%;
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row .customer-supplier-party-field {
+  flex: 1 1 420px;
+  grid-template-columns: 88px 76px 76px minmax(160px, 1fr);
+  min-width: 0;
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row .accounting-statement-date-field {
+  flex: 0 1 270px;
+  grid-template-columns: 88px minmax(150px, 1fr);
+  min-width: 0;
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row label {
+  height: 30px;
+  min-height: 30px;
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row input:not([type="hidden"]) {
+  height: 30px;
+  min-height: 30px;
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row input[readonly] {
+  background: #d7dbe3;
+  color: #172236;
+  cursor: default;
+  opacity: 1;
+  user-select: none;
+  -webkit-text-fill-color: #172236;
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row .micronote-date-control {
+  height: 30px;
+  min-width: 0;
+  width: 100%;
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row .accounting-statement-change {
+  flex: 0 0 110px;
+  height: 40px;
+  min-width: 110px;
+  width: 110px;
+}
+
+@media (max-width: 900px) {
+  .customer-supplier-statement-page > .accounting-statement-filters > .form-frame {
+    height: auto;
+    min-height: 52px;
+  }
+
+  .customer-supplier-statement-page .customer-supplier-filter-row {
+    flex-wrap: wrap;
+  }
+
+  .customer-supplier-statement-page .customer-supplier-filter-row .customer-supplier-party-field,
+  .customer-supplier-statement-page .customer-supplier-filter-row .accounting-statement-date-field {
+    flex: 1 1 100%;
+  }
+}
+
+/* Estratto conto clienti/fornitori - respiro laterale della griglia */
+.customer-supplier-statement-page .accounting-statement-grid thead th,
+.customer-supplier-statement-page .accounting-statement-grid tbody td {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.customer-supplier-statement-page .customer-supplier-party-field [data-statement-account-description] {
+  justify-self: start;
+  width: calc(100% - 110px);
+}
+
+@media (max-width: 900px) {
+  .customer-supplier-statement-page .customer-supplier-party-field [data-statement-account-description] {
+    width: 100%;
+  }
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row .customer-supplier-party-field,
+.customer-supplier-statement-page .customer-supplier-filter-row .accounting-statement-date-field {
+  column-gap: 4px;
+}
+
+.customer-supplier-statement-page .customer-supplier-party-field [data-statement-account-description] {
+  width: calc(100% - 118px);
+}
+
+.customer-supplier-statement-page .customer-supplier-filter-row {
+  box-sizing: border-box;
+  margin-left: 15px;
+  margin-right: 15px;
+  width: calc(100% - 30px);
+}
+
+/* Estratto conto clienti/fornitori - corpo lista */
+.customer-supplier-statement-page .accounting-statement-grid-frame {
+  background: #ffffff;
+  border: 1px solid #8799ad;
+  border-radius: 5px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.customer-supplier-statement-page .accounting-statement-grid {
+  background: #ffffff;
+  border-collapse: separate;
+  border-spacing: 0;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.customer-supplier-statement-page .accounting-statement-grid th {
+  background: linear-gradient(#c7d7e8, #b8cbe0 52%, #a9bed6);
+  color: #0e1824;
+  font-size: 13px;
+  font-weight: 400;
+  height: 30px;
+  vertical-align: middle;
+}
+
+.customer-supplier-statement-page .accounting-statement-grid tbody td {
+  background: #ffffff;
+  cursor: default;
+  font-size: 13px;
+  font-weight: 500;
+  height: 28px;
+  user-select: none;
+  -webkit-user-select: none;
+  vertical-align: middle;
+}
+
+.customer-supplier-statement-page .accounting-statement-grid tbody tr:hover td {
+  background: #e3edf8;
+}
+
+.customer-supplier-statement-page .accounting-statement-grid tbody tr.selected-row td,
+.customer-supplier-statement-page .accounting-statement-grid tbody tr.selected td,
+.customer-supplier-statement-page .accounting-statement-grid tbody tr.selected-row:hover td,
+.customer-supplier-statement-page .accounting-statement-grid tbody tr.selected:hover td {
+  background: #b8d2ee;
+}
+
+.customer-supplier-statement-page .accounting-statement-grid tbody tr.selected-row td:first-child,
+.customer-supplier-statement-page .accounting-statement-grid tbody tr.selected td:first-child {
+  box-shadow: inset 4px 0 #2f6faa;
+}
+
+.customer-supplier-statement-page .accounting-statement-grid tbody tr:focus,
+.customer-supplier-statement-page .accounting-statement-grid tbody td:focus,
+.customer-supplier-statement-page .accounting-statement-grid tbody td:focus-visible {
+  outline: none;
 }

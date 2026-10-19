@@ -25,6 +25,18 @@ public sealed class IndexModel(
         Report = !string.IsNullOrWhiteSpace(partyType) && partyCode is > 0
             ? await repository.GetPartyAsync(partyType, partyCode.Value, from, to, cancellationToken)
             : await repository.GetPartyInitialAsync(year, cancellationToken);
+
+        if (partyCode is not > 0 && string.Equals(partyType, "C", StringComparison.OrdinalIgnoreCase))
+        {
+            Report.PartyType = "C";
+        }
+
+        var isCustomer = string.Equals(Report.PartyType, "C", StringComparison.OrdinalIgnoreCase);
+        Report.PartyType = isCustomer ? "C" : "F";
+        Report.PageTitle = isCustomer ? "Estratto conto clienti" : "Estratto conto fornitori";
+        Report.PageDescription = isCustomer
+            ? "Visualizzazione e stampa estratto conto clienti"
+            : "Visualizzazione e stampa estratto conto fornitori";
     }
 
     private static DateOnly DefaultDateTo(int year)

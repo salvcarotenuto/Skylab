@@ -339,7 +339,7 @@ public sealed class AccountingStatementRepository(SkyLabDatabase database)
                    COALESCE(Via, '') AS Via,
                    COALESCE(Citta, '') AS Citta,
                    COALESCE(Cap, '') AS Cap,
-                   COALESCE(Prov, '') AS Prov,
+                   COALESCE(Provincia, '') AS Prov,
                    COALESCE(Codfi, '') AS Codfi,
                    COALESCE(Piva, '') AS Piva
             FROM clienti
@@ -350,7 +350,7 @@ public sealed class AccountingStatementRepository(SkyLabDatabase database)
                    COALESCE(Via, '') AS Via,
                    COALESCE(Citta, '') AS Citta,
                    COALESCE(Cap, '') AS Cap,
-                   COALESCE(Prov, '') AS Prov,
+                   COALESCE(Provincia, '') AS Prov,
                    COALESCE(Codfi, '') AS Codfi,
                    COALESCE(Piva, '') AS Piva
             FROM fornitori

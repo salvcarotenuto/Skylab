@@ -1794,7 +1794,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.SkyProg?.Hide?.();
   };
 
-  const submitWithProgress = () => {
+  const submitWithProgress = async () => {
     if (!form || form.dataset.accountingSubmitPending === "true") {
       return;
     }
@@ -1808,9 +1808,31 @@ document.addEventListener("DOMContentLoaded", () => {
     amountInputs.forEach(normalizeMoneyForSubmit);
     window.SkyProg?.Show?.(form);
 
-    window.setTimeout(() => {
-      HTMLFormElement.prototype.submit.call(form);
-    }, 1000);
+    try {
+      const response = await fetch(form.action || window.location.href, {
+        method: form.method || "post",
+        body: new FormData(form),
+        credentials: "same-origin",
+        redirect: "follow"
+      });
+
+      if (response.redirected) {
+        window.SkyProg?.Close?.(() => window.location.assign(response.url));
+        return;
+      }
+
+      const html = await response.text();
+      window.SkyProg?.Close?.(() => {
+        document.open();
+        document.write(html);
+        document.close();
+      });
+    } catch {
+      window.SkyProg?.Close?.(() => {
+        enableSaveButton();
+        showValidationError("Impossibile completare il salvataggio del movimento.");
+      });
+    }
   };
 
   form?.addEventListener("submit", (event) => {

@@ -79,7 +79,7 @@ public sealed class CustomerSupplierBalanceSummaryRepository(SkyLabDatabase data
                 WHERE mc.Anno = @year AND mc.CliFor = @type
                 GROUP BY mc.Ditta
             ) m ON m.Ditta = a.Codice
-            WHERE (@storeCode IS NULL OR a.PuntoV = @storeCode)
+            WHERE (@storeCode IS NULL OR a.ULocale = @storeCode)
             ORDER BY a.Codice;
             """;
 

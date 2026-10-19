@@ -294,16 +294,13 @@ public sealed class OpeningBalanceRepository(SkyLabDatabase database)
     {
         const string sql = """
             INSERT INTO movcontrg
-                (ID, Anno, Settore, Codice, Riga, Conto, Importo, Segno)
+                (ID, Riga, Conto, Importo, Segno)
             VALUES
-                (@id, @year, @sector, @code, @rowNumber, @accountCode, @amount, @sign);
+                (@id, @rowNumber, @accountCode, @amount, @sign);
             """;
 
         await using var command = new MySqlCommand(sql, connection, transaction);
         var idParameter = command.Parameters.Add("@id", MySqlDbType.Int32);
-        var yearParameter = command.Parameters.Add("@year", MySqlDbType.Int32);
-        var sectorParameter = command.Parameters.Add("@sector", MySqlDbType.Int32);
-        var codeParameter = command.Parameters.Add("@code", MySqlDbType.Int32);
         var rowNumberParameter = command.Parameters.Add("@rowNumber", MySqlDbType.Int32);
         var accountCodeParameter = command.Parameters.Add("@accountCode", MySqlDbType.Int32);
         var amountParameter = command.Parameters.Add("@amount", MySqlDbType.Decimal);
@@ -316,9 +313,6 @@ public sealed class OpeningBalanceRepository(SkyLabDatabase database)
             var amount = row.Debit != 0 ? row.Debit : row.Credit;
 
             idParameter.Value = movementId;
-            yearParameter.Value = year;
-            sectorParameter.Value = OpeningSector;
-            codeParameter.Value = code;
             rowNumberParameter.Value = rowNumber++;
             accountCodeParameter.Value = row.AccountCode;
             amountParameter.Value = amount;
